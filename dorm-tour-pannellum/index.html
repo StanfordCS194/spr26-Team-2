@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Dorm Tour</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+    }
+    #panorama {
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="panorama"></div>
+
+  <script>
+    pannellum.viewer('panorama', {
+      default: {
+        firstScene: 'spotOne',
+        autoLoad: true,
+        sceneFadeDuration: 800
+      },
+      scenes: {
+        spotOne: {
+          type: 'equirectangular',
+          panorama: 'photos/spotOne.jpeg',
+          hotSpots: [
+            {
+              pitch: -2,
+              yaw: 35,
+              type: 'scene',
+              text: 'Go to hallway',
+              sceneId: 'hallwayIndoor'
+            },
+            {
+              pitch: -3,
+              yaw: -65,
+              type: 'scene',
+              text: 'Spot One (angle 2)',
+              sceneId: 'spotOneTwo'
+            }
+          ]
+        },
+        spotOneTwo: {
+          type: 'equirectangular',
+          panorama: 'photos/spotOneTwo.jpeg',
+          hotSpots: [
+            {
+              pitch: -1,
+              yaw: 165,
+              type: 'scene',
+              text: 'Back to Spot One',
+              sceneId: 'spotOne'
+            },
+            {
+              pitch: -4,
+              yaw: 10,
+              type: 'scene',
+              text: 'Spot One (angle 3)',
+              sceneId: 'spotOneThree'
+            }
+          ]
+        },
+        spotOneThree: {
+          type: 'equirectangular',
+          panorama: 'photos/spotOneThree.jpeg',
+          hotSpots: [
+            {
+              pitch: -1,
+              yaw: 180,
+              type: 'scene',
+              text: 'Back to Spot One (angle 2)',
+              sceneId: 'spotOneTwo'
+            },
+            {
+              pitch: -3,
+              yaw: 20,
+              type: 'scene',
+              text: 'Spot One (angle 4)',
+              sceneId: 'spotOneFour'
+            }
+          ]
+        },
+        spotOneFour: {
+          type: 'equirectangular',
+          panorama: 'photos/spotOneFour.jpeg',
+          hotSpots: [
+            {
+              pitch: -2,
+              yaw: 170,
+              type: 'scene',
+              text: 'Back to Spot One (angle 3)',
+              sceneId: 'spotOneThree'
+            },
+            {
+              pitch: -2,
+              yaw: 35,
+              type: 'scene',
+              text: 'Go to hallway',
+              sceneId: 'hallwayIndoor'
+            }
+          ]
+        },
+        hallwayIndoor: {
+          type: 'equirectangular',
+          panorama: 'photos/hallwayIndoor.jpeg',
+          hotSpots: [
+            {
+              pitch: -2,
+              yaw: -145,
+              type: 'scene',
+              text: 'Go to Spot One',
+              sceneId: 'spotOne'
+            },
+            {
+              pitch: -1,
+              yaw: 30,
+              type: 'scene',
+              text: 'Go to Spot Two',
+              sceneId: 'spotTwo'
+            }
+          ]
+        },
+        spotTwo: {
+          type: 'equirectangular',
+          panorama: 'photos/spotTwo.jpeg',
+          hotSpots: [
+            {
+              pitch: -2,
+              yaw: 150,
+              type: 'scene',
+              text: 'Go to hallway',
+              sceneId: 'hallwayIndoor'
+            },
+            {
+              pitch: -3,
+              yaw: -25,
+              type: 'scene',
+              text: 'Spot Two (angle 2)',
+              sceneId: 'spotTwoTwo'
+            }
+          ]
+        },
+        spotTwoTwo: {
+          type: 'equirectangular',
+          panorama: 'photos/spotTwoTwo.jpeg',
+          hotSpots: [
+            {
+              pitch: -2,
+              yaw: 170,
+              type: 'scene',
+              text: 'Back to Spot Two',
+              sceneId: 'spotTwo'
+            }
+          ]
+        }
+      }
+    });
+  </script>
+</body>
+</html>
