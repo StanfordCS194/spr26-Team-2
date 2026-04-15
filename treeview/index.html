@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<!--
+  TreeView — single HTML file for our CS194W dorm explorer.
+  Everything lives here: styles, the dorm list, and the Pannellum 360° viewer hookup.
+  I kept it one file so teammates can open index.html and run a local server without a build step.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TreeView | Stanford undergraduate residences</title>
+
+  <!-- Fonts load from Google; preconnect just makes that a bit faster -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Outfit:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <!-- Pannellum = the library that renders draggable360° photos (same one we used in dorm-tour-pannellum) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.css" />
+
+  <style>
+    /*
+     * --- Design tokens (I put colors/spacing here so I’m not hunting through the file later) ---
+     * Cardinal red / teal are loosely Stanford-ish; the rest is mostly neutrals for readability.
+     */
+    :root {
+      --cardinal: #8c1515;
+      --cardinal-deep: #6d1014;
+      --charcoal: #1a2228;
+      --charcoal-soft: #2e363d;
+      --teal: #3d9a8c;
+      --teal-glow: rgba(61, 154, 140, 0.35);
+      --cream: #f7f4ee;
+      --glass: rgba(255, 255, 255, 0.72);
+      --muted: #5a6570;
+      --line: rgba(46, 54, 61, 0.1);
+      --shadow-sm: 0 2px 8px rgba(26, 34, 40, 0.06);
+      --shadow-md: 0 12px 40px rgba(26, 34, 40, 0.1);
+      --shadow-lg: 0 24px 64px rgba(26, 34, 40, 0.14);
+      --shadow-cardinal: 0 8px 32px rgba(140, 21, 21, 0.22);
+      --radius: 20px;
+      --radius-sm: 14px;
+      --font-ui: "Outfit", system-ui, sans-serif;
+      --font-display: "Fraunces", Georgia, serif;
+      --max: 1040px;
+    }
+
+    /* Makes width/height math less painful (padding counts inside the box, not on top of it) */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-ui);
+      line-height: 1.55;
+      color: var(--charcoal-soft);
+      background: var(--cream);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Keyboard users get a visible ring; I matched it to the teal accent */
+    :focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: 3px;
+    }
+
+    /* Reset default button chrome — the room-type “pills” are <button>s we style ourselves */
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+    }
+
+    /*
+     * --- Full-page wrapper ---
+     * The gradients and noise sit on pseudo-elements so they stay behind all content (negative z-index).
+     */
+    .page {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Soft red/teal blobs + cream base — fixed so scrolling doesn’t “move” the background */
+    .page::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background:
+        radial-gradient(ellipse 120% 80% at 10% -20%, rgba(140, 21, 21, 0.09), transparent 50%),
+        radial-gradient(ellipse 80% 60% at 95% 10%, rgba(61, 154, 140, 0.12), transparent 45%),
+        radial-gradient(ellipse 60% 50% at 50% 100%, rgba(235, 230, 220, 0.9), var(--cream));
+    }
+
+    /* Tiny SVG noise overlay; pointer-events none so it never blocks clicks */
+    .page::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      opacity: 0.4;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    }
+
+    /* --- Top section: logo + welcome text --- */
+    .hero {
+      padding: clamp(1.5rem, 4vw, 2.75rem) 1.25rem clamp(2rem, 5vw, 3.5rem);
+    }
+
+    /* On phones it stacks; on wider screens it becomes two columns (logo | text) */
+    .hero-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      display: grid;
+      gap: clamp(1.5rem, 3vw, 2.5rem);
+      align-items: center;
+    }
+
+    .hero-logo-wrap {
+      display: flex;
+      justify-content: center;
+    }
+
+    .hero-logo {
+      width: clamp(140px, 28vw, 240px);
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 20px 40px rgba(140, 21, 21, 0.18)) drop-shadow(0 4px 12px rgba(26, 34, 40, 0.12));
+      /* Little entrance animation so the page doesn’t feel totally static on first load */
+      animation: logo-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .hero-copy {
+      animation: fade-up 0.85s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @media (min-width: 720px) {
+      .hero-inner {
+        grid-template-columns: auto 1fr;
+        gap: 2.5rem 3rem;
+      }
+      .hero-logo-wrap {
+        justify-content: flex-start;
+      }
+    }
+
+    /*
+     * Gradient text trick: paint a gradient on the text “fill”.
+     * Older browsers might not support background-clip:text, so the @supports block falls back to plain color.
+     */
+    .welcome-title {
+      margin: 0 0 0.75rem;
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5.5vw, 3.15rem);
+      font-weight: 700;
+      font-optical-sizing: auto;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      color: var(--charcoal);
+      background: linear-gradient(120deg, var(--charcoal) 0%, var(--charcoal-soft) 55%, var(--cardinal-deep) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    @supports not (background-clip: text) {
+      .welcome-title {
+        color: var(--charcoal);
+        -webkit-text-fill-color: unset;
+        background: none;
+      }
+    }
+
+    .welcome-text {
+      margin: 0;
+      max-width: 32rem;
+      font-size: clamp(1.02rem, 2vw, 1.15rem);
+      color: var(--muted);
+    }
+
+    /* --- Main content width --- caps how wide everything reads on huge monitors */
+    .shell {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 1.25rem 3.5rem;
+    }
+
+    /* One column on small screens; side-by-side cards once there’s enough room */
+    .layout {
+      display: grid;
+      gap: 1.35rem;
+    }
+
+    @media (min-width: 860px) {
+      .layout {
+        grid-template-columns: 1fr 1fr;
+        gap: 1.35rem;
+        /* stretch = both cards share the same height (matches the taller preview column) */
+        align-items: stretch;
+      }
+    }
+
+    /* Small uppercase labels like “EXPLORE RESIDENCES” */
+    .panel-head {
+      margin: 0 0 0.75rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /*
+     * --- “Glass” cards ---
+     * Frosted blur + light border. The ::before is a fake gradient border (a bit fiddly but looks nice).
+     */
+    .glass {
+      position: relative;
+      padding: clamp(1.1rem, 2.5vw, 1.35rem);
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      transition: box-shadow 0.35s ease;
+    }
+
+    .glass:hover {
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* Gradient ring — mask cuts out the middle so you only see a 1px-ish border */
+    .glass::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      pointer-events: none;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(140, 21, 21, 0.06), rgba(61, 154, 140, 0.08));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+
+    /* Divider between the dorm field and the room-type field */
+    .field + .field {
+      margin-top: 1.1rem;
+      padding-top: 1.1rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .hint {
+      margin: 0.55rem 0 0;
+      font-size: 0.84rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    /*
+     * Native <select> but styled to match the UI.
+     * appearance:none kills the default arrow; I drew a tiny SVG chevron as background-image instead.
+     */
+    .select {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      padding-right: 2.75rem;
+      font-family: var(--font-ui);
+      font-size: 1.02rem;
+      font-weight: 500;
+      color: var(--charcoal);
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-sm);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 12 12'%3E%3Cpath fill='%238c1515' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .select:hover {
+      border-color: rgba(140, 21, 21, 0.25);
+    }
+
+    .select:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(61, 154, 140, 0.2);
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .pill-btn {
+      padding: 0.55rem 1rem;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--charcoal-soft);
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, background 0.2s, color 0.2s;
+    }
+
+    .pill-btn:hover {
+      transform: translateY(-2px);
+      border-color: rgba(140, 21, 21, 0.2);
+      box-shadow: 0 6px 20px rgba(26, 34, 40, 0.08);
+    }
+
+    /* Which room type is active — cardinal gradient so it’s obvious at a glance */
+    .pill-btn.is-on {
+      color: #fff;
+      font-weight: 600;
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--cardinal) 0%, var(--cardinal-deep) 100%);
+      box-shadow: var(--shadow-cardinal);
+      transform: translateY(-1px);
+    }
+
+    /* --- Right card: mirrors your dropdown choice + hosts the 360 viewer --- */
+    .preview-inner {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-kicker {
+      margin: 0;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+
+    .preview-title {
+      margin: 0.3rem 0 0.65rem;
+      font-family: var(--font-display);
+      font-size: clamp(1.15rem, 2.2vw, 1.35rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.35;
+      color: var(--charcoal);
+    }
+
+    /*
+     * Dark frame around Pannellum — overflow hidden keeps the canvas corners rounded.
+     * Height mostly comes from .pannellum-host below (clamped so it doesn’t eat the whole screen).
+     */
+    .preview-viewport {
+      position: relative;
+      overflow: hidden;
+      padding: 0;
+      min-height: 220px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(46, 54, 61, 0.15);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 28px rgba(26, 34, 40, 0.12);
+      background: #1a2228;
+    }
+
+    /* This div’s id is what we pass into pannellum.viewer(...) in the script */
+    .pannellum-host {
+      width: 100%;
+      height: clamp(220px, 30vh, 300px);
+    }
+
+    /* --- Bottom section: future “design your room” tool (static placeholder for now) --- */
+    .designer {
+      margin-top: 1.75rem;
+    }
+
+    .designer-head {
+      margin-bottom: 1.25rem;
+    }
+
+    .designer-title {
+      margin: 0 0 0.5rem;
+      font-family: var(--font-display);
+      font-size: clamp(1.35rem, 3vw, 1.65rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--charcoal);
+    }
+
+    .designer-lede {
+      margin: 0 0 0.75rem;
+      max-width: 40rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    /* Little pill under the heading — JS writes “Dorm name, room type” here to match the picker */
+    .designer-context {
+      margin: 0;
+      display: inline-block;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--cardinal);
+      background: rgba(140, 21, 21, 0.08);
+      border: 1px solid rgba(140, 21, 21, 0.15);
+      border-radius: 999px;
+    }
+
+    .designer-placeholder {
+      position: relative;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.35rem;
+      text-align: center;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.5) 0%, transparent 50%),
+        linear-gradient(165deg, #2a3238 0%, #1a2228 40%, #252d35 100%);
+      overflow: hidden;
+    }
+
+    /* Same pulsing glow idea as we used elsewhere — subtle motion behind “Coming soon” */
+    .designer-placeholder::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      pointer-events: none;
+      animation: hero-glow 6s ease-in-out infinite;
+      background:
+        radial-gradient(circle at 30% 20%, var(--teal-glow), transparent 45%),
+        radial-gradient(circle at 80% 80%, rgba(140, 21, 21, 0.25), transparent 40%);
+    }
+
+    .designer-placeholder-title {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(1.25rem, 3vw, 1.5rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    /* --- Keyframes (referenced above in .hero-logo / .hero-copy / .designer-placeholder) --- */
+
+    @keyframes logo-in {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes fade-up {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes hero-glow {
+      0%, 100% { opacity: 0.55; }
+      50% { opacity: 0.85; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Everything visible sits inside .page so the background layers stay behind it -->
+  <div class="page">
+    <!-- Top of the site: TreeView logo asset + short explanation for visitors -->
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="hero-logo-wrap">
+          <img class="hero-logo" src="treeview-logo.png" alt="TreeView" width="240" height="240" />
+        </div>
+        <div class="hero-copy">
+          <h1 id="welcome-heading" class="welcome-title">Welcome to TreeView</h1>
+          <p class="welcome-text">
+            Compare undergraduate residences and room configurations as you prepare for your first year.
+            Choose a dorm and room category below to preview your selection and plan your space.
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <!--
+        Two cards on desktop:
+        Left = controls (filled by JS). Right = text summary + Pannellum mount point.
+      -->
+      <div class="layout">
+        <!-- Left card: dorm <select> is empty here on purpose — fillDormDropdown() injects options -->
+        <div class="glass">
+          <p class="panel-head">Explore residences</p>
+          <div class="field">
+            <label class="label" for="dorm-select">Dorm</label>
+            <select id="dorm-select" class="select" aria-describedby="dorm-hint"></select>
+            <!-- Short explainer line under the dropdown (frosh vs four-class) -->
+            <p id="dorm-hint" class="hint"></p>
+          </div>
+          <div class="field">
+            <!-- room-label gets updated in JS to “Room categories, <current dorm>” -->
+            <span class="label" id="room-label">Room category</span>
+            <!-- Pills are created in renderPills(); click handler lives at bottom of script -->
+            <div id="pills" class="pills" role="group" aria-labelledby="room-label"></div>
+          </div>
+        </div>
+
+        <aside class="glass" aria-label="Residence preview">
+          <div class="preview-inner">
+            <p class="preview-kicker">Current selection</p>
+            <!-- Filled by updatePreview(): “Branner, Singles” style string -->
+            <p id="preview-title" class="preview-title"></p>
+            <div class="preview-viewport" aria-label="Immersive preview, panoramic room view">
+              <!-- Pannellum replaces the inside of this div at runtime -->
+              <div id="treeview-panorama" class="pannellum-host"></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Reserved UI for a future feature; designer-context still tracks selection for consistency -->
+      <section class="designer glass" aria-labelledby="designer-heading">
+        <div class="designer-head">
+          <p class="panel-head">Design your own room</p>
+          <h2 id="designer-heading" class="designer-title">Lay out your space</h2>
+          <p class="designer-lede">
+            Customize how your room could look for the dorm and room category you select.
+          </p>
+          <p id="designer-context" class="designer-context" aria-live="polite"></p>
+        </div>
+        <div class="designer-placeholder" role="status" aria-live="polite">
+          <p class="designer-placeholder-title">Coming soon</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Load Pannellum before our inline script so the global `pannellum` object exists -->
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.js"></script>
+  <script>
+    /*
+     * Maps internal keys (what we store in data / HOUSES) to human-readable labels on buttons.
+     * Example: one_room_double -> “1-room doubles”
+     */
+    const ROOM_LABELS = {
+      single: "Singles",
+      one_room_double: "1-room doubles",
+      two_room_double: "2-room doubles",
+      one_room_triple: "1-room triples",
+      two_room_triple: "2-room triples",
+      three_room_triple: "3-room triples",
+    };
+
+    /*
+     * Master list of dorms for the class project.
+     * category: "frosh" = first-year designated halls; "four_class" = might mix class years.
+     * roomTypes is which pill buttons to show for that building (not every dorm has triples, etc.).
+     */
+    const HOUSES = [
+      { id: "branner", name: "Branner", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple", "two_room_triple"] },
+      { id: "crothers", name: "Crothers", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple"] },
+      { id: "alondra", name: "Alondra", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double"] },
+      { id: "mirlo", name: "Mirlo", category: "frosh", roomTypes: ["single", "one_room_double"] },
+      { id: "castano", name: "Castaño", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple", "two_room_triple", "three_room_triple"] },
+      { id: "lantana", name: "Lantana", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple"] },
+      { id: "robinson", name: "Robinson", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple", "three_room_triple"] },
+      { id: "schiff", name: "Schiff", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple", "two_room_triple", "three_room_triple"] },
+      { id: "west-lagunita", name: "West Lagunita", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double"] },
+      { id: "donner", name: "Donner", category: "frosh", roomTypes: ["single", "one_room_double"] },
+      { id: "larkin", name: "Larkin", category: "frosh", roomTypes: ["single", "one_room_double"] },
+      { id: "arroyo", name: "Arroyo", category: "frosh", roomTypes: ["single", "one_room_double"] },
+      { id: "cedro", name: "Cedro", category: "frosh", roomTypes: ["single", "one_room_double"] },
+      { id: "rinconada", name: "Rinconada", category: "frosh", roomTypes: ["single", "one_room_double"] },
+      { id: "soto", name: "Soto", category: "frosh", roomTypes: ["single", "one_room_double"] },
+      { id: "cardenal", name: "Cardenal", category: "four_class", roomTypes: ["single", "one_room_double", "two_room_double"] },
+      { id: "potter", name: "Potter", category: "four_class", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple"] },
+      { id: "ujamaa", name: "Ujamaa", category: "four_class", roomTypes: ["single", "one_room_double", "two_room_double"] },
+      { id: "burbank", name: "Burbank", category: "four_class", roomTypes: ["single", "one_room_double"] },
+      { id: "casa-zapata", name: "Casa Zapata", category: "four_class", roomTypes: ["single", "one_room_double"] },
+      { id: "sally-ride", name: "Sally Ride", category: "four_class", roomTypes: ["single", "one_room_double"] },
+      { id: "junipero", name: "Junipero", category: "four_class", roomTypes: ["single", "one_room_double"] },
+      { id: "okada", name: "Okada", category: "four_class", roomTypes: ["single", "one_room_double"] },
+      { id: "otero", name: "Otero", category: "four_class", roomTypes: ["single", "one_room_double"] },
+    ];
+
+    /* Split for the two <optgroup>s in the dropdown — keeps the markup readable */
+    const frosh = HOUSES.filter((h) => h.category === "frosh");
+    const fourClass = HOUSES.filter((h) => h.category === "four_class");
+
+    /*
+     * 360° JPEGs live in ./photos/ relative to this HTML file.
+     * In our repo that folder is a symlink to ../dorm-tour-pannellum/photos so we don’t duplicate huge images.
+     * If panoramas 404, you’re probably running the server from the wrong directory — serve from treeview/.
+     */
+    const PANORAMA_BASE = "photos/";
+    function pano(file) {
+      return PANORAMA_BASE + file;
+    }
+
+    /*
+     * Pannellum “tour” config — mostly copied from our standalone dorm-tour-pannellum/index.html.
+     * Each scene is one equirectangular photo; hotSpots jump between scene ids.
+     */
+    function getDemoTourConfig() {
+      return {
+        default: {
+          firstScene: "spotOne", // where you land when the page loads
+          autoLoad: true,
+          sceneFadeDuration: 800, // ms crossfade when hopping hotspots — feels less jarring than a hard cut
+        },
+        scenes: {
+          spotOne: {
+            type: "equirectangular",
+            panorama: pano("spotOne.jpeg"),
+            hotSpots: [
+              { pitch: -2, yaw: 35, type: "scene", text: "Go to hallway", sceneId: "hallwayIndoor" },
+              { pitch: -3, yaw: -65, type: "scene", text: "Spot One (angle 2)", sceneId: "spotOneTwo" },
+            ],
+          },
+          spotOneTwo: {
+            type: "equirectangular",
+            panorama: pano("spotOneTwo.jpeg"),
+            hotSpots: [
+              { pitch: -1, yaw: 165, type: "scene", text: "Back to Spot One", sceneId: "spotOne" },
+              { pitch: -4, yaw: 10, type: "scene", text: "Spot One (angle 3)", sceneId: "spotOneThree" },
+            ],
+          },
+          spotOneThree: {
+            type: "equirectangular",
+            panorama: pano("spotOneThree.jpeg"),
+            hotSpots: [
+              { pitch: -1, yaw: 180, type: "scene", text: "Back to Spot One (angle 2)", sceneId: "spotOneTwo" },
+              { pitch: -3, yaw: 20, type: "scene", text: "Spot One (angle 4)", sceneId: "spotOneFour" },
+            ],
+          },
+          spotOneFour: {
+            type: "equirectangular",
+            panorama: pano("spotOneFour.jpeg"),
+            hotSpots: [
+              { pitch: -2, yaw: 170, type: "scene", text: "Back to Spot One (angle 3)", sceneId: "spotOneThree" },
+              { pitch: -2, yaw: 35, type: "scene", text: "Go to hallway", sceneId: "hallwayIndoor" },
+            ],
+          },
+          hallwayIndoor: {
+            type: "equirectangular",
+            panorama: pano("hallwayIndoor.jpeg"),
+            hotSpots: [
+              { pitch: -2, yaw: -145, type: "scene", text: "Go to Spot One", sceneId: "spotOne" },
+              { pitch: -1, yaw: 30, type: "scene", text: "Go to Spot Two", sceneId: "spotTwo" },
+            ],
+          },
+          spotTwo: {
+            type: "equirectangular",
+            panorama: pano("spotTwo.jpeg"),
+            hotSpots: [
+              { pitch: -2, yaw: 150, type: "scene", text: "Go to hallway", sceneId: "hallwayIndoor" },
+              { pitch: -3, yaw: -25, type: "scene", text: "Spot Two (angle 2)", sceneId: "spotTwoTwo" },
+            ],
+          },
+          spotTwoTwo: {
+            type: "equirectangular",
+            panorama: pano("spotTwoTwo.jpeg"),
+            hotSpots: [
+              { pitch: -2, yaw: 170, type: "scene", text: "Back to Spot Two", sceneId: "spotTwo" },
+            ],
+          },
+        },
+      };
+    }
+
+    // Cached DOM nodes we touch on every interaction (avoids repeating getElementById everywhere)
+    const dormSelect = document.getElementById("dorm-select");
+    const dormHint = document.getElementById("dorm-hint");
+    const roomLabel = document.getElementById("room-label");
+    const pillsEl = document.getElementById("pills");
+    const previewTitle = document.getElementById("preview-title");
+    const designerContext = document.getElementById("designer-context");
+
+    // “Current” dorm + room type — houseId matches HOUSES[].id; roomType matches ROOM_LABELS keys
+    let houseId = HOUSES[0].id;
+    let roomType = HOUSES[0].roomTypes[0];
+
+    function getHouse(id) {
+      // Safety net if something weird gets into houseId (shouldn’t happen, but avoids a blank UI)
+      return HOUSES.find((h) => h.id === id) || HOUSES[0];
+    }
+
+    /* Builds both <optgroup>s from the HOUSES array — no hardcoded <option> tags in the HTML */
+    function fillDormDropdown() {
+      dormSelect.innerHTML = "";
+      const g1 = document.createElement("optgroup");
+      g1.label = "First-year designated";
+      frosh.forEach((h) => {
+        const o = document.createElement("option");
+        o.value = h.id;
+        o.textContent = h.name;
+        g1.appendChild(o);
+      });
+      dormSelect.appendChild(g1);
+      const g2 = document.createElement("optgroup");
+      g2.label = "Four-class undergraduate";
+      fourClass.forEach((h) => {
+        const o = document.createElement("option");
+        o.value = h.id;
+        o.textContent = h.name;
+        g2.appendChild(o);
+      });
+      dormSelect.appendChild(g2);
+      dormSelect.value = houseId;
+    }
+
+    /*
+     * Wipes and rebuilds the room-type buttons whenever the dorm changes.
+     * The active pill gets .is-on so CSS can style it like a selected state.
+     */
+    function renderPills() {
+      const house = getHouse(houseId);
+      if (!house.roomTypes.includes(roomType)) roomType = house.roomTypes[0];
+      roomLabel.textContent = "Room categories, " + house.name;
+      pillsEl.replaceChildren();
+      house.roomTypes.forEach((rt) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "pill-btn" + (rt === roomType ? " is-on" : "");
+        btn.textContent = ROOM_LABELS[rt];
+        btn.dataset.rt = rt;
+        pillsEl.appendChild(btn);
+      });
+    }
+
+    /* Keeps the bottom “designer” chip in sync — even though that section is a placeholder for now */
+    function updateDesignerContext() {
+      const house = getHouse(houseId);
+      designerContext.textContent = house.name + ", " + ROOM_LABELS[roomType];
+    }
+
+    /* Runs whenever dorm or room type changes: refresh hint, preview title, designer chip */
+    function updatePreview() {
+      const house = getHouse(houseId);
+      dormHint.textContent =
+        house.category === "frosh"
+          ? "Undergraduate residence designated for first-year students."
+          : "Four-class undergraduate residence; first-year students may be assigned here.";
+      previewTitle.textContent = house.name + ", " + ROOM_LABELS[roomType];
+      updateDesignerContext();
+    }
+
+    // Event delegation: one listener on the container instead of per-pill listeners after each re-render
+    pillsEl.addEventListener("click", (e) => {
+      const btn = e.target.closest(".pill-btn");
+      if (!btn || !pillsEl.contains(btn)) return;
+      roomType = btn.dataset.rt;
+      renderPills();
+      updatePreview();
+    });
+
+    /* New dorm => reset room type to that dorm’s first available category, then redraw pills */
+    dormSelect.addEventListener("change", () => {
+      houseId = dormSelect.value;
+      roomType = getHouse(houseId).roomTypes[0];
+      renderPills();
+      updatePreview();
+    });
+
+    // First paint: populate controls from defaults (first house + its first room type)
+    fillDormDropdown();
+    renderPills();
+    updatePreview();
+
+    // Boot the 360 viewer — string arg must match id="treeview-panorama" in the HTML
+    const panoramaViewer = pannellum.viewer("treeview-panorama", getDemoTourConfig());
+    /*
+     * Pannellum doesn’t always reflow on its own when the window resizes.
+     * Debouncing with setTimeout avoids calling resize() dozens of times while someone drags the edge.
+     */
+    let resizePanoramaTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizePanoramaTimer);
+      resizePanoramaTimer = setTimeout(() => panoramaViewer.resize(), 120);
+    });
+  </script>
+</body>
+</html>
