@@ -7,7 +7,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>TreeView | Stanford undergraduate residences</title>
 
   <!-- Fonts load from Google; preconnect just makes that a bit faster -->
@@ -114,28 +114,45 @@
       padding: clamp(1.5rem, 4vw, 2.75rem) 1.25rem clamp(2rem, 5vw, 3.5rem);
     }
 
-    /* On phones it stacks; on wider screens it becomes two columns (logo | text) */
+    /*
+     * On phones (portrait) we use flex so the logo + copy stack and share one clear center line.
+     * From 720px up we switch to grid (logo | text) — that’s why landscape often looked fine first.
+     */
     .hero-inner {
       max-width: var(--max);
       margin: 0 auto;
-      display: grid;
-      gap: clamp(1.5rem, 3vw, 2.5rem);
+      display: flex;
+      flex-direction: column;
       align-items: center;
+      gap: clamp(1.5rem, 3vw, 2.5rem);
     }
 
     .hero-logo-wrap {
       display: flex;
       justify-content: center;
+      width: fit-content;
+      max-width: 100%;
     }
 
-    /*
-     * Mobile: center the logo in the column the same way the headline is centered.
-     * Without this, the logo wrapper can sit slightly off (looks shifted vs the text).
-     */
+    /* Copy block: full width for wrapping; centered on narrow screens, left-aligned from 720px up */
+    .hero-copy {
+      align-self: stretch;
+      width: 100%;
+      text-align: center;
+      animation: fade-up 0.85s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
     @media (max-width: 719px) {
-      .hero-logo-wrap {
-        width: fit-content;
-        max-width: 100%;
+      .hero {
+        padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+        padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+      }
+
+      .welcome-title {
+        text-align: center;
+      }
+
+      .welcome-text {
         margin-inline: auto;
       }
     }
@@ -149,17 +166,22 @@
       animation: logo-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
-    .hero-copy {
-      animation: fade-up 0.85s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-
     @media (min-width: 720px) {
       .hero-inner {
+        display: grid;
         grid-template-columns: auto 1fr;
         gap: 2.5rem 3rem;
+        align-items: center;
       }
+
       .hero-logo-wrap {
         justify-content: flex-start;
+        width: auto;
+      }
+
+      .hero-copy {
+        align-self: auto;
+        text-align: left;
       }
     }
 
