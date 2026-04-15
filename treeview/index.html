@@ -148,17 +148,19 @@
         padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
       }
 
-      /* Larger mark on phones so it balances the headline and reads as intentionally centered */
-      .hero-logo {
-        width: clamp(200px, 58vw, 280px);
-      }
-
       .welcome-title {
         text-align: center;
       }
 
       .welcome-text {
         margin-inline: auto;
+      }
+    }
+
+    /* Phone held upright: skip the logo (alignment was fighting us); landscape + tablet/desktop still show it */
+    @media (max-width: 719px) and (orientation: portrait) {
+      .hero-logo-wrap {
+        display: none;
       }
     }
 
