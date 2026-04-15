@@ -128,6 +128,18 @@
       justify-content: center;
     }
 
+    /*
+     * Mobile: center the logo in the column the same way the headline is centered.
+     * Without this, the logo wrapper can sit slightly off (looks shifted vs the text).
+     */
+    @media (max-width: 719px) {
+      .hero-logo-wrap {
+        width: fit-content;
+        max-width: 100%;
+        margin-inline: auto;
+      }
+    }
+
     .hero-logo {
       width: clamp(140px, 28vw, 240px);
       height: auto;
