@@ -1,17 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Dorm Tour</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dorm Tour (Pannellum)</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"
+  />
   <style>
     html, body {
       margin: 0;
-      height: 100%;
-    }
-    #panorama {
       width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #panorama {
+      width: 100vw;
       height: 100vh;
     }
   </style>
@@ -19,144 +25,168 @@
 <body>
   <div id="panorama"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
   <script>
-    pannellum.viewer('panorama', {
+    const HOTSPOT_DEBUG = false; // Set true while fine-tuning hotspot placement.
+
+    const baseScene = {
+      type: "equirectangular",
+      autoLoad: true,
+      hfov: 70,
+      minHfov: 50,
+      maxHfov: 90,
+      haov: 110,
+      vaov: 45,
+      vOffset: 0,
+      yaw: 0,
+      pitch: 0,
+      minYaw: -55,
+      maxYaw: 55,
+      minPitch: -22,
+      maxPitch: 22,
+      avoidShowingBackground: true
+    };
+
+    const viewer = pannellum.viewer("panorama", {
       default: {
-        firstScene: 'spotOne',
+        firstScene: "entrance",
+        sceneFadeDuration: 800,
         autoLoad: true,
-        sceneFadeDuration: 800
+        showControls: true,
+        showFullscreenCtrl: true,
+        hotSpotDebug: HOTSPOT_DEBUG
       },
       scenes: {
-        spotOne: {
-          type: 'equirectangular',
-          panorama: 'photos/spotOne.jpeg',
+        entrance: {
+          ...baseScene,
+          title: "Entrance",
+          panorama: "../dormPhotos/IMG_8152.jpeg",
           hotSpots: [
-            {
-              pitch: -2,
-              yaw: 35,
-              type: 'scene',
-              text: 'Go to hallway',
-              sceneId: 'hallwayIndoor'
-            },
-            {
-              pitch: -3,
-              yaw: -65,
-              type: 'scene',
-              text: 'Spot One (angle 2)',
-              sceneId: 'spotOneTwo'
-            }
-          ]
-        },
-        spotOneTwo: {
-          type: 'equirectangular',
-          panorama: 'photos/spotOneTwo.jpeg',
-          hotSpots: [
-            {
-              pitch: -1,
-              yaw: 165,
-              type: 'scene',
-              text: 'Back to Spot One',
-              sceneId: 'spotOne'
-            },
             {
               pitch: -4,
-              yaw: 10,
-              type: 'scene',
-              text: 'Spot One (angle 3)',
-              sceneId: 'spotOneThree'
+              yaw: 26,
+              type: "scene",
+              text: "Go to Lounge",
+              sceneId: "lounge",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             }
           ]
         },
-        spotOneThree: {
-          type: 'equirectangular',
-          panorama: 'photos/spotOneThree.jpeg',
+        lounge: {
+          ...baseScene,
+          title: "Lounge",
+          panorama: "../dormPhotos/IMG_8153.jpeg",
           hotSpots: [
             {
-              pitch: -1,
-              yaw: 180,
-              type: 'scene',
-              text: 'Back to Spot One (angle 2)',
-              sceneId: 'spotOneTwo'
+              pitch: -5,
+              yaw: -28,
+              type: "scene",
+              text: "Back to Entrance",
+              sceneId: "entrance",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             },
             {
               pitch: -3,
-              yaw: 20,
-              type: 'scene',
-              text: 'Spot One (angle 4)',
-              sceneId: 'spotOneFour'
+              yaw: 24,
+              type: "scene",
+              text: "Continue to Hallway",
+              sceneId: "hallway",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             }
           ]
         },
-        spotOneFour: {
-          type: 'equirectangular',
-          panorama: 'photos/spotOneFour.jpeg',
+        hallway: {
+          ...baseScene,
+          title: "Hallway",
+          panorama: "../dormPhotos/IMG_8154.jpeg",
+          hfov: 68,
+          haov: 105,
+          vaov: 44,
+          minYaw: -52,
+          maxYaw: 52,
           hotSpots: [
             {
-              pitch: -2,
-              yaw: 170,
-              type: 'scene',
-              text: 'Back to Spot One (angle 3)',
-              sceneId: 'spotOneThree'
+              pitch: -4,
+              yaw: -24,
+              type: "scene",
+              text: "Back to Lounge",
+              sceneId: "lounge",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             },
             {
               pitch: -2,
-              yaw: 35,
-              type: 'scene',
-              text: 'Go to hallway',
-              sceneId: 'hallwayIndoor'
+              yaw: 24,
+              type: "scene",
+              text: "Go to Kitchen Side",
+              sceneId: "kitchen",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             }
           ]
         },
-        hallwayIndoor: {
-          type: 'equirectangular',
-          panorama: 'photos/hallwayIndoor.jpeg',
+        kitchen: {
+          ...baseScene,
+          title: "Kitchen Side",
+          panorama: "../dormPhotos/IMG_8155.jpeg",
+          hfov: 65,
+          haov: 100,
+          vaov: 40,
+          minYaw: -50,
+          maxYaw: 50,
+          minPitch: -20,
+          maxPitch: 20,
           hotSpots: [
             {
-              pitch: -2,
-              yaw: -145,
-              type: 'scene',
-              text: 'Go to Spot One',
-              sceneId: 'spotOne'
+              pitch: -4,
+              yaw: -24,
+              type: "scene",
+              text: "Back to Hallway",
+              sceneId: "hallway",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 68
             },
             {
-              pitch: -1,
-              yaw: 30,
-              type: 'scene',
-              text: 'Go to Spot Two',
-              sceneId: 'spotTwo'
+              pitch: -2,
+              yaw: 23,
+              type: "scene",
+              text: "Go to Window View",
+              sceneId: "window",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 75
             }
           ]
         },
-        spotTwo: {
-          type: 'equirectangular',
-          panorama: 'photos/spotTwo.jpeg',
+        window: {
+          ...baseScene,
+          title: "Window View",
+          panorama: "../dormPhotos/IMG_8156.jpeg",
+          hfov: 75,
+          maxHfov: 100,
+          haov: 120,
+          vaov: 50,
+          minYaw: -60,
+          maxYaw: 60,
           hotSpots: [
             {
-              pitch: -2,
-              yaw: 150,
-              type: 'scene',
-              text: 'Go to hallway',
-              sceneId: 'hallwayIndoor'
-            },
-            {
-              pitch: -3,
+              pitch: -4,
               yaw: -25,
-              type: 'scene',
-              text: 'Spot Two (angle 2)',
-              sceneId: 'spotTwoTwo'
-            }
-          ]
-        },
-        spotTwoTwo: {
-          type: 'equirectangular',
-          panorama: 'photos/spotTwoTwo.jpeg',
-          hotSpots: [
-            {
-              pitch: -2,
-              yaw: 170,
-              type: 'scene',
-              text: 'Back to Spot Two',
-              sceneId: 'spotTwo'
+              type: "scene",
+              text: "Back to Kitchen Side",
+              sceneId: "kitchen",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 65
             }
           ]
         }
