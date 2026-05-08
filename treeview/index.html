@@ -473,10 +473,9 @@
       min-height: 200px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 1.35rem;
-      text-align: center;
+      align-items: stretch;
+      padding: 1.35rem 1.25rem 1.5rem;
+      text-align: left;
       border-radius: var(--radius-sm);
       border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -486,7 +485,7 @@
       overflow: hidden;
     }
 
-    /* Same pulsing glow idea as we used elsewhere — subtle motion behind “Coming soon” */
+    /* Same pulsing glow — sits behind the upload UI */
     .designer-placeholder::before {
       content: "";
       position: absolute;
@@ -498,15 +497,364 @@
         radial-gradient(circle at 80% 80%, rgba(140, 21, 21, 0.25), transparent 40%);
     }
 
-    .designer-placeholder-title {
+    .designer-upload-form {
       position: relative;
       z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .upload-input-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .upload-dropzone {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      min-height: 7.5rem;
+      padding: 1.1rem 1rem;
+      text-align: center;
+      border-radius: var(--radius-sm);
+      border: 1px dashed rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .upload-dropzone:hover,
+    .upload-dropzone:focus-within {
+      border-color: rgba(61, 154, 140, 0.55);
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .upload-dropzone.is-dragover {
+      border-color: var(--teal);
+      border-style: solid;
+      box-shadow: 0 0 0 3px rgba(61, 154, 140, 0.25);
+    }
+
+    .upload-dropzone-hint {
       margin: 0;
-      font-family: var(--font-display);
-      font-size: clamp(1.25rem, 3vw, 1.5rem);
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.88);
+      line-height: 1.45;
+    }
+
+    .upload-dropzone-sub {
+      margin: 0;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .upload-pick-btn {
+      padding: 0.55rem 1.15rem;
+      font-size: 0.86rem;
       font-weight: 600;
-      letter-spacing: -0.02em;
+      color: var(--charcoal-soft);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 999px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .upload-pick-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(26, 34, 40, 0.12);
+    }
+
+    .upload-req-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .upload-req-item {
+      margin: 0;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.58);
+      transition: color 0.2s ease;
+    }
+
+    .upload-req-item.is-ok {
+      color: rgba(180, 245, 220, 0.95);
+    }
+
+    .upload-req-item.is-bad {
+      color: #ffb4b4;
+    }
+
+    .upload-thumbs {
+      display: none;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .upload-thumbs.has-items {
+      display: grid;
+      animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @media (min-width: 720px) {
+      .upload-thumbs.has-items {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .upload-thumb {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.25);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .upload-thumb-preview {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      background: #12161a;
+    }
+
+    .upload-thumb-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .upload-thumb-label {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 0.35rem 0.45rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
       color: #fff;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .upload-thumb-remove {
+      position: absolute;
+      top: 0.35rem;
+      right: 0.35rem;
+      width: 1.75rem;
+      height: 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      line-height: 1;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(26, 34, 40, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .upload-thumb-remove:hover {
+      background: rgba(140, 21, 21, 0.88);
+      transform: scale(1.06);
+    }
+
+    .upload-thumb-meta {
+      padding: 0.45rem 0.55rem 0.55rem;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 1.35;
+    }
+
+    .upload-thumb-name {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.92);
+      word-break: break-word;
+    }
+
+    .upload-thumb-size {
+      margin-top: 0.15rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .upload-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+
+    .upload-ready {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      min-height: 1.5rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.45);
+      transition: color 0.25s ease;
+    }
+
+    .upload-ready.is-ready {
+      color: rgba(180, 245, 220, 0.98);
+    }
+
+    .upload-ready-icon {
+      display: inline-flex;
+      width: 1.1rem;
+      height: 1.1rem;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(61, 154, 140, 0.35);
+      color: #b4f5dc;
+      font-size: 0.65rem;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .upload-ready.is-ready .upload-ready-icon {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .upload-submit {
+      padding: 0.75rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: linear-gradient(135deg, var(--cardinal) 0%, var(--cardinal-deep) 100%);
+      box-shadow: var(--shadow-cardinal);
+      transition: opacity 0.25s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .upload-submit:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .upload-submit:disabled {
+      cursor: not-allowed;
+      opacity: 0.42;
+      box-shadow: none;
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.55);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .upload-submit.is-loading {
+      cursor: progress;
+      opacity: 0.85;
+    }
+
+    .upload-submit-spinner {
+      display: none;
+      width: 1rem;
+      height: 1rem;
+      margin-right: 0.5rem;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      vertical-align: -0.18rem;
+      animation: upload-spin 0.8s linear infinite;
+    }
+
+    .upload-submit.is-loading .upload-submit-spinner {
+      display: inline-block;
+    }
+
+    @keyframes upload-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Banner under the submit button — flips between success/error variants */
+    .upload-result {
+      margin: 0;
+      padding: 0.75rem 0.95rem;
+      font-size: 0.86rem;
+      font-weight: 500;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      line-height: 1.5;
+      animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .upload-result[hidden] {
+      display: none;
+    }
+
+    .upload-result.is-success {
+      color: #c8f7e1;
+      background: rgba(61, 154, 140, 0.18);
+      border-color: rgba(61, 154, 140, 0.4);
+    }
+
+    .upload-result.is-error {
+      color: #ffc6c6;
+      background: rgba(140, 21, 21, 0.22);
+      border-color: rgba(140, 21, 21, 0.45);
+    }
+
+    /* Monospace ID chip so the upload UUID is easy to copy */
+    .upload-result-id {
+      display: inline-block;
+      margin-left: 0.35rem;
+      padding: 0.08rem 0.45rem;
+      font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+      font-size: 0.78rem;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 6px;
+      word-break: break-all;
+    }
+
+    .upload-intro-title {
+      margin: 0 0 0.25rem;
+      text-align: center;
+      font-family: var(--font-ui);
+      font-size: clamp(1rem, 2.8vw, 1.08rem);
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.94);
+      line-height: 1.45;
+    }
+
+    .upload-intro-detail {
+      margin: 0;
+      text-align: center;
+      max-width: 36rem;
+      margin-inline: auto;
     }
 
     /* --- Keyframes (referenced above in .hero-logo / .hero-copy / .designer-placeholder) --- */
@@ -604,8 +952,55 @@
           </p>
           <p id="designer-context" class="designer-context" aria-live="polite"></p>
         </div>
-        <div class="designer-placeholder" role="status" aria-live="polite">
-          <p class="designer-placeholder-title">Coming soon</p>
+        <div id="designer-upload" class="designer-placeholder" aria-labelledby="upload-heading">
+          <form id="room-upload-form" class="designer-upload-form" novalidate>
+            <h3 id="upload-heading" class="upload-intro-title">Upload 6 photos of your space</h3>
+            <p id="upload-instructions" class="upload-intro-detail upload-dropzone-sub">
+              North, south, east, west walls, then ceiling and floor — in that order (JPG, PNG, or WebP, max 10&nbsp;MB each).
+            </p>
+            <input
+              id="room-photos-input"
+              class="upload-input-hidden"
+              type="file"
+              name="photos"
+              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+              multiple
+              aria-label="Choose dorm photos"
+              aria-describedby="upload-instructions upload-req-announce"
+            />
+            <div
+              id="upload-dropzone"
+              class="upload-dropzone"
+              role="region"
+              data-action="open-dropzone"
+              aria-label="Photo drop zone. Drop files here or activate Choose photos to browse."
+            >
+              <p class="upload-dropzone-hint">Drag and drop photos here</p>
+              <p class="upload-dropzone-sub">or pick them from your device</p>
+              <button type="button" class="upload-pick-btn" data-action="pick-photos" aria-controls="room-photos-input">
+                Choose photos
+              </button>
+            </div>
+            <ul id="upload-req-announce" class="upload-req-list" aria-live="polite">
+              <li id="upload-req-count" class="upload-req-item" role="status">0 of 6 photos selected</li>
+              <li id="upload-req-format" class="upload-req-item upload-req-item--format is-ok" role="status">
+                Only JPG, PNG, or WebP
+              </li>
+              <li id="upload-req-size" class="upload-req-item upload-req-item--size is-ok" role="status">Max 10 MB per photo</li>
+            </ul>
+            <div id="upload-thumbs" class="upload-thumbs" aria-live="polite"></div>
+            <div class="upload-actions">
+              <div id="upload-ready-row" class="upload-ready">
+                <span class="upload-ready-icon" aria-hidden="true">✓</span>
+                <span id="upload-ready-text">Add photos to continue</span>
+              </div>
+              <button type="submit" id="upload-submit" class="upload-submit" disabled aria-disabled="true">
+                <span class="upload-submit-spinner" aria-hidden="true"></span>
+                <span class="upload-submit-text">Create 3D room</span>
+              </button>
+              <p id="upload-result" class="upload-result" role="status" aria-live="polite" hidden></p>
+            </div>
+          </form>
         </div>
       </section>
     </main>
@@ -752,6 +1147,307 @@
     const previewTitle = document.getElementById("preview-title");
     const designerContext = document.getElementById("designer-context");
 
+    const designerUploadRoot = document.getElementById("designer-upload");
+    const roomUploadForm = document.getElementById("room-upload-form");
+    const roomPhotosInput = document.getElementById("room-photos-input");
+    const uploadDropzoneEl = document.getElementById("upload-dropzone");
+    const uploadThumbsEl = document.getElementById("upload-thumbs");
+    const uploadReqCountEl = document.getElementById("upload-req-count");
+    const uploadReqFormatEl = document.getElementById("upload-req-format");
+    const uploadReqSizeEl = document.getElementById("upload-req-size");
+    const uploadReadyRowEl = document.getElementById("upload-ready-row");
+    const uploadReadyTextEl = document.getElementById("upload-ready-text");
+    const uploadSubmitEl = document.getElementById("upload-submit");
+    const uploadSubmitTextEl = uploadSubmitEl.querySelector(".upload-submit-text");
+    const uploadResultEl = document.getElementById("upload-result");
+
+    /* Same-origin path works because server.js serves treeview/ as the static root */
+    const UPLOAD_ENDPOINT = "/api/upload";
+
+    const ROOM_PHOTO_LABELS = [
+      "1. North wall",
+      "2. South wall",
+      "3. East wall",
+      "4. West wall",
+      "5. Ceiling",
+      "6. Floor",
+    ];
+    const MAX_ROOM_PHOTOS = ROOM_PHOTO_LABELS.length;
+    const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+    const ALLOWED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+    let roomPhotoEntries = [];
+    let lastFormatRejectNames = [];
+    let lastSizeRejectNames = [];
+    let lastCapSkip = false;
+
+    function hasAllowedImageExtension(name) {
+      return /\.(jpe?g|png|webp)$/i.test(name || "");
+    }
+
+    function isValidImageFile(file) {
+      if (ALLOWED_IMAGE_MIME.has(file.type)) return true;
+      return Boolean(!file.type && hasAllowedImageExtension(file.name));
+    }
+
+    function revokeRoomPhoto(entry) {
+      if (entry && entry.url) URL.revokeObjectURL(entry.url);
+    }
+
+    function formatPhotoSize(bytes) {
+      if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+      return Math.max(1, Math.round(bytes / 1024)) + " KB";
+    }
+
+    function ingestRoomPhotos(fileList) {
+      const incoming = Array.from(fileList);
+      lastFormatRejectNames = [];
+      lastSizeRejectNames = [];
+      lastCapSkip = false;
+      loop: for (const file of incoming) {
+        if (roomPhotoEntries.length >= MAX_ROOM_PHOTOS) {
+          lastCapSkip = true;
+          break loop;
+        }
+        if (!isValidImageFile(file)) {
+          lastFormatRejectNames.push(file.name);
+          continue;
+        }
+        if (file.size > MAX_PHOTO_BYTES) {
+          lastSizeRejectNames.push(file.name);
+          continue;
+        }
+        roomPhotoEntries.push({ file, url: URL.createObjectURL(file) });
+      }
+      renderRoomUploadUI();
+    }
+
+    function renderRoomUploadUI() {
+      const n = roomPhotoEntries.length;
+      let countText = `${n} of ${MAX_ROOM_PHOTOS} photos selected`;
+      if (lastCapSkip)
+        countText += " — some files weren't added (limit is six photos total).";
+      uploadReqCountEl.textContent = countText;
+      uploadReqCountEl.classList.toggle("is-ok", n === MAX_ROOM_PHOTOS);
+      uploadReqCountEl.classList.toggle("is-bad", n !== MAX_ROOM_PHOTOS);
+
+      if (lastFormatRejectNames.length > 0) {
+        uploadReqFormatEl.classList.remove("is-ok");
+        uploadReqFormatEl.classList.add("is-bad");
+        const list = lastFormatRejectNames.slice(0, 2).join(", ");
+        const suffix = lastFormatRejectNames.length > 2 ? "… " : "";
+        const verb =
+          lastFormatRejectNames.length === 1 ? " isn't JPG, PNG, or WebP" : " aren't JPG, PNG, or WebP";
+        uploadReqFormatEl.textContent = list + suffix + verb;
+      } else {
+        uploadReqFormatEl.classList.remove("is-bad");
+        uploadReqFormatEl.classList.add("is-ok");
+        uploadReqFormatEl.textContent = "Only JPG, PNG, or WebP";
+      }
+
+      if (lastSizeRejectNames.length > 0) {
+        uploadReqSizeEl.classList.remove("is-ok");
+        uploadReqSizeEl.classList.add("is-bad");
+        const list = lastSizeRejectNames.slice(0, 2).join(", ");
+        const suffix = lastSizeRejectNames.length > 2 ? "… " : "";
+        const verb = lastSizeRejectNames.length === 1 ? " is over 10 MB" : " are over 10 MB";
+        uploadReqSizeEl.textContent = list + suffix + verb;
+      } else {
+        uploadReqSizeEl.classList.remove("is-bad");
+        uploadReqSizeEl.classList.add("is-ok");
+        uploadReqSizeEl.textContent = "Max 10 MB per photo";
+      }
+
+      uploadThumbsEl.classList.toggle("has-items", n > 0);
+      uploadThumbsEl.replaceChildren();
+
+      roomPhotoEntries.forEach((entry, idx) => {
+        const thumb = document.createElement("article");
+        thumb.className = "upload-thumb";
+        thumb.setAttribute("aria-label", `${ROOM_PHOTO_LABELS[idx]}: ${entry.file.name}`);
+        const preview = document.createElement("div");
+        preview.className = "upload-thumb-preview";
+        const img = document.createElement("img");
+        img.alt = ROOM_PHOTO_LABELS[idx];
+        img.width = 480;
+        img.height = 360;
+        img.decoding = "async";
+        img.src = entry.url;
+        const lbl = document.createElement("p");
+        lbl.className = "upload-thumb-label";
+        lbl.textContent = ROOM_PHOTO_LABELS[idx];
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "upload-thumb-remove";
+        removeBtn.dataset.removeIndex = String(idx);
+        removeBtn.setAttribute(
+          "aria-label",
+          `Remove photo ${ROOM_PHOTO_LABELS[idx]}, ${entry.file.name}`,
+        );
+        removeBtn.appendChild(document.createTextNode("\u00d7"));
+        preview.append(img, lbl, removeBtn);
+        const meta = document.createElement("div");
+        meta.className = "upload-thumb-meta";
+        const nameEl = document.createElement("div");
+        nameEl.className = "upload-thumb-name";
+        nameEl.textContent = entry.file.name;
+        const sizeEl = document.createElement("div");
+        sizeEl.className = "upload-thumb-size";
+        sizeEl.textContent = formatPhotoSize(entry.file.size);
+        meta.append(nameEl, sizeEl);
+        thumb.append(preview, meta);
+        uploadThumbsEl.appendChild(thumb);
+      });
+
+      const ready = n === MAX_ROOM_PHOTOS;
+      uploadSubmitEl.disabled = !ready;
+      uploadSubmitEl.setAttribute("aria-disabled", ready ? "false" : "true");
+      uploadReadyRowEl.classList.toggle("is-ready", ready);
+      if (ready) uploadReadyTextEl.textContent = "Ready to upload";
+      else if (n === 0) uploadReadyTextEl.textContent = "Add photos to continue";
+      else uploadReadyTextEl.textContent = "Select more photos";
+    }
+
+    // Event delegation — same pattern as the room-type pills (`pillsEl` listener below)
+    designerUploadRoot.addEventListener("click", (e) => {
+      if (e.target.closest("[data-action='pick-photos']")) {
+        roomPhotosInput.click();
+        return;
+      }
+      const removeBtn = e.target.closest("[data-remove-index]");
+      if (removeBtn && designerUploadRoot.contains(removeBtn)) {
+        const idx = Number.parseInt(removeBtn.getAttribute("data-remove-index"), 10);
+        if (!Number.isNaN(idx) && roomPhotoEntries[idx]) {
+          revokeRoomPhoto(roomPhotoEntries[idx]);
+          roomPhotoEntries.splice(idx, 1);
+          renderRoomUploadUI();
+        }
+        return;
+      }
+      if (e.target.closest("[data-action='open-dropzone']")) roomPhotosInput.click();
+    });
+
+    ["dragenter", "dragover"].forEach((type) =>
+      uploadDropzoneEl.addEventListener(type, (e) => {
+        e.preventDefault();
+        try {
+          e.dataTransfer.dropEffect = "copy";
+        } catch {
+          /* empty */
+        }
+        uploadDropzoneEl.classList.add("is-dragover");
+      }),
+    );
+
+    uploadDropzoneEl.addEventListener("dragleave", (e) => {
+      if (!uploadDropzoneEl.contains(e.relatedTarget)) uploadDropzoneEl.classList.remove("is-dragover");
+    });
+
+    uploadDropzoneEl.addEventListener("dragend", () => uploadDropzoneEl.classList.remove("is-dragover"));
+
+    uploadDropzoneEl.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadDropzoneEl.classList.remove("is-dragover");
+      if (e.dataTransfer?.files?.length) ingestRoomPhotos(e.dataTransfer.files);
+    });
+
+    roomPhotosInput.addEventListener("change", () => {
+      if (roomPhotosInput.files?.length) ingestRoomPhotos(roomPhotosInput.files);
+      roomPhotosInput.value = "";
+    });
+
+    /* Tiny HTML escape — only used for content we splice into innerHTML below */
+    function escapeUploadHtml(str) {
+      return String(str).replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[ch]));
+    }
+
+    function showUploadResult(kind, html) {
+      uploadResultEl.hidden = false;
+      uploadResultEl.classList.remove("is-success", "is-error");
+      uploadResultEl.classList.add(kind === "success" ? "is-success" : "is-error");
+      uploadResultEl.innerHTML = html;
+    }
+
+    function clearUploadResult() {
+      uploadResultEl.hidden = true;
+      uploadResultEl.classList.remove("is-success", "is-error");
+      uploadResultEl.textContent = "";
+    }
+
+    /* Single source of truth for the submit button's loading state */
+    function setUploadSubmitting(isSubmitting) {
+      uploadSubmitEl.classList.toggle("is-loading", isSubmitting);
+      uploadSubmitEl.disabled =
+        isSubmitting || roomPhotoEntries.length !== MAX_ROOM_PHOTOS;
+      uploadSubmitEl.setAttribute(
+        "aria-disabled",
+        uploadSubmitEl.disabled ? "true" : "false",
+      );
+      uploadSubmitTextEl.textContent = isSubmitting ? "Uploading..." : "Create 3D room";
+    }
+
+    roomUploadForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (roomPhotoEntries.length !== MAX_ROOM_PHOTOS || uploadSubmitEl.disabled) return;
+
+      clearUploadResult();
+      setUploadSubmitting(true);
+      uploadReadyTextEl.textContent = "Uploading photos to server...";
+
+      try {
+        const formData = new FormData();
+        roomPhotoEntries.forEach((entry) => {
+          formData.append("photos", entry.file, entry.file.name);
+        });
+        formData.append("dormId", houseId);
+        formData.append("roomType", roomType);
+
+        const res = await fetch(UPLOAD_ENDPOINT, {
+          method: "POST",
+          body: formData,
+        });
+
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {
+          /* non-JSON error response — fall through to generic message */
+        }
+
+        if (!res.ok || !data || !data.success) {
+          const msg = (data && data.error) || `Server returned ${res.status}`;
+          throw new Error(msg);
+        }
+
+        showUploadResult(
+          "success",
+          `<strong>Upload received!</strong> Your 3D room will be ready soon. ` +
+            `<span class="upload-result-id">ID: ${escapeUploadHtml(data.uploadId)}</span>`,
+        );
+
+        roomPhotoEntries.forEach(revokeRoomPhoto);
+        roomPhotoEntries = [];
+        renderRoomUploadUI();
+      } catch (err) {
+        showUploadResult(
+          "error",
+          `Upload failed: ${escapeUploadHtml(err.message)}. Please try again.`,
+        );
+        // Photos are still selected; restore the ready hint above the (re-enabled) submit button
+        uploadReadyTextEl.textContent = "Ready to upload";
+      } finally {
+        setUploadSubmitting(false);
+      }
+    });
+
+    renderRoomUploadUI();
+
     // “Current” dorm + room type — houseId matches HOUSES[].id; roomType matches ROOM_LABELS keys
     let houseId = HOUSES[0].id;
     let roomType = HOUSES[0].roomTypes[0];
@@ -804,7 +1500,7 @@
       });
     }
 
-    /* Keeps the bottom “designer” chip in sync — even though that section is a placeholder for now */
+    /* Keeps the bottom designer chip in sync with the dorm + room type picker */
     function updateDesignerContext() {
       const house = getHouse(houseId);
       designerContext.textContent = house.name + ", " + ROOM_LABELS[roomType];
