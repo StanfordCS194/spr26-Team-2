@@ -1157,11 +1157,14 @@
     const uploadReqSizeEl = document.getElementById("upload-req-size");
     const uploadReadyRowEl = document.getElementById("upload-ready-row");
     const uploadReadyTextEl = document.getElementById("upload-ready-text");
+    // === Upload Result Elements ===
+    // These elements show the outcome (success or error) after the user clicks "Create 3D room"
     const uploadSubmitEl = document.getElementById("upload-submit");
     const uploadSubmitTextEl = uploadSubmitEl.querySelector(".upload-submit-text");
     const uploadResultEl = document.getElementById("upload-result");
 
-    /* Same-origin path works because server.js serves treeview/ as the static root */
+    // API endpoint where we send the photos. Path is relative, so it resolves to
+    // http://localhost:3000/api/upload (same domain, same port)
     const UPLOAD_ENDPOINT = "/api/upload";
 
     const ROOM_PHOTO_LABELS = [
@@ -1356,7 +1359,11 @@
       roomPhotosInput.value = "";
     });
 
-    /* Tiny HTML escape — only used for content we splice into innerHTML below */
+    // === Helper Functions for Upload ===
+
+    // Security: Escape HTML special characters before injecting into innerHTML
+    // Prevents XSS attacks if the server response contains malicious content
+    // e.g., server sends uploadId "abc<img src=x>", we convert to "abc&lt;img src=x&gt;"
     function escapeUploadHtml(str) {
       return String(str).replace(/[&<>"']/g, (ch) => ({
         "&": "&amp;",
@@ -1367,24 +1374,29 @@
       }[ch]));
     }
 
+    // Show the result banner (success or error) with a message
+    // kind: "success" or "error" determines the styling (green vs red)
     function showUploadResult(kind, html) {
-      uploadResultEl.hidden = false;
+      uploadResultEl.hidden = false; // Unhide the banner
       uploadResultEl.classList.remove("is-success", "is-error");
       uploadResultEl.classList.add(kind === "success" ? "is-success" : "is-error");
-      uploadResultEl.innerHTML = html;
+      uploadResultEl.innerHTML = html; // Inject the message (escaped by caller)
     }
 
+    // Hide the result banner (called at the start of submit to clear old messages)
     function clearUploadResult() {
       uploadResultEl.hidden = true;
       uploadResultEl.classList.remove("is-success", "is-error");
       uploadResultEl.textContent = "";
     }
 
-    /* Single source of truth for the submit button's loading state */
+    // Centralized logic for toggling the submit button's "uploading" state
+    // Updates button text, disables/enables button, shows/hides spinner
+    // This ensures the button state stays consistent throughout the upload process
     function setUploadSubmitting(isSubmitting) {
-      uploadSubmitEl.classList.toggle("is-loading", isSubmitting);
+      uploadSubmitEl.classList.toggle("is-loading", isSubmitting); // Show spinner
       uploadSubmitEl.disabled =
-        isSubmitting || roomPhotoEntries.length !== MAX_ROOM_PHOTOS;
+        isSubmitting || roomPhotoEntries.length !== MAX_ROOM_PHOTOS; // Disable if uploading OR missing photos
       uploadSubmitEl.setAttribute(
         "aria-disabled",
         uploadSubmitEl.disabled ? "true" : "false",
@@ -1392,57 +1404,89 @@
       uploadSubmitTextEl.textContent = isSubmitting ? "Uploading..." : "Create 3D room";
     }
 
+    // === Form Submit Handler ===
+    // When user clicks "Create 3D room", this function:
+    // 1. Packages the 6 selected photos + dorm/room metadata
+    // 2. POSTs to the backend (/api/upload)
+    // 3. Shows success (with upload ID) or error message
     roomUploadForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
+      e.preventDefault(); // Don't actually submit the form (we handle it with fetch)
+
+      // Safety check: ensure exactly 6 photos are selected and button is enabled
       if (roomPhotoEntries.length !== MAX_ROOM_PHOTOS || uploadSubmitEl.disabled) return;
 
-      clearUploadResult();
-      setUploadSubmitting(true);
+      clearUploadResult(); // Hide any previous success/error message
+      setUploadSubmitting(true); // Show spinner, disable button, change text to "Uploading..."
       uploadReadyTextEl.textContent = "Uploading photos to server...";
 
       try {
+        // === Build the request ===
+        // FormData is a special object that can hold both files and text fields
+        // It gets encoded as multipart/form-data (the format for file uploads)
         const formData = new FormData();
+
+        // Add all 6 photos with field name "photos"
+        // Server's multer middleware will receive them as req.files
         roomPhotoEntries.forEach((entry) => {
           formData.append("photos", entry.file, entry.file.name);
         });
+
+        // Add metadata: which dorm and room type the user selected
+        // Server needs this to know context (e.g., "Branner, single")
         formData.append("dormId", houseId);
         formData.append("roomType", roomType);
 
+        // === Send the request ===
+        // fetch sends a POST to /api/upload with the FormData as the body
         const res = await fetch(UPLOAD_ENDPOINT, {
           method: "POST",
           body: formData,
+          // Note: don't set Content-Type header — browser auto-sets it for FormData
         });
 
+        // === Parse the response ===
+        // Server sends back JSON like { success: true, uploadId: "..." }
         let data = null;
         try {
           data = await res.json();
         } catch {
-          /* non-JSON error response — fall through to generic message */
+          // If response isn't JSON (e.g., plain text error), data stays null
+          // We'll handle it below with the res.ok check
         }
 
+        // === Check for errors ===
+        // res.ok is false if status is 4xx or 5xx
+        // data.success is false if server rejected the upload (e.g., wrong file count)
         if (!res.ok || !data || !data.success) {
           const msg = (data && data.error) || `Server returned ${res.status}`;
           throw new Error(msg);
         }
 
+        // === Success! ===
+        // Show the upload ID so user can reference this upload
         showUploadResult(
           "success",
           `<strong>Upload received!</strong> Your 3D room will be ready soon. ` +
             `<span class="upload-result-id">ID: ${escapeUploadHtml(data.uploadId)}</span>`,
         );
 
-        roomPhotoEntries.forEach(revokeRoomPhoto);
-        roomPhotoEntries = [];
-        renderRoomUploadUI();
+        // Clear the selected photos and reset the UI
+        roomPhotoEntries.forEach(revokeRoomPhoto); // Free up object URLs from memory
+        roomPhotoEntries = []; // Empty the array
+        renderRoomUploadUI(); // Redraw the form (thumbnails disappear, button disables again)
       } catch (err) {
+        // === Error handling ===
+        // Show error message to user
         showUploadResult(
           "error",
           `Upload failed: ${escapeUploadHtml(err.message)}. Please try again.`,
         );
-        // Photos are still selected; restore the ready hint above the (re-enabled) submit button
+        // Photos remain selected, so user can retry by clicking submit again
         uploadReadyTextEl.textContent = "Ready to upload";
       } finally {
-        setUploadSubmitting(false);
+        // === Cleanup ===
+        // This runs whether success or error — restore button to normal state
+        setUploadSubmitting(false); // Hide spinner, update button text
       }
     });
 
