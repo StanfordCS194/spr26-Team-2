@@ -652,6 +652,7 @@
       { id: "potter", name: "Potter", category: "four_class", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple"] },
       { id: "ujamaa", name: "Ujamaa", category: "four_class", roomTypes: ["single", "one_room_double", "two_room_double"] },
       { id: "burbank", name: "Burbank", category: "four_class", roomTypes: ["single", "one_room_double"] },
+      { id: "zap", name: "ZAP", category: "four_class", roomTypes: ["single", "one_room_double"] },
       { id: "casa-zapata", name: "Casa Zapata", category: "four_class", roomTypes: ["single", "one_room_double"] },
       { id: "sally-ride", name: "Sally Ride", category: "four_class", roomTypes: ["single", "one_room_double"] },
       { id: "junipero", name: "Junipero", category: "four_class", roomTypes: ["single", "one_room_double"] },
@@ -664,80 +665,161 @@
     const fourClass = HOUSES.filter((h) => h.category === "four_class");
 
     /*
-     * 360° JPEGs live in ./photos/ relative to this HTML file.
-     * In our repo that folder is a symlink to ../dorm-tour-pannellum/photos so we don’t duplicate huge images.
-     * If panoramas 404, you’re probably running the server from the wrong directory — serve from treeview/.
+     * Display section panorama source:
+     * keep this aligned with dorm-tour-pannellum/index.html so both views show the same tour.
      */
-    const PANORAMA_BASE = "photos/";
+    const PANORAMA_BASE = "../dormPhotos/";
     function pano(file) {
       return PANORAMA_BASE + file;
     }
 
     /*
-     * Pannellum “tour” config — mostly copied from our standalone dorm-tour-pannellum/index.html.
+     * Pannellum “tour” config — mirrored from dorm-tour-pannellum/index.html.
      * Each scene is one equirectangular photo; hotSpots jump between scene ids.
      */
     function getDemoTourConfig() {
+      const HOTSPOT_DEBUG = false;
+      const baseScene = {
+        type: "equirectangular",
+        autoLoad: true,
+        hfov: 70,
+        minHfov: 50,
+        maxHfov: 90,
+        haov: 110,
+        vaov: 45,
+        vOffset: 0,
+        yaw: 0,
+        pitch: 0,
+        minYaw: -55,
+        maxYaw: 55,
+        minPitch: -22,
+        maxPitch: 22,
+        avoidShowingBackground: true,
+      };
+
       return {
         default: {
-          firstScene: "spotOne", // where you land when the page loads
+          firstScene: "zapOne",
           autoLoad: true,
-          sceneFadeDuration: 800, // ms crossfade when hopping hotspots — feels less jarring than a hard cut
+          sceneFadeDuration: 800,
+          showControls: true,
+          showFullscreenCtrl: true,
+          hotSpotDebug: HOTSPOT_DEBUG,
         },
         scenes: {
-          spotOne: {
-            type: "equirectangular",
-            panorama: pano("spotOne.jpeg"),
+          zapOne: {
+            ...baseScene,
+            title: "ZAP One",
+            panorama: pano("ZAP_One.jpeg"),
             hotSpots: [
-              { pitch: -2, yaw: 35, type: "scene", text: "Go to hallway", sceneId: "hallwayIndoor" },
-              { pitch: -3, yaw: -65, type: "scene", text: "Spot One (angle 2)", sceneId: "spotOneTwo" },
+              {
+                pitch: +3.5, // edit this line for up down (positive = up, negative = down)
+                yaw: -18, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Go to ZAP Two",
+                sceneId: "zapTwo",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
             ],
           },
-          spotOneTwo: {
-            type: "equirectangular",
-            panorama: pano("spotOneTwo.jpeg"),
+          zapTwo: {
+            ...baseScene,
+            title: "ZAP Two",
+            panorama: pano("ZAP_Two.jpeg"),
             hotSpots: [
-              { pitch: -1, yaw: 165, type: "scene", text: "Back to Spot One", sceneId: "spotOne" },
-              { pitch: -4, yaw: 10, type: "scene", text: "Spot One (angle 3)", sceneId: "spotOneThree" },
+              {
+                pitch: 2, // edit this line for up down (positive = up, negative = down)
+                yaw: +45, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Back to ZAP One",
+                sceneId: "zapOne",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
+              {
+                pitch: 3, // edit this line for up down (positive = up, negative = down)
+                yaw: -42, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Go to ZAP Three",
+                sceneId: "zapThree",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
             ],
           },
-          spotOneThree: {
-            type: "equirectangular",
-            panorama: pano("spotOneThree.jpeg"),
+          zapThree: {
+            ...baseScene,
+            title: "ZAP Three",
+            panorama: pano("ZAP_Three.jpeg"),
             hotSpots: [
-              { pitch: -1, yaw: 180, type: "scene", text: "Back to Spot One (angle 2)", sceneId: "spotOneTwo" },
-              { pitch: -3, yaw: 20, type: "scene", text: "Spot One (angle 4)", sceneId: "spotOneFour" },
+              {
+                pitch: 2, // edit this line for up down (positive = up, negative = down)
+                yaw: 45, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Back to ZAP Two",
+                sceneId: "zapTwo",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
+              {
+                pitch: 2, // edit this line for up down (positive = up, negative = down)
+                yaw: 24, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Go to ZAP Four",
+                sceneId: "zapFour",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
             ],
           },
-          spotOneFour: {
-            type: "equirectangular",
-            panorama: pano("spotOneFour.jpeg"),
+          zapFour: {
+            ...baseScene,
+            title: "ZAP Four",
+            panorama: pano("ZAP_Four.jpeg"),
             hotSpots: [
-              { pitch: -2, yaw: 170, type: "scene", text: "Back to Spot One (angle 3)", sceneId: "spotOneThree" },
-              { pitch: -2, yaw: 35, type: "scene", text: "Go to hallway", sceneId: "hallwayIndoor" },
+              {
+                pitch: -5, // edit this line for up down (positive = up, negative = down)
+                yaw: -26, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Back to ZAP Three",
+                sceneId: "zapThree",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
+              {
+                pitch: -4, // edit this line for up down (positive = up, negative = down)
+                yaw: 22, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Go to ZAP Five",
+                sceneId: "zapFive",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
             ],
           },
-          hallwayIndoor: {
-            type: "equirectangular",
-            panorama: pano("hallwayIndoor.jpeg"),
+          zapFive: {
+            ...baseScene,
+            title: "ZAP Five",
+            panorama: pano("ZAP_Five.jpeg"),
             hotSpots: [
-              { pitch: -2, yaw: -145, type: "scene", text: "Go to Spot One", sceneId: "spotOne" },
-              { pitch: -1, yaw: 30, type: "scene", text: "Go to Spot Two", sceneId: "spotTwo" },
-            ],
-          },
-          spotTwo: {
-            type: "equirectangular",
-            panorama: pano("spotTwo.jpeg"),
-            hotSpots: [
-              { pitch: -2, yaw: 150, type: "scene", text: "Go to hallway", sceneId: "hallwayIndoor" },
-              { pitch: -3, yaw: -25, type: "scene", text: "Spot Two (angle 2)", sceneId: "spotTwoTwo" },
-            ],
-          },
-          spotTwoTwo: {
-            type: "equirectangular",
-            panorama: pano("spotTwoTwo.jpeg"),
-            hotSpots: [
-              { pitch: -2, yaw: 170, type: "scene", text: "Back to Spot Two", sceneId: "spotTwo" },
+              {
+                pitch: -5, // edit this line for up down (positive = up, negative = down)
+                yaw: -28, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Back to ZAP Four",
+                sceneId: "zapFour",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
             ],
           },
         },
@@ -753,8 +835,8 @@
     const designerContext = document.getElementById("designer-context");
 
     // “Current” dorm + room type — houseId matches HOUSES[].id; roomType matches ROOM_LABELS keys
-    let houseId = HOUSES[0].id;
-    let roomType = HOUSES[0].roomTypes[0];
+    let houseId = "zap";
+    let roomType = getHouse(houseId).roomTypes[0];
 
     function getHouse(id) {
       // Safety net if something weird gets into houseId (shouldn’t happen, but avoids a blank UI)

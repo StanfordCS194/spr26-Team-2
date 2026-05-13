@@ -49,7 +49,7 @@
 
     const viewer = pannellum.viewer("panorama", {
       default: {
-        firstScene: "entrance",
+        firstScene: "zapOne",
         sceneFadeDuration: 800,
         autoLoad: true,
         showControls: true,
@@ -57,136 +57,126 @@
         hotSpotDebug: HOTSPOT_DEBUG
       },
       scenes: {
-        entrance: {
+        zapOne: {
           ...baseScene,
-          title: "Entrance",
-          panorama: "../dormPhotos/IMG_8152.jpeg",
+          title: "ZAP One",
+          panorama: "../dormPhotos/ZAP_One.jpeg",
           hotSpots: [
+            // button to ZAP_Two
             {
-              pitch: -4,
-              yaw: 26,
+              pitch: +3.5, // edit this line for up down (positive = up, negative = down)
+              yaw: -18, // edit this line for left right (positive = right, negative = left)
               type: "scene",
-              text: "Go to Lounge",
-              sceneId: "lounge",
+              text: "Go to ZAP Two",
+              sceneId: "zapTwo",
               targetYaw: 0,
               targetPitch: 0,
               targetHfov: 70
             }
           ]
         },
-        lounge: {
+        zapTwo: {
           ...baseScene,
-          title: "Lounge",
-          panorama: "../dormPhotos/IMG_8153.jpeg",
+          title: "ZAP Two",
+          panorama: "../dormPhotos/ZAP_Two.jpeg",
           hotSpots: [
+            // button to ZAP_One
             {
-              pitch: -5,
-              yaw: -28,
+              pitch: 2, // edit this line for up down (positive = up, negative = down)
+              yaw: +45, // edit this line for left right (positive = right, negative = left)
               type: "scene",
-              text: "Back to Entrance",
-              sceneId: "entrance",
+              text: "Back to ZAP One",
+              sceneId: "zapOne",
               targetYaw: 0,
               targetPitch: 0,
               targetHfov: 70
             },
+            // button to ZAP_Three
             {
-              pitch: -3,
-              yaw: 24,
+              pitch: 3, // edit this line for up down (positive = up, negative = down)
+              yaw: -42, // edit this line for left right (positive = right, negative = left)
               type: "scene",
-              text: "Continue to Hallway",
-              sceneId: "hallway",
+              text: "Go to ZAP Three",
+              sceneId: "zapThree",
               targetYaw: 0,
               targetPitch: 0,
               targetHfov: 70
             }
           ]
         },
-        hallway: {
+        zapThree: {
           ...baseScene,
-          title: "Hallway",
-          panorama: "../dormPhotos/IMG_8154.jpeg",
-          hfov: 68,
-          haov: 105,
-          vaov: 44,
-          minYaw: -52,
-          maxYaw: 52,
+          title: "ZAP Three",
+          panorama: "../dormPhotos/ZAP_Three.jpeg",
           hotSpots: [
+            // button to ZAP_Two
             {
-              pitch: -4,
-              yaw: -24,
+              pitch: 2, // edit this line for up down (positive = up, negative = down)
+              yaw: 45, // edit this line for left right (positive = right, negative = left)
               type: "scene",
-              text: "Back to Lounge",
-              sceneId: "lounge",
+              text: "Back to ZAP Two",
+              sceneId: "zapTwo",
               targetYaw: 0,
               targetPitch: 0,
               targetHfov: 70
             },
+            // button to ZAP_Four
             {
-              pitch: -2,
-              yaw: 24,
+              pitch: 2, // edit this line for up down (positive = up, negative = down)
+              yaw: 24, // edit this line for left right (positive = right, negative = left)
               type: "scene",
-              text: "Go to Kitchen Side",
-              sceneId: "kitchen",
+              text: "Go to ZAP Four",
+              sceneId: "zapFour",
               targetYaw: 0,
               targetPitch: 0,
               targetHfov: 70
             }
           ]
         },
-        kitchen: {
+        zapFour: {
           ...baseScene,
-          title: "Kitchen Side",
-          panorama: "../dormPhotos/IMG_8155.jpeg",
-          hfov: 65,
-          haov: 100,
-          vaov: 40,
-          minYaw: -50,
-          maxYaw: 50,
-          minPitch: -20,
-          maxPitch: 20,
+          title: "ZAP Four",
+          panorama: "../dormPhotos/ZAP_Four.jpeg",
           hotSpots: [
+            // button to ZAP_Three
             {
-              pitch: -4,
-              yaw: -24,
+              pitch: -5, // edit this line for up down (positive = up, negative = down)
+              yaw: -26, // edit this line for left right (positive = right, negative = left)
               type: "scene",
-              text: "Back to Hallway",
-              sceneId: "hallway",
+              text: "Back to ZAP Three",
+              sceneId: "zapThree",
               targetYaw: 0,
               targetPitch: 0,
-              targetHfov: 68
+              targetHfov: 70
             },
+            // button to ZAP_Five
             {
-              pitch: -2,
-              yaw: 23,
+              pitch: -4, // edit this line for up down (positive = up, negative = down)
+              yaw: 22, // edit this line for left right (positive = right, negative = left)
               type: "scene",
-              text: "Go to Window View",
-              sceneId: "window",
+              text: "Go to ZAP Five",
+              sceneId: "zapFive",
               targetYaw: 0,
               targetPitch: 0,
-              targetHfov: 75
+              targetHfov: 70
             }
           ]
         },
-        window: {
+        zapFive: {
           ...baseScene,
-          title: "Window View",
-          panorama: "../dormPhotos/IMG_8156.jpeg",
-          hfov: 75,
-          maxHfov: 100,
-          haov: 120,
-          vaov: 50,
-          minYaw: -60,
-          maxYaw: 60,
+          title: "ZAP Five",
+          panorama: "../dormPhotos/ZAP_Five.jpeg",
           hotSpots: [
+            // button to ZAP_Four
             {
-              pitch: -4,
-              yaw: -25,
+              pitch: -5, // edit this line for up down (positive = up, negative = down)
+              yaw: -28, // edit this line for left right (positive = right, negative = left)
               type: "scene",
-              text: "Back to Kitchen Side",
-              sceneId: "kitchen",
+              text: "Back to ZAP Four",
+              sceneId: "zapFour",
               targetYaw: 0,
               targetPitch: 0,
-              targetHfov: 65
+              targetHfov: 70
             }
           ]
         }
