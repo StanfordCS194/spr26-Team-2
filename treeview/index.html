@@ -1373,9 +1373,9 @@
 
     /*
      * Display section panorama source:
-     * use treeview/photos so deployed hosting can serve these files directly.
+     * CDN fallback avoids 404s if deployed host has not picked up new photos yet.
      */
-    const PANORAMA_BASE = "photos/";
+    const PANORAMA_BASE = "https://raw.githubusercontent.com/StanfordCS194/spr26-Team-2/main/treeview/photos/";
     function pano(file) {
       return PANORAMA_BASE + file;
     }
