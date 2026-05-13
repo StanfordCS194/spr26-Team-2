@@ -47,6 +47,47 @@
       --max: 1040px;
     }
 
+    [data-theme="dark"] {
+      --charcoal: #e8e4de;
+      --charcoal-soft: #c8c2b8;
+      --cream: #141a1e;
+      --glass: rgba(30, 36, 42, 0.82);
+      --muted: #8a94a0;
+      --line: rgba(200, 200, 200, 0.12);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 12px 40px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.4);
+    }
+
+    [data-theme="dark"] .page::before {
+      background:
+        radial-gradient(ellipse 120% 80% at 10% -20%, rgba(140, 21, 21, 0.15), transparent 50%),
+        radial-gradient(ellipse 80% 60% at 95% 10%, rgba(61, 154, 140, 0.18), transparent 45%),
+        radial-gradient(ellipse 60% 50% at 50% 100%, rgba(20, 26, 30, 0.9), var(--cream));
+    }
+
+    [data-theme="dark"] .select {
+      background-color: rgba(30, 36, 42, 0.9);
+      color: var(--charcoal);
+      border-color: var(--line);
+    }
+
+    [data-theme="dark"] .pill-btn:not(.is-on) {
+      background: rgba(40, 48, 56, 0.8);
+      color: var(--charcoal-soft);
+      border-color: var(--line);
+    }
+
+    [data-theme="dark"] .glass::before {
+      background: linear-gradient(145deg, rgba(60, 68, 76, 0.4), rgba(140, 21, 21, 0.08), rgba(61, 154, 140, 0.1));
+    }
+
+    [data-theme="dark"] .welcome-title {
+      background: linear-gradient(120deg, #e8e4de 0%, #c8c2b8 55%, #d4605e 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
     /* Makes width/height math less painful (padding counts inside the box, not on top of it) */
     *, *::before, *::after {
       box-sizing: border-box;
@@ -859,6 +900,257 @@
 
     /* --- Keyframes (referenced above in .hero-logo / .hero-copy / .designer-placeholder) --- */
 
+    /* --- Dark mode toggle --- */
+    .theme-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 100;
+      width: 2.75rem;
+      height: 2.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      box-shadow: var(--shadow-md);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.08);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* --- Favorites star on dorm options --- */
+    .fav-btn {
+      padding: 0.3rem 0.45rem;
+      font-size: 1.1rem;
+      line-height: 1;
+      color: var(--muted);
+      opacity: 0.5;
+      transition: opacity 0.2s, transform 0.2s, color 0.2s;
+    }
+
+    .fav-btn:hover {
+      opacity: 1;
+      transform: scale(1.15);
+    }
+
+    .fav-btn.is-fav {
+      color: #e6a817;
+      opacity: 1;
+    }
+
+    .shortlist-section {
+      max-width: var(--max);
+      margin: 0 auto 1.25rem;
+      padding: 0 1.25rem;
+      display: none;
+    }
+
+    .shortlist-section.has-items {
+      display: block;
+      animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .shortlist-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .shortlist-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.86rem;
+      font-weight: 500;
+      color: var(--charcoal);
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .shortlist-chip:hover {
+      transform: translateY(-2px);
+      border-color: rgba(140, 21, 21, 0.2);
+      box-shadow: 0 6px 20px rgba(26, 34, 40, 0.08);
+    }
+
+    .shortlist-chip-star {
+      color: #e6a817;
+      font-size: 0.9rem;
+    }
+
+    .shortlist-chip-remove {
+      margin-left: 0.15rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      opacity: 0.6;
+      transition: opacity 0.2s, color 0.2s;
+    }
+
+    .shortlist-chip-remove:hover {
+      opacity: 1;
+      color: var(--cardinal);
+    }
+
+    /* --- Dorm select row with fav button --- */
+    .select-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .select-row .select {
+      flex: 1;
+    }
+
+    /* --- Compare mode --- */
+    .compare-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-top: 0.85rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: rgba(61, 154, 140, 0.08);
+      border: 1px solid rgba(61, 154, 140, 0.2);
+      border-radius: 999px;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .compare-toggle:hover {
+      background: rgba(61, 154, 140, 0.15);
+      color: var(--charcoal);
+    }
+
+    .compare-toggle.is-on {
+      color: #fff;
+      background: var(--teal);
+      border-color: var(--teal);
+    }
+
+    .compare-panel {
+      display: none;
+      margin-top: 1.35rem;
+    }
+
+    .compare-panel.is-open {
+      display: block;
+      animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .compare-col {
+      padding: 1rem 1.15rem;
+    }
+
+    .compare-col + .compare-col {
+      border-left: 1px solid var(--line);
+    }
+
+    .compare-col-name {
+      margin: 0 0 0.65rem;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--charcoal);
+    }
+
+    .compare-row-label {
+      margin: 0.6rem 0 0.2rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .compare-row-value {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--charcoal-soft);
+    }
+
+    .compare-room-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+
+    .compare-room-tag {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--charcoal-soft);
+      background: rgba(61, 154, 140, 0.1);
+      border-radius: 999px;
+    }
+
+    .compare-room-tag.is-shared {
+      background: rgba(61, 154, 140, 0.22);
+      color: var(--charcoal);
+      font-weight: 600;
+    }
+
+    .compare-select-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .compare-select-row .select {
+      flex: 1;
+      font-size: 0.92rem;
+      padding: 0.65rem 0.85rem;
+      padding-right: 2.5rem;
+    }
+
+    .compare-vs {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--cardinal);
+    }
+
+    @media (max-width: 600px) {
+      .compare-grid {
+        grid-template-columns: 1fr;
+      }
+      .compare-col + .compare-col {
+        border-left: none;
+        border-top: 1px solid var(--line);
+      }
+    }
+
     @keyframes logo-in {
       from {
         opacity: 0;
@@ -890,6 +1182,14 @@
 <body>
   <!-- Everything visible sits inside .page so the background layers stay behind it -->
   <div class="page">
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">&#9790;</button>
+
+    <!-- Favorites shortlist bar -->
+    <section class="shortlist-section" id="shortlist-section" aria-label="Your shortlisted dorms">
+      <p class="panel-head">My shortlist</p>
+      <div class="shortlist-chips" id="shortlist-chips"></div>
+    </section>
+
     <!-- Top of the site: TreeView logo asset + short explanation for visitors -->
     <header class="hero">
       <div class="hero-inner">
@@ -917,7 +1217,10 @@
           <p class="panel-head">Explore residences</p>
           <div class="field">
             <label class="label" for="dorm-select">Dorm</label>
-            <select id="dorm-select" class="select" aria-describedby="dorm-hint"></select>
+            <div class="select-row">
+              <select id="dorm-select" class="select" aria-describedby="dorm-hint"></select>
+              <button type="button" class="fav-btn" id="fav-btn" aria-label="Add to shortlist">&#9734;</button>
+            </div>
             <!-- Short explainer line under the dropdown (frosh vs four-class) -->
             <p id="dorm-hint" class="hint"></p>
           </div>
@@ -926,6 +1229,15 @@
             <span class="label" id="room-label">Room category</span>
             <!-- Pills are created in renderPills(); click handler lives at bottom of script -->
             <div id="pills" class="pills" role="group" aria-labelledby="room-label"></div>
+          </div>
+          <button type="button" class="compare-toggle" id="compare-toggle">&#8644; Compare dorms</button>
+          <div class="compare-panel" id="compare-panel">
+            <div class="compare-select-row">
+              <select id="compare-a" class="select" aria-label="First dorm to compare"></select>
+              <span class="compare-vs">vs</span>
+              <select id="compare-b" class="select" aria-label="Second dorm to compare"></select>
+            </div>
+            <div class="compare-grid" id="compare-grid"></div>
           </div>
         </div>
 
@@ -1594,6 +1906,192 @@
       clearTimeout(resizePanoramaTimer);
       resizePanoramaTimer = setTimeout(() => panoramaViewer.resize(), 120);
     });
+
+    // ===== FEATURE 1: Dark Mode Toggle =====
+    const themeToggle = document.getElementById("theme-toggle");
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      themeToggle.innerHTML = theme === "dark" ? "&#9788;" : "&#9790;";
+      themeToggle.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
+      localStorage.setItem("tv-theme", theme);
+    }
+
+    themeToggle.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme") || "light";
+      applyTheme(current === "dark" ? "light" : "dark");
+    });
+
+    const savedTheme = localStorage.getItem("tv-theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    applyTheme(savedTheme);
+
+    // ===== FEATURE 2: Favorites / Shortlist =====
+    const favBtn = document.getElementById("fav-btn");
+    const shortlistSection = document.getElementById("shortlist-section");
+    const shortlistChips = document.getElementById("shortlist-chips");
+
+    function getFavorites() {
+      try {
+        return JSON.parse(localStorage.getItem("tv-favorites") || "[]");
+      } catch { return []; }
+    }
+
+    function saveFavorites(favs) {
+      localStorage.setItem("tv-favorites", JSON.stringify(favs));
+    }
+
+    function isFavorite(id) {
+      return getFavorites().includes(id);
+    }
+
+    function toggleFavorite(id) {
+      let favs = getFavorites();
+      if (favs.includes(id)) {
+        favs = favs.filter((f) => f !== id);
+      } else {
+        favs.push(id);
+      }
+      saveFavorites(favs);
+      renderFavUI();
+    }
+
+    function renderFavUI() {
+      const favs = getFavorites();
+      const currentIsFav = favs.includes(houseId);
+      favBtn.innerHTML = currentIsFav ? "&#9733;" : "&#9734;";
+      favBtn.classList.toggle("is-fav", currentIsFav);
+      favBtn.setAttribute("aria-label", currentIsFav ? "Remove from shortlist" : "Add to shortlist");
+
+      shortlistSection.classList.toggle("has-items", favs.length > 0);
+      shortlistChips.replaceChildren();
+
+      favs.forEach((favId) => {
+        const house = getHouse(favId);
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "shortlist-chip";
+        chip.innerHTML =
+          '<span class="shortlist-chip-star">&#9733;</span>' +
+          '<span>' + house.name + '</span>' +
+          '<span class="shortlist-chip-remove" data-remove-fav="' + favId + '">&times;</span>';
+        chip.addEventListener("click", (e) => {
+          if (e.target.closest("[data-remove-fav]")) {
+            toggleFavorite(favId);
+            return;
+          }
+          dormSelect.value = favId;
+          houseId = favId;
+          roomType = getHouse(favId).roomTypes[0];
+          renderPills();
+          updatePreview();
+          renderFavUI();
+        });
+        shortlistChips.appendChild(chip);
+      });
+    }
+
+    favBtn.addEventListener("click", () => {
+      toggleFavorite(houseId);
+    });
+
+    dormSelect.addEventListener("change", () => {
+      renderFavUI();
+    });
+
+    renderFavUI();
+
+    // ===== FEATURE 3: Dorm Comparison =====
+    const compareToggle = document.getElementById("compare-toggle");
+    const comparePanel = document.getElementById("compare-panel");
+    const compareA = document.getElementById("compare-a");
+    const compareB = document.getElementById("compare-b");
+    const compareGrid = document.getElementById("compare-grid");
+
+    function fillCompareSelect(sel, selectedId) {
+      sel.innerHTML = "";
+      const g1 = document.createElement("optgroup");
+      g1.label = "First-year designated";
+      frosh.forEach((h) => {
+        const o = document.createElement("option");
+        o.value = h.id;
+        o.textContent = h.name;
+        g1.appendChild(o);
+      });
+      sel.appendChild(g1);
+      const g2 = document.createElement("optgroup");
+      g2.label = "Four-class undergraduate";
+      fourClass.forEach((h) => {
+        const o = document.createElement("option");
+        o.value = h.id;
+        o.textContent = h.name;
+        g2.appendChild(o);
+      });
+      sel.appendChild(g2);
+      sel.value = selectedId;
+    }
+
+    function renderComparison() {
+      const a = getHouse(compareA.value);
+      const b = getHouse(compareB.value);
+      const sharedRooms = new Set(a.roomTypes.filter((rt) => b.roomTypes.includes(rt)));
+
+      function buildCol(house) {
+        const col = document.createElement("div");
+        col.className = "compare-col";
+
+        const name = document.createElement("p");
+        name.className = "compare-col-name";
+        name.textContent = house.name;
+        col.appendChild(name);
+
+        const catLabel = document.createElement("p");
+        catLabel.className = "compare-row-label";
+        catLabel.textContent = "Category";
+        col.appendChild(catLabel);
+
+        const catVal = document.createElement("p");
+        catVal.className = "compare-row-value";
+        catVal.textContent = house.category === "frosh" ? "First-year designated" : "Four-class";
+        col.appendChild(catVal);
+
+        const rtLabel = document.createElement("p");
+        rtLabel.className = "compare-row-label";
+        rtLabel.textContent = "Room types (" + house.roomTypes.length + ")";
+        col.appendChild(rtLabel);
+
+        const rtList = document.createElement("ul");
+        rtList.className = "compare-room-list";
+        house.roomTypes.forEach((rt) => {
+          const li = document.createElement("li");
+          const tag = document.createElement("span");
+          tag.className = "compare-room-tag" + (sharedRooms.has(rt) ? " is-shared" : "");
+          tag.textContent = ROOM_LABELS[rt];
+          li.appendChild(tag);
+          rtList.appendChild(li);
+        });
+        col.appendChild(rtList);
+
+        return col;
+      }
+
+      compareGrid.replaceChildren(buildCol(a), buildCol(b));
+    }
+
+    compareToggle.addEventListener("click", () => {
+      const isOpen = comparePanel.classList.toggle("is-open");
+      compareToggle.classList.toggle("is-on", isOpen);
+      compareToggle.innerHTML = isOpen ? "&#8644; Hide comparison" : "&#8644; Compare dorms";
+      if (isOpen) {
+        const secondId = HOUSES[1] ? HOUSES[1].id : HOUSES[0].id;
+        fillCompareSelect(compareA, houseId);
+        fillCompareSelect(compareB, houseId === secondId ? HOUSES[0].id : secondId);
+        renderComparison();
+      }
+    });
+
+    compareA.addEventListener("change", renderComparison);
+    compareB.addEventListener("change", renderComparison);
   </script>
 </body>
 </html>
