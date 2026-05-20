@@ -881,6 +881,87 @@
       word-break: break-all;
     }
 
+    .upload-copy-link-btn {
+      display: inline-block;
+      margin-top: 0.5rem;
+      margin-left: 0;
+    }
+
+    /* Panel shown when someone opens ?upload=<uuid> */
+    .shared-upload-panel {
+      margin-bottom: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(61, 154, 140, 0.35);
+      background: rgba(61, 154, 140, 0.12);
+      animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .shared-upload-panel[hidden] {
+      display: none;
+    }
+
+    .shared-upload-panel.is-error {
+      border-color: rgba(140, 21, 21, 0.45);
+      background: rgba(140, 21, 21, 0.18);
+    }
+
+    .shared-upload-title {
+      margin: 0 0 0.35rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.94);
+    }
+
+    .shared-upload-meta {
+      margin: 0 0 0.75rem;
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.45;
+    }
+
+    .shared-upload-error {
+      margin: 0;
+      font-size: 0.86rem;
+      color: #ffc6c6;
+    }
+
+    .shared-share-thumbs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.65rem;
+    }
+
+    @media (min-width: 720px) {
+      .shared-share-thumbs {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .shared-share-thumb {
+      margin: 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .shared-share-thumb img {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+    }
+
+    .shared-share-thumb figcaption {
+      margin: 0;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
     .upload-intro-title {
       margin: 0 0 0.25rem;
       text-align: center;
@@ -1265,6 +1346,7 @@
           <p id="designer-context" class="designer-context" aria-live="polite"></p>
         </div>
         <div id="designer-upload" class="designer-placeholder" aria-labelledby="upload-heading">
+          <div id="shared-upload-panel" class="shared-upload-panel" hidden aria-live="polite"></div>
           <form id="room-upload-form" class="designer-upload-form" novalidate>
             <h3 id="upload-heading" class="upload-intro-title">Upload 6 photos of your space</h3>
             <p id="upload-instructions" class="upload-intro-detail upload-dropzone-sub">
@@ -1556,6 +1638,7 @@
     const uploadSubmitEl = document.getElementById("upload-submit");
     const uploadSubmitTextEl = uploadSubmitEl.querySelector(".upload-submit-text");
     const uploadResultEl = document.getElementById("upload-result");
+    const sharedUploadPanelEl = document.getElementById("shared-upload-panel");
 
     // API endpoint where we send the photos. Path is relative, so it resolves to
     // http://localhost:3000/api/upload (same domain, same port)
@@ -1707,6 +1790,12 @@
 
     // Event delegation — same pattern as the room-type pills (`pillsEl` listener below)
     designerUploadRoot.addEventListener("click", (e) => {
+      const copyBtn = e.target.closest("[data-action='copy-share-link']");
+      if (copyBtn) {
+        const id = copyBtn.getAttribute("data-upload-id");
+        if (id) copyShareLink(id, copyBtn);
+        return;
+      }
       if (e.target.closest("[data-action='pick-photos']")) {
         roomPhotosInput.click();
         return;
@@ -1782,6 +1871,115 @@
       uploadResultEl.hidden = true;
       uploadResultEl.classList.remove("is-success", "is-error");
       uploadResultEl.textContent = "";
+    }
+
+    function buildShareUrl(uploadId) {
+      return (
+        window.location.origin +
+        window.location.pathname +
+        "?upload=" +
+        encodeURIComponent(uploadId)
+      );
+    }
+
+    // Match server filenames (01-north.jpg, etc.) to the same labels as the upload form
+    const SHARED_PHOTO_PREFIXES = [
+      "01-north",
+      "02-south",
+      "03-east",
+      "04-west",
+      "05-ceiling",
+      "06-floor",
+    ];
+
+    function labelForSharedPhoto(filename) {
+      for (let i = 0; i < SHARED_PHOTO_PREFIXES.length; i++) {
+        if (filename.startsWith(SHARED_PHOTO_PREFIXES[i])) return ROOM_PHOTO_LABELS[i];
+      }
+      return filename;
+    }
+
+    function formatSharedDate(iso) {
+      try {
+        return new Date(iso).toLocaleString();
+      } catch {
+        return iso || "";
+      }
+    }
+
+    function showSharedPanelError(msg) {
+      sharedUploadPanelEl.hidden = false;
+      sharedUploadPanelEl.classList.add("is-error");
+      sharedUploadPanelEl.innerHTML =
+        `<p class="shared-upload-error">${escapeUploadHtml(msg)}</p>`;
+    }
+
+    function renderSharedUploadPanel(meta) {
+      const house = getHouse(meta.dormId);
+      const dormName = escapeUploadHtml(house.name);
+      const roomLabel = escapeUploadHtml(ROOM_LABELS[meta.roomType] || meta.roomType);
+      const when = escapeUploadHtml(formatSharedDate(meta.timestamp));
+      const uploadId = meta.uploadId;
+
+      let thumbsHtml = "";
+      (meta.savedFiles || []).forEach((filename) => {
+        const label = escapeUploadHtml(labelForSharedPhoto(filename));
+        const src =
+          "/api/uploads/" +
+          encodeURIComponent(uploadId) +
+          "/photos/" +
+          encodeURIComponent(filename);
+        thumbsHtml +=
+          `<figure class="shared-share-thumb"><img src="${src}" alt="${label}" loading="lazy" width="320" height="240" decoding="async"><figcaption>${label}</figcaption></figure>`;
+      });
+
+      sharedUploadPanelEl.classList.remove("is-error");
+      sharedUploadPanelEl.hidden = false;
+      sharedUploadPanelEl.innerHTML =
+        `<h3 class="shared-upload-title">Shared upload</h3>` +
+        `<p class="shared-upload-meta"><strong>${dormName}</strong> · ${roomLabel}<br><time>${when}</time></p>` +
+        `<div class="shared-share-thumbs">${thumbsHtml}</div>`;
+    }
+
+    async function copyShareLink(uploadId, btn) {
+      const url = buildShareUrl(uploadId);
+      try {
+        await navigator.clipboard.writeText(url);
+        const prev = btn.textContent;
+        btn.textContent = "Copied!";
+        setTimeout(() => {
+          btn.textContent = prev;
+        }, 2000);
+      } catch {
+        alert(url);
+      }
+    }
+
+    async function loadSharedUploadIfPresent() {
+      const uploadId = new URLSearchParams(window.location.search).get("upload");
+      if (!uploadId) return;
+
+      sharedUploadPanelEl.hidden = false;
+      sharedUploadPanelEl.classList.remove("is-error");
+      sharedUploadPanelEl.innerHTML =
+        '<p class="shared-upload-meta">Loading shared upload…</p>';
+
+      try {
+        const res = await fetch("/api/uploads/" + encodeURIComponent(uploadId));
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {
+          /* empty */
+        }
+        if (!res.ok || !data || !data.success) {
+          const msg = (data && data.error) || "Server returned " + res.status;
+          throw new Error(msg);
+        }
+        renderSharedUploadPanel(data);
+      } catch (err) {
+        showSharedPanelError(err.message || "Could not load this upload.");
+      }
     }
 
     // Centralized logic for toggling the submit button's "uploading" state
@@ -1861,7 +2059,8 @@
         showUploadResult(
           "success",
           `<strong>Upload received!</strong> Your 3D room will be ready soon. ` +
-            `<span class="upload-result-id">ID: ${escapeUploadHtml(data.uploadId)}</span>`,
+            `<span class="upload-result-id">ID: ${escapeUploadHtml(data.uploadId)}</span> ` +
+            `<button type="button" class="upload-pick-btn upload-copy-link-btn" data-action="copy-share-link" data-upload-id="${escapeUploadHtml(data.uploadId)}">Copy share link</button>`,
         );
 
         // Clear the selected photos and reset the UI
@@ -2174,6 +2373,8 @@
 
     compareA.addEventListener("change", renderComparison);
     compareB.addEventListener("change", renderComparison);
+
+    loadSharedUploadIfPresent();
   </script>
 </body>
 </html>
