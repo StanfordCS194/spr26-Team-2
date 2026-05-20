@@ -19,6 +19,9 @@
   />
   <!-- Pannellum = the library that renders draggable360° photos (same one we used in dorm-tour-pannellum) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.css" />
+  <!-- Mapbox GL JS for the interactive campus map -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
 
   <style>
     /*
@@ -1151,6 +1154,315 @@
       }
     }
 
+    /* --- Campus Map Section --- */
+    .campus-map-section {
+      max-width: var(--max);
+      margin: 0 auto 1.75rem;
+      padding: 0 1.25rem;
+    }
+
+    .campus-map-card {
+      position: relative;
+      padding: 0;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      transition: box-shadow 0.35s ease;
+    }
+
+    .campus-map-card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+
+    .campus-map-header {
+      padding: clamp(0.85rem, 2vw, 1.15rem) clamp(1.1rem, 2.5vw, 1.35rem);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .campus-map-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .campus-map-label {
+      margin: 0;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .campus-map-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(1.1rem, 2.2vw, 1.3rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--charcoal);
+    }
+
+    .campus-map-hint {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .campus-map-container {
+      position: relative;
+      width: 100%;
+      height: clamp(320px, 45vh, 500px);
+      border-top: 1px solid var(--line);
+    }
+
+    #campus-map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .mapboxgl-popup-content {
+      font-family: var(--font-ui) !important;
+      padding: 0.65rem 0.85rem !important;
+      border-radius: 12px !important;
+      box-shadow: 0 8px 28px rgba(26, 34, 40, 0.18) !important;
+      min-width: 140px;
+    }
+
+    .mapboxgl-popup-close-button {
+      font-size: 1.1rem;
+      padding: 0 0.45rem;
+      color: var(--muted);
+    }
+
+    .mapboxgl-popup-tip {
+      border-top-color: #fff !important;
+    }
+
+    .map-popup-name {
+      margin: 0 0 0.2rem;
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1a2228;
+    }
+
+    .map-popup-category {
+      margin: 0 0 0.45rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #5a6570;
+    }
+
+    .map-popup-explore {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.4rem 0.85rem;
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, #8c1515 0%, #6d1014 100%);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(140, 21, 21, 0.25);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .map-popup-explore:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(140, 21, 21, 0.35);
+    }
+
+    .dorm-marker {
+      width: 32px;
+      height: 40px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .dorm-marker-pin {
+      width: 32px;
+      height: 40px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      filter: drop-shadow(0 3px 6px rgba(140, 21, 21, 0.35));
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), filter 0.25s ease;
+    }
+
+    .dorm-marker:hover .dorm-marker-pin {
+      transform: translateY(-4px) scale(1.12);
+      filter: drop-shadow(0 6px 12px rgba(140, 21, 21, 0.45));
+    }
+
+    .dorm-marker-pin svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .campus-map-back-btn {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      z-index: 10;
+      display: none;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.5rem 1rem;
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--charcoal);
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .campus-map-back-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .campus-map-back-btn.is-visible {
+      display: inline-flex;
+      animation: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .campus-map-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(26, 34, 40, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 0 0 var(--radius) var(--radius);
+    }
+
+    .campus-map-overlay.is-visible {
+      display: flex;
+      animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .campus-map-overlay-inner {
+      width: 100%;
+      max-width: 640px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .campus-map-overlay-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(1.15rem, 2.5vw, 1.4rem);
+      font-weight: 600;
+      color: #fff;
+      text-align: center;
+    }
+
+    .campus-map-overlay-pano {
+      width: 100%;
+      height: clamp(200px, 32vh, 340px);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .campus-map-overlay-pano .pannellum-host {
+      height: 100%;
+    }
+
+    .campus-map-overlay-actions {
+      display: flex;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .campus-map-overlay-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.5rem 1.1rem;
+      font-family: var(--font-ui);
+      font-size: 0.84rem;
+      font-weight: 600;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .campus-map-overlay-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .campus-map-overlay-btn--primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--cardinal) 0%, var(--cardinal-deep) 100%);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-cardinal);
+    }
+
+    .campus-map-overlay-btn--secondary {
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: none;
+    }
+
+    .campus-map-overlay-btn--secondary:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    [data-theme="dark"] .campus-map-card {
+      border-color: var(--line);
+    }
+
+    [data-theme="dark"] .mapboxgl-popup-content {
+      background: #1e242a !important;
+      color: #e8e4de;
+    }
+
+    [data-theme="dark"] .map-popup-name {
+      color: #e8e4de;
+    }
+
+    [data-theme="dark"] .map-popup-category {
+      color: #8a94a0;
+    }
+
+    [data-theme="dark"] .mapboxgl-popup-tip {
+      border-top-color: #1e242a !important;
+    }
+
+    [data-theme="dark"] .mapboxgl-popup-close-button {
+      color: #8a94a0;
+    }
+
     @keyframes logo-in {
       from {
         opacity: 0;
@@ -1205,6 +1517,41 @@
         </div>
       </div>
     </header>
+
+    <!-- Interactive campus map — click a dorm pin to fly in and explore -->
+    <section class="campus-map-section" aria-label="Stanford campus map">
+      <div class="campus-map-card">
+        <div class="campus-map-header">
+          <div class="campus-map-header-left">
+            <p class="campus-map-label">Campus map</p>
+            <h2 class="campus-map-title">Explore residences</h2>
+          </div>
+          <span class="campus-map-hint">Click a pin to explore</span>
+        </div>
+        <div class="campus-map-container">
+          <div id="campus-map"></div>
+          <button type="button" class="campus-map-back-btn" id="map-back-btn" aria-label="Back to campus overview">
+            &#8592; Back to campus
+          </button>
+          <div class="campus-map-overlay" id="map-overlay">
+            <div class="campus-map-overlay-inner">
+              <p class="campus-map-overlay-title" id="map-overlay-title"></p>
+              <div class="campus-map-overlay-pano">
+                <div id="map-panorama" class="pannellum-host"></div>
+              </div>
+              <div class="campus-map-overlay-actions">
+                <button type="button" class="campus-map-overlay-btn campus-map-overlay-btn--primary" id="map-overlay-select">
+                  &#9733; Select this dorm
+                </button>
+                <button type="button" class="campus-map-overlay-btn campus-map-overlay-btn--secondary" id="map-overlay-close">
+                  &#8592; Back to map
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <main class="shell">
       <!--
@@ -1359,6 +1706,7 @@
       { id: "potter", name: "Potter", category: "four_class", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple"] },
       { id: "ujamaa", name: "Ujamaa", category: "four_class", roomTypes: ["single", "one_room_double", "two_room_double"] },
       { id: "burbank", name: "Burbank", category: "four_class", roomTypes: ["single", "one_room_double"] },
+      { id: "zap", name: "ZAP", category: "four_class", roomTypes: ["single", "one_room_double"] },
       { id: "casa-zapata", name: "Casa Zapata", category: "four_class", roomTypes: ["single", "one_room_double"] },
       { id: "sally-ride", name: "Sally Ride", category: "four_class", roomTypes: ["single", "one_room_double"] },
       { id: "junipero", name: "Junipero", category: "four_class", roomTypes: ["single", "one_room_double"] },
@@ -1371,80 +1719,161 @@
     const fourClass = HOUSES.filter((h) => h.category === "four_class");
 
     /*
-     * 360° JPEGs live in ./photos/ relative to this HTML file.
-     * In our repo that folder is a symlink to ../dorm-tour-pannellum/photos so we don’t duplicate huge images.
-     * If panoramas 404, you’re probably running the server from the wrong directory — serve from treeview/.
+     * Display section panorama source:
+     * CDN fallback avoids 404s if deployed host has not picked up new photos yet.
      */
-    const PANORAMA_BASE = "photos/";
+    const PANORAMA_BASE = "https://raw.githubusercontent.com/StanfordCS194/spr26-Team-2/main/treeview/photos/";
     function pano(file) {
       return PANORAMA_BASE + file;
     }
 
     /*
-     * Pannellum “tour” config — mostly copied from our standalone dorm-tour-pannellum/index.html.
+     * Pannellum “tour” config — mirrored from dorm-tour-pannellum/index.html.
      * Each scene is one equirectangular photo; hotSpots jump between scene ids.
      */
     function getDemoTourConfig() {
+      const HOTSPOT_DEBUG = false;
+      const baseScene = {
+        type: "equirectangular",
+        autoLoad: true,
+        hfov: 70,
+        minHfov: 50,
+        maxHfov: 90,
+        haov: 110,
+        vaov: 45,
+        vOffset: 0,
+        yaw: 0,
+        pitch: 0,
+        minYaw: -55,
+        maxYaw: 55,
+        minPitch: -22,
+        maxPitch: 22,
+        avoidShowingBackground: true,
+      };
+
       return {
         default: {
-          firstScene: "spotOne", // where you land when the page loads
+          firstScene: "zapOne",
           autoLoad: true,
-          sceneFadeDuration: 800, // ms crossfade when hopping hotspots — feels less jarring than a hard cut
+          sceneFadeDuration: 800,
+          showControls: true,
+          showFullscreenCtrl: true,
+          hotSpotDebug: HOTSPOT_DEBUG,
         },
         scenes: {
-          spotOne: {
-            type: "equirectangular",
-            panorama: pano("spotOne.jpeg"),
+          zapOne: {
+            ...baseScene,
+            title: "ZAP One",
+            panorama: pano("ZAP_One.jpeg"),
             hotSpots: [
-              { pitch: -2, yaw: 35, type: "scene", text: "Go to hallway", sceneId: "hallwayIndoor" },
-              { pitch: -3, yaw: -65, type: "scene", text: "Spot One (angle 2)", sceneId: "spotOneTwo" },
+              {
+                pitch: +3.5, // edit this line for up down (positive = up, negative = down)
+                yaw: -18, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Go to ZAP Two",
+                sceneId: "zapTwo",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
             ],
           },
-          spotOneTwo: {
-            type: "equirectangular",
-            panorama: pano("spotOneTwo.jpeg"),
+          zapTwo: {
+            ...baseScene,
+            title: "ZAP Two",
+            panorama: pano("ZAP_Two.jpeg"),
             hotSpots: [
-              { pitch: -1, yaw: 165, type: "scene", text: "Back to Spot One", sceneId: "spotOne" },
-              { pitch: -4, yaw: 10, type: "scene", text: "Spot One (angle 3)", sceneId: "spotOneThree" },
+              {
+                pitch: 2, // edit this line for up down (positive = up, negative = down)
+                yaw: +45, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Back to ZAP One",
+                sceneId: "zapOne",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
+              {
+                pitch: 3, // edit this line for up down (positive = up, negative = down)
+                yaw: -42, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Go to ZAP Three",
+                sceneId: "zapThree",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
             ],
           },
-          spotOneThree: {
-            type: "equirectangular",
-            panorama: pano("spotOneThree.jpeg"),
+          zapThree: {
+            ...baseScene,
+            title: "ZAP Three",
+            panorama: pano("ZAP_Three.jpeg"),
             hotSpots: [
-              { pitch: -1, yaw: 180, type: "scene", text: "Back to Spot One (angle 2)", sceneId: "spotOneTwo" },
-              { pitch: -3, yaw: 20, type: "scene", text: "Spot One (angle 4)", sceneId: "spotOneFour" },
+              {
+                pitch: 2, // edit this line for up down (positive = up, negative = down)
+                yaw: 45, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Back to ZAP Two",
+                sceneId: "zapTwo",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
+              {
+                pitch: 2, // edit this line for up down (positive = up, negative = down)
+                yaw: 24, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Go to ZAP Four",
+                sceneId: "zapFour",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
             ],
           },
-          spotOneFour: {
-            type: "equirectangular",
-            panorama: pano("spotOneFour.jpeg"),
+          zapFour: {
+            ...baseScene,
+            title: "ZAP Four",
+            panorama: pano("ZAP_Four.jpeg"),
             hotSpots: [
-              { pitch: -2, yaw: 170, type: "scene", text: "Back to Spot One (angle 3)", sceneId: "spotOneThree" },
-              { pitch: -2, yaw: 35, type: "scene", text: "Go to hallway", sceneId: "hallwayIndoor" },
+              {
+                pitch: -5, // edit this line for up down (positive = up, negative = down)
+                yaw: -26, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Back to ZAP Three",
+                sceneId: "zapThree",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
+              {
+                pitch: -4, // edit this line for up down (positive = up, negative = down)
+                yaw: 22, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Go to ZAP Five",
+                sceneId: "zapFive",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
             ],
           },
-          hallwayIndoor: {
-            type: "equirectangular",
-            panorama: pano("hallwayIndoor.jpeg"),
+          zapFive: {
+            ...baseScene,
+            title: "ZAP Five",
+            panorama: pano("ZAP_Five.jpeg"),
             hotSpots: [
-              { pitch: -2, yaw: -145, type: "scene", text: "Go to Spot One", sceneId: "spotOne" },
-              { pitch: -1, yaw: 30, type: "scene", text: "Go to Spot Two", sceneId: "spotTwo" },
-            ],
-          },
-          spotTwo: {
-            type: "equirectangular",
-            panorama: pano("spotTwo.jpeg"),
-            hotSpots: [
-              { pitch: -2, yaw: 150, type: "scene", text: "Go to hallway", sceneId: "hallwayIndoor" },
-              { pitch: -3, yaw: -25, type: "scene", text: "Spot Two (angle 2)", sceneId: "spotTwoTwo" },
-            ],
-          },
-          spotTwoTwo: {
-            type: "equirectangular",
-            panorama: pano("spotTwoTwo.jpeg"),
-            hotSpots: [
-              { pitch: -2, yaw: 170, type: "scene", text: "Back to Spot Two", sceneId: "spotTwo" },
+              {
+                pitch: -5, // edit this line for up down (positive = up, negative = down)
+                yaw: -28, // edit this line for left right (positive = right, negative = left)
+                type: "scene",
+                text: "Back to ZAP Four",
+                sceneId: "zapFour",
+                targetYaw: 0,
+                targetPitch: 0,
+                targetHfov: 70,
+              },
             ],
           },
         },
@@ -1805,8 +2234,8 @@
     renderRoomUploadUI();
 
     // “Current” dorm + room type — houseId matches HOUSES[].id; roomType matches ROOM_LABELS keys
-    let houseId = HOUSES[0].id;
-    let roomType = HOUSES[0].roomTypes[0];
+    let houseId = "zap";
+    let roomType = getHouse(houseId).roomTypes[0];
 
     function getHouse(id) {
       // Safety net if something weird gets into houseId (shouldn’t happen, but avoids a blank UI)
@@ -2092,6 +2521,222 @@
 
     compareA.addEventListener("change", renderComparison);
     compareB.addEventListener("change", renderComparison);
+
+    // ===== FEATURE 4: Interactive Campus Map =====
+    const DORM_COORDS = [
+      { id: "branner", lat: 37.4255, lng: -122.1629 },
+      { id: "crothers", lat: 37.4258, lng: -122.1647 },
+      { id: "alondra", lat: 37.4222, lng: -122.1718 },
+      { id: "mirlo", lat: 37.4218, lng: -122.1723 },
+      { id: "castano", lat: 37.4250, lng: -122.1610 },
+      { id: "lantana", lat: 37.4257, lng: -122.1608 },
+      { id: "robinson", lat: 37.4254, lng: -122.1795 },
+      { id: "schiff", lat: 37.4251, lng: -122.1800 },
+      { id: "west-lagunita", lat: 37.4250, lng: -122.1768 },
+      { id: "donner", lat: 37.4243, lng: -122.1662 },
+      { id: "larkin", lat: 37.4250, lng: -122.1658 },
+      { id: "arroyo", lat: 37.4243, lng: -122.1626 },
+      { id: "cedro", lat: 37.4241, lng: -122.1623 },
+      { id: "rinconada", lat: 37.4238, lng: -122.1640 },
+      { id: "soto", lat: 37.4244, lng: -122.1639 },
+      { id: "cardenal", lat: 37.4220, lng: -122.1715 },
+      { id: "potter", lat: 37.4256, lng: -122.1793 },
+      { id: "ujamaa", lat: 37.4248, lng: -122.1758 },
+      { id: "burbank", lat: 37.4242, lng: -122.1653 },
+      { id: "zap", lat: 37.4213, lng: -122.1619 },
+      { id: "casa-zapata", lat: 37.4239, lng: -122.1656 },
+      { id: "sally-ride", lat: 37.4240, lng: -122.1662 },
+      { id: "junipero", lat: 37.4235, lng: -122.1624 },
+      { id: "okada", lat: 37.4235, lng: -122.1629 },
+      { id: "otero", lat: 37.4236, lng: -122.1637 },
+    ];
+
+    const STANFORD_CENTER = { lat: 37.4241, lng: -122.1661 };
+    const MAP_DEFAULT_ZOOM = 14.8;
+    const MAP_FLY_ZOOM = 17.5;
+
+    let campusMap = null;
+    let mapPanoViewer = null;
+    let mapMarkers = [];
+    let activePopup = null;
+
+    const mapBackBtn = document.getElementById("map-back-btn");
+    const mapOverlay = document.getElementById("map-overlay");
+    const mapOverlayTitle = document.getElementById("map-overlay-title");
+    const mapOverlaySelect = document.getElementById("map-overlay-select");
+    const mapOverlayClose = document.getElementById("map-overlay-close");
+
+    function createMarkerSVG() {
+      const el = document.createElement("div");
+      el.className = "dorm-marker";
+      el.innerHTML = `<div class="dorm-marker-pin">
+        <svg viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0C7.163 0 0 7.163 0 16c0 10.667 14.4 23.04 15.04 23.616a1.333 1.333 0 001.92 0C17.6 39.04 32 26.667 32 16 32 7.163 24.837 0 16 0z" fill="#8c1515"/>
+          <circle cx="16" cy="15" r="6.5" fill="#fff"/>
+          <circle cx="16" cy="15" r="3.5" fill="#8c1515"/>
+        </svg>
+      </div>`;
+      return el;
+    }
+
+    async function initCampusMap() {
+      const container = document.getElementById("campus-map");
+
+      try {
+        const res = await fetch("/api/mapbox-token");
+        if (!res.ok) throw new Error();
+        const { token } = await res.json();
+        mapboxgl.accessToken = token;
+      } catch {
+        container.style.display = "flex";
+        container.style.alignItems = "center";
+        container.style.justifyContent = "center";
+        container.style.background = "linear-gradient(145deg, #2a3238 0%, #1a2228 40%, #252d35 100%)";
+        container.innerHTML = '<p style="color:rgba(255,255,255,0.6);font-family:var(--font-ui);font-size:0.9rem;text-align:center;padding:2rem;">Set MAPBOX_TOKEN in your <code>.env</code> file to enable the campus map.</p>';
+        return;
+      }
+
+      campusMap = new mapboxgl.Map({
+        container: "campus-map",
+        style: "mapbox://styles/mapbox/satellite-streets-v12",
+        center: [STANFORD_CENTER.lng, STANFORD_CENTER.lat],
+        zoom: MAP_DEFAULT_ZOOM,
+        pitch: 45,
+        bearing: -15,
+        antialias: true,
+      });
+
+      campusMap.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
+
+      campusMap.on("load", () => {
+        DORM_COORDS.forEach((dorm) => {
+          const house = getHouse(dorm.id);
+          if (!house) return;
+
+          const el = createMarkerSVG();
+
+          el.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (activePopup) activePopup.remove();
+            flyToDorm(dorm, house);
+          });
+
+          const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+            .setLngLat([dorm.lng, dorm.lat])
+            .addTo(campusMap);
+
+          mapMarkers.push({ marker, dorm, house });
+        });
+      });
+    }
+
+    function flyToDorm(dorm, house) {
+      if (activePopup) { activePopup.remove(); activePopup = null; }
+
+      campusMap.flyTo({
+        center: [dorm.lng, dorm.lat],
+        zoom: MAP_FLY_ZOOM,
+        pitch: 60,
+        bearing: 0,
+        duration: 2200,
+        essential: true,
+        curve: 1.42,
+      });
+
+      mapBackBtn.classList.add("is-visible");
+
+      campusMap.once("moveend", () => {
+        const categoryLabel = house.category === "frosh"
+          ? "First-year designated"
+          : "Four-class residence";
+
+        const popupHTML = `
+          <p class="map-popup-name">${house.name}</p>
+          <p class="map-popup-category">${categoryLabel}</p>
+          <button class="map-popup-explore" data-dorm-id="${house.id}">
+            Explore 360° &#8594;
+          </button>`;
+
+        const popup = new mapboxgl.Popup({
+          offset: [0, -42],
+          closeOnClick: false,
+          maxWidth: "220px",
+        })
+          .setLngLat([dorm.lng, dorm.lat])
+          .setHTML(popupHTML)
+          .addTo(campusMap);
+
+        activePopup = popup;
+
+        const popupEl = popup.getElement();
+        popupEl.addEventListener("click", (e) => {
+          const exploreBtn = e.target.closest("[data-dorm-id]");
+          if (exploreBtn) {
+            showMapPanorama(house);
+          }
+        });
+      });
+    }
+
+    function showMapPanorama(house) {
+      mapOverlayTitle.textContent = house.name + " — 360° Tour";
+      mapOverlay.classList.add("is-visible");
+
+      if (mapPanoViewer) {
+        mapPanoViewer.destroy();
+        mapPanoViewer = null;
+      }
+
+      mapPanoViewer = pannellum.viewer("map-panorama", getDemoTourConfig());
+      mapOverlaySelect.dataset.dormId = house.id;
+    }
+
+    function closeMapPanorama() {
+      mapOverlay.classList.remove("is-visible");
+      if (mapPanoViewer) {
+        mapPanoViewer.destroy();
+        mapPanoViewer = null;
+      }
+    }
+
+    function resetMapView() {
+      closeMapPanorama();
+      if (activePopup) { activePopup.remove(); activePopup = null; }
+      mapBackBtn.classList.remove("is-visible");
+
+      if (campusMap) {
+        campusMap.flyTo({
+          center: [STANFORD_CENTER.lng, STANFORD_CENTER.lat],
+          zoom: MAP_DEFAULT_ZOOM,
+          pitch: 45,
+          bearing: -15,
+          duration: 1800,
+          essential: true,
+        });
+      }
+    }
+
+    mapBackBtn.addEventListener("click", resetMapView);
+    mapOverlayClose.addEventListener("click", () => {
+      closeMapPanorama();
+    });
+
+    mapOverlaySelect.addEventListener("click", () => {
+      const selectedId = mapOverlaySelect.dataset.dormId;
+      if (selectedId) {
+        houseId = selectedId;
+        roomType = getHouse(houseId).roomTypes[0];
+        dormSelect.value = houseId;
+        renderPills();
+        updatePreview();
+        renderFavUI();
+        closeMapPanorama();
+        resetMapView();
+        document.querySelector(".shell").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    initCampusMap();
   </script>
 </body>
 </html>
