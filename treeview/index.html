@@ -1498,6 +1498,66 @@
       0%, 100% { opacity: 0.55; }
       50% { opacity: 0.85; }
     }
+
+    /* ============================================================
+       Per-dorm notes (Noah)
+       ============================================================ */
+    .notes-field {
+      margin-top: 0.4rem;
+    }
+
+    .notes-field .label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .notes-status {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--teal);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .notes-status.is-visible {
+      opacity: 1;
+    }
+
+    .notes-textarea {
+      width: 100%;
+      padding: 0.7rem 0.85rem;
+      font: inherit;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      color: var(--charcoal);
+      background-color: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      resize: vertical;
+      min-height: 4.5rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+    [data-theme="dark"] .notes-textarea {
+      background-color: rgba(30, 36, 42, 0.9);
+      color: var(--charcoal);
+      border-color: var(--line);
+    }
+
+    .notes-textarea:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-glow);
+    }
+
+    .notes-hint {
+      margin-top: 0.35rem;
+      font-size: 0.78rem;
+    }
   </style>
 </head>
 <body>
@@ -1585,6 +1645,21 @@
             <span class="label" id="room-label">Room category</span>
             <!-- Pills are created in renderPills(); click handler lives at bottom of script -->
             <div id="pills" class="pills" role="group" aria-labelledby="room-label"></div>
+          </div>
+          <!-- Per-dorm notes — persists to localStorage keyed by dorm id (same pattern as favorites/theme) -->
+          <div class="field notes-field">
+            <label class="label" for="dorm-notes">
+              <span id="notes-label">My notes</span>
+              <span class="notes-status" id="notes-status" aria-live="polite"></span>
+            </label>
+            <textarea
+              id="dorm-notes"
+              class="notes-textarea"
+              rows="3"
+              placeholder="Jot something down — paint color, dimensions, who you toured with, anything."
+              aria-describedby="notes-hint"
+            ></textarea>
+            <p class="hint notes-hint" id="notes-hint">Saved locally on this browser. Switching dorms loads that dorm's notes.</p>
           </div>
           <button type="button" class="compare-toggle" id="compare-toggle">&#8644; Compare dorms</button>
           <div class="compare-panel" id="compare-panel">
@@ -2747,6 +2822,59 @@
     });
 
     initCampusMap();
+
+    // =====================================================================
+    // FEATURE 5: Per-dorm notes (Noah)
+    // Same localStorage pattern Laolu used for favorites/theme. One key per
+    // dorm so each dorm's notes are independent. Saves on input (debounced).
+    // =====================================================================
+    const notesTextarea = document.getElementById("dorm-notes");
+    const notesStatus = document.getElementById("notes-status");
+    const notesLabel = document.getElementById("notes-label");
+
+    // We namespace localStorage keys so we don't collide with other features.
+    function notesKey(id) {
+      return "tv-notes:" + id;
+    }
+
+    function loadNotesForCurrentDorm() {
+      const saved = localStorage.getItem(notesKey(houseId)) || "";
+      notesTextarea.value = saved;
+      notesLabel.textContent = "Notes for " + getHouse(houseId).name;
+    }
+
+    // Debounce so we don't hammer localStorage on every keystroke.
+    let notesSaveTimer;
+    let notesStatusTimer;
+    function scheduleNotesSave() {
+      clearTimeout(notesSaveTimer);
+      notesSaveTimer = setTimeout(() => {
+        const value = notesTextarea.value;
+        if (value) {
+          localStorage.setItem(notesKey(houseId), value);
+        } else {
+          // Empty textarea — clean up the key instead of storing "".
+          localStorage.removeItem(notesKey(houseId));
+        }
+        // Flash a "Saved" indicator next to the label.
+        notesStatus.textContent = "Saved";
+        notesStatus.classList.add("is-visible");
+        clearTimeout(notesStatusTimer);
+        notesStatusTimer = setTimeout(() => {
+          notesStatus.classList.remove("is-visible");
+        }, 1200);
+      }, 350);
+    }
+
+    notesTextarea.addEventListener("input", scheduleNotesSave);
+
+    // When the dorm changes, swap to that dorm's notes. We re-use the existing
+    // dormSelect change pattern — Laolu's renderFavUI listener and the pills
+    // listener already fire on the same event; ours just adds to that chain.
+    dormSelect.addEventListener("change", loadNotesForCurrentDorm);
+
+    // First paint.
+    loadNotesForCurrentDorm();
   </script>
 </body>
 </html>
