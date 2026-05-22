@@ -968,6 +968,46 @@
       margin-top: 0.5rem;
     }
 
+    /* Share button (Noah) — sits next to the "My shortlist" header */
+    .shortlist-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .share-shortlist-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--teal);
+      background: rgba(61, 154, 140, 0.1);
+      border: 1px solid rgba(61, 154, 140, 0.3);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    }
+
+    .share-shortlist-btn:hover {
+      background: rgba(61, 154, 140, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .share-shortlist-btn.is-copied {
+      background: var(--teal);
+      color: #fff;
+      border-color: var(--teal);
+    }
+
+    .share-shortlist-icon {
+      font-size: 0.95rem;
+    }
+
     .shortlist-chip {
       display: inline-flex;
       align-items: center;
@@ -1567,7 +1607,13 @@
 
     <!-- Favorites shortlist bar -->
     <section class="shortlist-section" id="shortlist-section" aria-label="Your shortlisted dorms">
-      <p class="panel-head">My shortlist</p>
+      <div class="shortlist-head">
+        <p class="panel-head">My shortlist</p>
+        <button type="button" id="share-shortlist-btn" class="share-shortlist-btn" aria-label="Copy a shareable link to my shortlist">
+          <span class="share-shortlist-icon" aria-hidden="true">&#128279;</span>
+          <span class="share-shortlist-text">Share my shortlist</span>
+        </button>
+      </div>
       <div class="shortlist-chips" id="shortlist-chips"></div>
     </section>
 
@@ -2875,6 +2921,95 @@
 
     // First paint.
     loadNotesForCurrentDorm();
+
+    // =====================================================================
+    // FEATURE 6 (Noah): Shareable shortlist links
+    //
+    // The favorites Laolu built live in localStorage, so they only exist
+    // on the device that starred them. This feature lets the user copy a
+    // link that encodes their shortlist + current dorm/room so a roommate
+    // can open the link and see the same selection.
+    //
+    // URL shape:
+    //   /?shortlist=<base64-csv-of-dorm-ids>&dorm=<id>&room=<roomType>
+    //
+    // Tech: URLSearchParams reads/writes the query string, btoa/atob
+    // base64-encodes the list (compact + harder to fat-finger), and
+    // navigator.clipboard.writeText copies the link to the user's
+    // clipboard. The "shortlist" param is validated against HOUSES so
+    // a tampered link can't poison the favorites with unknown ids.
+    // =====================================================================
+    const shareBtn = document.getElementById("share-shortlist-btn");
+    const shareBtnText = shareBtn.querySelector(".share-shortlist-text");
+
+    // On page load: if the URL includes ?shortlist=..., decode + apply it.
+    function loadShortlistFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get("shortlist");
+      if (encoded) {
+        try {
+          const ids = atob(encoded).split(",").filter((id) => HOUSES.some((h) => h.id === id));
+          if (ids.length) {
+            saveFavorites(ids);
+            renderFavUI();
+          }
+        } catch {
+          // Malformed base64 — silently ignore, the user's own shortlist (if any) stays.
+        }
+      }
+      const dormParam = params.get("dorm");
+      const roomParam = params.get("room");
+      if (dormParam && HOUSES.some((h) => h.id === dormParam)) {
+        houseId = dormParam;
+        const house = getHouse(houseId);
+        roomType = house.roomTypes.includes(roomParam) ? roomParam : house.roomTypes[0];
+        dormSelect.value = houseId;
+        renderPills();
+        updatePreview();
+        renderFavUI();
+        // Also refresh the notes for the new dorm
+        if (typeof loadNotesForCurrentDorm === "function") loadNotesForCurrentDorm();
+      }
+    }
+
+    async function copyShareLink() {
+      const favs = getFavorites();
+      if (favs.length === 0) {
+        // Friendly nudge instead of copying an empty link
+        shareBtnText.textContent = "Star a dorm first";
+        clearTimeout(copyShareLink._t);
+        copyShareLink._t = setTimeout(() => {
+          shareBtnText.textContent = "Share my shortlist";
+        }, 1800);
+        return;
+      }
+      const params = new URLSearchParams();
+      params.set("shortlist", btoa(favs.join(",")));
+      params.set("dorm", houseId);
+      params.set("room", roomType);
+      const url = window.location.origin + window.location.pathname + "?" + params.toString();
+
+      try {
+        await navigator.clipboard.writeText(url);
+        shareBtn.classList.add("is-copied");
+        shareBtnText.textContent = "Link copied";
+      } catch {
+        // Clipboard API can fail (insecure context, denied permission) — fall back to prompt
+        window.prompt("Copy this link to share your shortlist:", url);
+        shareBtnText.textContent = "Share my shortlist";
+        return;
+      }
+      clearTimeout(copyShareLink._t);
+      copyShareLink._t = setTimeout(() => {
+        shareBtn.classList.remove("is-copied");
+        shareBtnText.textContent = "Share my shortlist";
+      }, 1800);
+    }
+
+    shareBtn.addEventListener("click", copyShareLink);
+
+    // Apply any URL-encoded shortlist now that all helpers are defined.
+    loadShortlistFromURL();
   </script>
 </body>
 </html>
