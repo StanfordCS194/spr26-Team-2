@@ -254,6 +254,8 @@ app.get("/api/uploads/:uploadId/photos/:filename", (req, res) => {
   // Step 4: Build the absolute path and send the file
   const filePath = path.join(UPLOADS_DIR, req.params.uploadId, filename);
   res.sendFile(filePath);
+});
+
 // === GET /api/mapbox-token ===
 // Serves the Mapbox public token to the frontend so it stays out of source control
 app.get("/api/mapbox-token", (req, res) => {
