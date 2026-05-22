@@ -2,6 +2,7 @@
 // Receives 6 dorm photos from the browser, validates them, and stores them on disk.
 // Each upload gets a UUID folder with renamed photos (01-north.jpg, etc.) and metadata.json.
 
+require("dotenv").config();
 const express = require("express");
 const multer = require("multer"); // Middleware to parse multipart form uploads (files)
 const cors = require("cors"); // Allow cross-origin requests
@@ -253,6 +254,14 @@ app.get("/api/uploads/:uploadId/photos/:filename", (req, res) => {
   // Step 4: Build the absolute path and send the file
   const filePath = path.join(UPLOADS_DIR, req.params.uploadId, filename);
   res.sendFile(filePath);
+// === GET /api/mapbox-token ===
+// Serves the Mapbox public token to the frontend so it stays out of source control
+app.get("/api/mapbox-token", (req, res) => {
+  const token = process.env.MAPBOX_TOKEN;
+  if (!token || token === "YOUR_MAPBOX_TOKEN_HERE") {
+    return res.status(503).json({ error: "MAPBOX_TOKEN not configured in .env" });
+  }
+  res.json({ token });
 });
 
 // === GET /api/health ===
