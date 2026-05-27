@@ -474,6 +474,84 @@
       height: clamp(220px, 30vh, 300px);
     }
 
+    /* Designer canvas: sized to match .pannellum-host so the mode swap is seamless */
+    .design-canvas {
+      width: 100%;
+      height: clamp(220px, 30vh, 300px);
+      display: block;
+      touch-action: none; /* let our pointer-drag handler own the gesture */
+      cursor: grab;
+    }
+    .design-canvas:active { cursor: grabbing; }
+    .design-canvas[hidden] { display: none; }
+    .pannellum-host[hidden] { display: none; }
+
+    /* Mode toggle pill — overlay in the top-right corner of .preview-viewport (position: relative) */
+    .preview-mode-toggle {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      z-index: 2;
+      display: inline-flex;
+      gap: 0.25rem;
+      padding: 0.25rem;
+      border-radius: 999px;
+      background: rgba(26, 34, 40, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .preview-mode-btn {
+      appearance: none;
+      border: 0;
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.72);
+      font-family: var(--font-ui);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .preview-mode-btn:hover { color: #fff; }
+    .preview-mode-btn.is-active {
+      background: var(--cardinal);
+      color: #fff;
+    }
+
+    /* Zoom + fullscreen button stack — mirrors Pannellum's bottom-left control position */
+    .design-controls {
+      position: absolute;
+      bottom: 0.5rem;
+      left: 0.5rem;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .design-controls[hidden] { display: none; }
+    .design-ctrl-btn {
+      appearance: none;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 6px;
+      background: rgba(26, 34, 40, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.85);
+      font-family: var(--font-ui);
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .design-ctrl-btn:hover { background: rgba(26, 34, 40, 0.95); color: #fff; }
+
     /* --- Bottom section: future “design your room” tool (static placeholder for now) --- */
     .designer {
       margin-top: 1.75rem;
@@ -2130,8 +2208,21 @@
             <!-- Filled by updatePreview(): “Branner, Singles” style string -->
             <p id="preview-title" class="preview-title"></p>
             <div class="preview-viewport" aria-label="Immersive preview, panoramic room view">
+              <!-- Tour/Design mode toggle (overlay, top-right) — wired up by TreeViewDesigner -->
+              <div class="preview-mode-toggle" role="tablist" aria-label="Preview mode">
+                <button type="button" id="mode-tour-btn" class="preview-mode-btn is-active" role="tab" aria-selected="true" data-mode="tour">Tour</button>
+                <button type="button" id="mode-design-btn" class="preview-mode-btn" role="tab" aria-selected="false" data-mode="design">Design</button>
+              </div>
               <!-- Pannellum replaces the inside of this div at runtime -->
               <div id="treeview-panorama" class="pannellum-host"></div>
+              <!-- Three.js renders here when Design mode is active (hidden until first toggle) -->
+              <canvas id="design-canvas" class="design-canvas" hidden aria-label="3D room designer"></canvas>
+              <!-- Zoom + fullscreen controls, mirroring Pannellum's button positions (hidden in Tour mode) -->
+              <div id="design-controls" class="design-controls" hidden aria-label="Design mode controls">
+                <button type="button" class="design-ctrl-btn" id="design-zoom-in" aria-label="Zoom in">+</button>
+                <button type="button" class="design-ctrl-btn" id="design-zoom-out" aria-label="Zoom out">&minus;</button>
+                <button type="button" class="design-ctrl-btn" id="design-fullscreen" aria-label="Toggle full screen">&#x26F6;</button>
+              </div>
             </div>
           </div>
         </aside>
@@ -2223,6 +2314,8 @@
 
   <!-- Load Pannellum before our inline script so the global `pannellum` object exists -->
   <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.js"></script>
+  <!-- Three.js — substrate for Design mode (TreeViewDesigner IIFE near the end of the inline script) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
   <script>
     /*
      * Maps internal keys (what we store in data / HOUSES) to human-readable labels on buttons.
@@ -3907,6 +4000,221 @@
     });
 
     openQuizBtn.addEventListener("click", openQuiz);
+
+    /* ===== Designer mode — Three.js panorama substrate =====
+     * Renders ZAP_One on an inside-out sphere so a real 3D scene exists for
+     * future furniture/share work. v1 is read-only; Tour mode remains the default.
+     */
+    (function initTreeViewDesigner() {
+      const tourBtn        = document.getElementById("mode-tour-btn");
+      const designBtn      = document.getElementById("mode-design-btn");
+      const canvas         = document.getElementById("design-canvas");
+      const panoHost       = document.getElementById("treeview-panorama");
+      const designControls = document.getElementById("design-controls");
+      const zoomInBtn      = document.getElementById("design-zoom-in");
+      const zoomOutBtn     = document.getElementById("design-zoom-out");
+      const fullscreenBtn  = document.getElementById("design-fullscreen");
+
+      // Graceful degradation: if the Three.js CDN is blocked, Tour mode still works.
+      if (typeof THREE === "undefined") {
+        console.warn("[designer] THREE.js failed to load — Design mode disabled.");
+        designBtn.disabled = true;
+        designBtn.title = "Design mode unavailable (3D library failed to load)";
+        return;
+      }
+
+      const FIRST_SCENE_URL = pano("ZAP_One.jpeg");
+      // Match Pannellum baseScene (haov: 110, vaov: 45) — half-angles for yaw/pitch clamps.
+      const YAW_LIMIT_RAD   = THREE.MathUtils.degToRad(55);
+      const PITCH_LIMIT_RAD = THREE.MathUtils.degToRad(22.5);
+      const DRAG_SENSITIVITY = 0.0025;
+      const INERTIA = 0.88;    // velocity multiplied each frame after pointer release
+      const MIN_FOV = 50;      // degrees — matches Pannellum minHfov
+      const MAX_FOV = 90;      // degrees — matches Pannellum maxHfov
+      const ZOOM_STEP = 3;     // degrees per button press or scroll tick
+
+      let renderer, scene, camera;
+      let yaw = 0, pitch = 0;
+      let velYaw = 0, velPitch = 0;
+      const lookTarget = new THREE.Vector3();
+      let initialized = false;
+      let animFrame = null;
+      let resizeTimer = null;
+      let dragging = false;
+      let lastX = 0, lastY = 0;
+
+      function updateCamera() {
+        // Standard first-person spherical look: yaw around Y, pitch around X.
+        // At yaw=0, pitch=0 the camera looks down -Z (center of the equirectangular image).
+        lookTarget.set(
+          Math.sin(yaw) * Math.cos(pitch),
+          Math.sin(pitch),
+          -Math.cos(yaw) * Math.cos(pitch)
+        );
+        camera.lookAt(lookTarget);
+      }
+
+      function clampAngles() {
+        if (yaw < -YAW_LIMIT_RAD)         { yaw   = -YAW_LIMIT_RAD;   velYaw   = 0; }
+        else if (yaw > YAW_LIMIT_RAD)     { yaw   =  YAW_LIMIT_RAD;   velYaw   = 0; }
+        if (pitch < -PITCH_LIMIT_RAD)     { pitch = -PITCH_LIMIT_RAD; velPitch = 0; }
+        else if (pitch > PITCH_LIMIT_RAD) { pitch =  PITCH_LIMIT_RAD; velPitch = 0; }
+      }
+
+      function setFov(fov) {
+        camera.fov = Math.min(MAX_FOV, Math.max(MIN_FOV, fov));
+        camera.updateProjectionMatrix();
+      }
+
+      function sizeRendererToCanvas() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (!w || !h) return; // canvas hidden — skip to avoid a 0×0 framebuffer
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+
+      function init() {
+        if (initialized) return;
+        initialized = true;
+
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.outputEncoding = THREE.sRGBEncoding;
+
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
+        camera.position.set(0, 0, 0); // camera at origin; sphere wraps around it
+
+        // Inside-out sphere — scale.x = -1 flips face winding so the texture is
+        // visible from inside, and the equirectangular UV wrapping reads left-to-right.
+        const geom = new THREE.SphereGeometry(50, 64, 40);
+        geom.scale(-1, 1, 1);
+
+        const texLoader = new THREE.TextureLoader();
+        texLoader.setCrossOrigin("anonymous");
+        const texture = texLoader.load(FIRST_SCENE_URL);
+        texture.encoding = THREE.sRGBEncoding;
+
+        scene.add(new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ map: texture })));
+
+        sizeRendererToCanvas();
+        updateCamera();
+        bindEvents();
+      }
+
+      function bindEvents() {
+        // --- Pointer drag (look-around: drag right = pan right, matching Pannellum) ---
+        canvas.addEventListener("pointerdown", (e) => {
+          dragging = true;
+          velYaw = velPitch = 0; // kill any coasting momentum on new grab
+          lastX = e.clientX;
+          lastY = e.clientY;
+          canvas.setPointerCapture(e.pointerId);
+        });
+
+        canvas.addEventListener("pointermove", (e) => {
+          if (!dragging) return;
+          const dx = e.clientX - lastX;
+          const dy = e.clientY - lastY;
+          lastX = e.clientX;
+          lastY = e.clientY;
+          velYaw   = dx * DRAG_SENSITIVITY; // store for inertia coast on release
+          velPitch = dy * DRAG_SENSITIVITY;
+          yaw   += velYaw;
+          pitch -= velPitch; // drag down (dy > 0) = look down = pitch decreases
+          clampAngles();
+          updateCamera();
+        });
+
+        const endDrag = (e) => {
+          dragging = false;
+          if (e && e.pointerId !== undefined && canvas.hasPointerCapture(e.pointerId)) {
+            canvas.releasePointerCapture(e.pointerId);
+          }
+        };
+        canvas.addEventListener("pointerup",     endDrag);
+        canvas.addEventListener("pointercancel", endDrag);
+
+        // --- Scroll wheel zoom (matches Pannellum: scroll up = zoom in = smaller FOV) ---
+        canvas.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          setFov(camera.fov + (e.deltaY > 0 ? ZOOM_STEP : -ZOOM_STEP));
+        }, { passive: false });
+
+        // --- Zoom buttons ---
+        zoomInBtn.addEventListener("click",  () => setFov(camera.fov - ZOOM_STEP));
+        zoomOutBtn.addEventListener("click", () => setFov(camera.fov + ZOOM_STEP));
+
+        // --- Fullscreen ---
+        fullscreenBtn.addEventListener("click", () => {
+          if (!document.fullscreenElement) {
+            canvas.requestFullscreen().catch(err => console.warn("[designer] fullscreen:", err));
+          } else {
+            document.exitFullscreen();
+          }
+        });
+        // Resize the renderer once the browser has settled into/out of fullscreen
+        document.addEventListener("fullscreenchange", () =>
+          setTimeout(sizeRendererToCanvas, 50)
+        );
+      }
+
+      function tick() {
+        animFrame = requestAnimationFrame(tick);
+        // Inertia coast: apply decaying velocity after the pointer is released
+        if (!dragging && (Math.abs(velYaw) > 0.00005 || Math.abs(velPitch) > 0.00005)) {
+          yaw   += velYaw;
+          pitch -= velPitch;
+          clampAngles();
+          velYaw   *= INERTIA;
+          velPitch *= INERTIA;
+          updateCamera();
+        }
+        renderer.render(scene, camera);
+      }
+
+      function start() {
+        init();
+        sizeRendererToCanvas();
+        if (animFrame === null) tick();
+      }
+
+      function stop() {
+        if (animFrame !== null) {
+          cancelAnimationFrame(animFrame);
+          animFrame = null;
+        }
+      }
+
+      function setMode(mode) {
+        const designOn = mode === "design";
+        panoHost.hidden        = designOn;
+        canvas.hidden          = !designOn;
+        designControls.hidden  = !designOn;
+        tourBtn.classList.toggle("is-active",  !designOn);
+        designBtn.classList.toggle("is-active", designOn);
+        tourBtn.setAttribute("aria-selected",  String(!designOn));
+        designBtn.setAttribute("aria-selected", String(designOn));
+        if (designOn) {
+          start();
+        } else {
+          stop();
+          // Pannellum needs a nudge after its host returns from display:none
+          if (typeof panoramaViewer !== "undefined") panoramaViewer.resize();
+        }
+      }
+
+      tourBtn.addEventListener("click",  () => setMode("tour"));
+      designBtn.addEventListener("click", () => setMode("design"));
+
+      window.addEventListener("resize", () => {
+        if (!initialized || canvas.hidden) return;
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(sizeRendererToCanvas, 120);
+      });
+    })();
   </script>
 </body>
 </html>
