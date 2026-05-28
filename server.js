@@ -2,12 +2,12 @@
 // Receives 6 dorm photos from the browser, validates them, and stores them on disk.
 // Each upload gets a UUID folder with renamed photos (01-north.jpg, etc.) and metadata.json.
 
-require("dotenv").config();
+const path = require("path"); // Path utilities: join paths safely (before dotenv so .env path is reliable)
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const multer = require("multer"); // Middleware to parse multipart form uploads (files)
 const cors = require("cors"); // Allow cross-origin requests
 const fs = require("fs"); // File system: read/write to disk
-const path = require("path"); // Path utilities: join paths safely
 const { randomUUID } = require("crypto"); // Generate unique upload IDs
 
 const app = express();
@@ -275,6 +275,10 @@ app.get("/api/health", (req, res) => {
 // === Startup ===
 // Start the Express server
 app.listen(PORT, () => {
+  const mapboxReady =
+    Boolean(process.env.MAPBOX_TOKEN) &&
+    process.env.MAPBOX_TOKEN !== "YOUR_MAPBOX_TOKEN_HERE";
   console.log(`TreeView server listening on http://localhost:${PORT}`);
   console.log(`Uploads directory: ${UPLOADS_DIR}`);
+  console.log(`Mapbox: ${mapboxReady ? "configured" : "missing (set MAPBOX_TOKEN in .env)"}`);
 });
