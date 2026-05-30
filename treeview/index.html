@@ -1646,6 +1646,402 @@
       height: 100vh;
     }
 
+    /* --- Dorm Matchmaker Quiz --- */
+    .quiz-section {
+      margin-top: 1.75rem;
+    }
+
+    .quiz-head {
+      margin-bottom: 1.25rem;
+    }
+
+    .quiz-title {
+      margin: 0 0 0.5rem;
+      font-family: var(--font-display);
+      font-size: clamp(1.35rem, 3vw, 1.65rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--charcoal);
+    }
+
+    .quiz-lede {
+      margin: 0;
+      max-width: 40rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .quiz-body {
+      position: relative;
+      min-height: 280px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.5) 0%, transparent 50%),
+        linear-gradient(165deg, #2a3238 0%, #1a2228 40%, #252d35 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .quiz-body::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      pointer-events: none;
+      animation: hero-glow 6s ease-in-out infinite;
+      background:
+        radial-gradient(circle at 30% 20%, var(--teal-glow), transparent 45%),
+        radial-gradient(circle at 80% 80%, rgba(140, 21, 21, 0.25), transparent 40%);
+    }
+
+    .quiz-inner {
+      position: relative;
+      z-index: 1;
+      padding: clamp(1.25rem, 3vw, 2rem);
+    }
+
+    .quiz-progress {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .quiz-progress-bar {
+      flex: 1;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+      transition: background 0.3s ease;
+    }
+
+    .quiz-progress-bar.is-done {
+      background: var(--teal);
+    }
+
+    .quiz-progress-bar.is-active {
+      background: rgba(255, 255, 255, 0.35);
+      position: relative;
+    }
+
+    .quiz-progress-bar.is-active::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 50%;
+      background: var(--teal);
+      border-radius: 999px;
+      animation: progress-pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes progress-pulse {
+      0%, 100% { width: 30%; opacity: 0.7; }
+      50% { width: 70%; opacity: 1; }
+    }
+
+    .quiz-step {
+      display: none;
+      animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .quiz-step.is-active {
+      display: block;
+    }
+
+    .quiz-question {
+      margin: 0 0 0.35rem;
+      font-family: var(--font-display);
+      font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .quiz-question-sub {
+      margin: 0 0 1.25rem;
+      font-size: 0.84rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .quiz-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+
+    @media (max-width: 600px) {
+      .quiz-options {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .quiz-option {
+      position: relative;
+      padding: 0.85rem 1rem;
+      text-align: left;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 0.92rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .quiz-option:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(61, 154, 140, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .quiz-option.is-selected {
+      background: rgba(61, 154, 140, 0.2);
+      border-color: var(--teal);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 0 0 3px rgba(61, 154, 140, 0.2);
+    }
+
+    .quiz-option-emoji {
+      display: block;
+      font-size: 1.4rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .quiz-option-label {
+      display: block;
+      font-size: 0.92rem;
+    }
+
+    .quiz-option-desc {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.76rem;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .quiz-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1.5rem;
+      gap: 0.75rem;
+    }
+
+    .quiz-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.55rem 1.15rem;
+      font-family: var(--font-ui);
+      font-size: 0.86rem;
+      font-weight: 600;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+    }
+
+    .quiz-nav-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .quiz-nav-btn--back {
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .quiz-nav-btn--back:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .quiz-nav-btn--next {
+      color: #fff;
+      background: linear-gradient(135deg, var(--cardinal) 0%, var(--cardinal-deep) 100%);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-cardinal);
+    }
+
+    .quiz-nav-btn--next:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(140, 21, 21, 0.35);
+    }
+
+    .quiz-step-count {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.4);
+      letter-spacing: 0.06em;
+    }
+
+    /* Results */
+    .quiz-results {
+      display: none;
+      animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .quiz-results.is-active {
+      display: block;
+    }
+
+    .quiz-results-title {
+      margin: 0 0 0.35rem;
+      font-family: var(--font-display);
+      font-size: clamp(1.15rem, 2.5vw, 1.4rem);
+      font-weight: 600;
+      color: #fff;
+      text-align: center;
+    }
+
+    .quiz-results-sub {
+      margin: 0 0 1.5rem;
+      font-size: 0.84rem;
+      color: rgba(255, 255, 255, 0.5);
+      text-align: center;
+    }
+
+    .quiz-results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .quiz-result-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.15rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .quiz-result-card:nth-child(1) { animation-delay: 0.1s; }
+    .quiz-result-card:nth-child(2) { animation-delay: 0.25s; }
+    .quiz-result-card:nth-child(3) { animation-delay: 0.4s; }
+
+    .quiz-result-card:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(61, 154, 140, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .quiz-result-card:first-child {
+      border-color: rgba(230, 168, 23, 0.5);
+      background: rgba(230, 168, 23, 0.08);
+    }
+
+    .quiz-result-rank {
+      flex-shrink: 0;
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .quiz-result-card:first-child .quiz-result-rank {
+      background: linear-gradient(135deg, #e6a817, #c48a0a);
+      box-shadow: 0 4px 14px rgba(230, 168, 23, 0.3);
+    }
+
+    .quiz-result-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .quiz-result-name {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .quiz-result-category {
+      margin: 0.1rem 0 0;
+      font-size: 0.76rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .quiz-result-bar-wrap {
+      flex-shrink: 0;
+      width: 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.25rem;
+    }
+
+    .quiz-result-pct {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--teal);
+    }
+
+    .quiz-result-bar {
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+    }
+
+    .quiz-result-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--teal), #5ec4b4);
+      transform-origin: left;
+      animation: bar-fill 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .quiz-result-card:nth-child(1) .quiz-result-bar-fill { animation-delay: 0.3s; }
+    .quiz-result-card:nth-child(2) .quiz-result-bar-fill { animation-delay: 0.5s; }
+    .quiz-result-card:nth-child(3) .quiz-result-bar-fill { animation-delay: 0.7s; }
+
+    @keyframes bar-fill {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    .quiz-restart-btn {
+      display: block;
+      margin: 1.25rem auto 0;
+      padding: 0.5rem 1.15rem;
+      font-family: var(--font-ui);
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .quiz-restart-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    @media (max-width: 500px) {
+      .quiz-result-bar-wrap { width: 70px; }
+    }
+
     [data-theme="dark"] .campus-map-card {
       border-color: var(--line);
     }
@@ -2288,6 +2684,24 @@
               <p id="upload-result" class="upload-result" role="status" aria-live="polite" hidden></p>
             </div>
           </form>
+        </div>
+      </section>
+
+      <!-- Dorm Matchmaker Quiz -->
+      <section class="quiz-section glass" aria-labelledby="quiz-heading">
+        <div class="quiz-head">
+          <p class="panel-head">Dorm matchmaker</p>
+          <h2 id="quiz-heading" class="quiz-title">Find your perfect dorm</h2>
+          <p class="quiz-lede">
+            Answer five quick questions about your living preferences and we'll rank the best dorm matches for you.
+          </p>
+        </div>
+        <div class="quiz-body">
+          <div class="quiz-inner" id="quiz-inner">
+            <div class="quiz-progress" id="quiz-progress"></div>
+            <div id="quiz-steps"></div>
+            <div class="quiz-results" id="quiz-results"></div>
+          </div>
         </div>
       </section>
     </main>
@@ -3506,6 +3920,459 @@
 
     initCampusMap();
 
+    // ===== FEATURE 5: Dorm Matchmaker Quiz =====
+
+    /*
+     * Each question has a key (used for scoring), display text, and options.
+     * Every option carries a `traits` object: keys map to dorm IDs,
+     * values are point weights (higher = stronger match for that preference).
+     * When the user picks an option, its trait points get added to each dorm's total.
+     */
+    const QUIZ_QUESTIONS = [
+      {
+        key: "privacy",
+        question: "How much personal space do you need?",
+        sub: "Think about studying, sleeping, and downtime.",
+        options: [
+          {
+            emoji: "🔇",
+            label: "Maximum privacy",
+            desc: "A single room is ideal",
+            traits: {
+              branner: 3, crothers: 3, castano: 4, schiff: 4, lantana: 3,
+              robinson: 3, "west-lagunita": 2, donner: 2, larkin: 2,
+              arroyo: 2, cedro: 2, rinconada: 2, soto: 2, alondra: 2,
+              mirlo: 2, cardenal: 2, potter: 3, ujamaa: 2, burbank: 2,
+              zap: 2, "casa-zapata": 2, "sally-ride": 2, junipero: 2,
+              okada: 2, otero: 2,
+            },
+          },
+          {
+            emoji: "😊",
+            label: "I like a roommate",
+            desc: "Doubles are great",
+            traits: {
+              branner: 4, crothers: 3, alondra: 3, mirlo: 4, castano: 3,
+              lantana: 3, robinson: 3, schiff: 3, "west-lagunita": 3,
+              donner: 4, larkin: 4, arroyo: 4, cedro: 4, rinconada: 4,
+              soto: 4, cardenal: 3, potter: 3, ujamaa: 3, burbank: 4,
+              zap: 4, "casa-zapata": 4, "sally-ride": 4, junipero: 4,
+              okada: 4, otero: 4,
+            },
+          },
+          {
+            emoji: "🎉",
+            label: "The more the merrier",
+            desc: "Triples sound fun",
+            traits: {
+              branner: 4, crothers: 3, castano: 5, schiff: 5, lantana: 3,
+              robinson: 4, alondra: 1, mirlo: 1, "west-lagunita": 1,
+              donner: 1, larkin: 1, arroyo: 1, cedro: 1, rinconada: 1,
+              soto: 1, cardenal: 1, potter: 3, ujamaa: 1, burbank: 1,
+              zap: 1, "casa-zapata": 1, "sally-ride": 1, junipero: 1,
+              okada: 1, otero: 1,
+            },
+          },
+        ],
+      },
+      {
+        key: "vibe",
+        question: "What kind of social vibe are you after?",
+        sub: "Every dorm has a personality.",
+        options: [
+          {
+            emoji: "📚",
+            label: "Quiet and studious",
+            desc: "I need peace to focus",
+            traits: {
+              crothers: 5, schiff: 4, larkin: 4, "west-lagunita": 3,
+              robinson: 4, potter: 4, cedro: 3, rinconada: 3, burbank: 3,
+              mirlo: 3, branner: 1, donner: 1, zap: 1, "casa-zapata": 1,
+              ujamaa: 2, alondra: 2, castano: 2, lantana: 2, arroyo: 2,
+              soto: 2, cardenal: 2, "sally-ride": 2, junipero: 2,
+              okada: 2, otero: 2,
+            },
+          },
+          {
+            emoji: "⚖️",
+            label: "Balanced",
+            desc: "Social but not rowdy",
+            traits: {
+              arroyo: 4, cedro: 4, soto: 4, rinconada: 4, alondra: 4,
+              cardenal: 4, lantana: 4, okada: 4, otero: 4, junipero: 4,
+              castano: 3, mirlo: 3, "sally-ride": 3, ujamaa: 3,
+              "west-lagunita": 3, robinson: 3, potter: 3, burbank: 3,
+              branner: 2, crothers: 2, schiff: 2, donner: 2, larkin: 2,
+              zap: 2, "casa-zapata": 2,
+            },
+          },
+          {
+            emoji: "🔥",
+            label: "Very social",
+            desc: "Always something happening",
+            traits: {
+              branner: 5, donner: 4, zap: 5, "casa-zapata": 4,
+              ujamaa: 4, "sally-ride": 3, castano: 3, lantana: 2,
+              alondra: 2, arroyo: 2, okada: 3, otero: 3, junipero: 2,
+              soto: 2, cardenal: 2, mirlo: 1, crothers: 1, schiff: 1,
+              larkin: 1, "west-lagunita": 1, robinson: 1, potter: 1,
+              cedro: 1, rinconada: 1, burbank: 2,
+            },
+          },
+        ],
+      },
+      {
+        key: "location",
+        question: "Where on campus do you want to be?",
+        sub: "Think about your walk to class.",
+        options: [
+          {
+            emoji: "🏛️",
+            label: "Near the Main Quad",
+            desc: "Close to most classes",
+            traits: {
+              branner: 5, crothers: 5, donner: 4, larkin: 4, schiff: 3,
+              "casa-zapata": 4, burbank: 4, "sally-ride": 4, arroyo: 3,
+              cedro: 3, junipero: 3, okada: 3, otero: 3, soto: 3,
+              rinconada: 3, castano: 3, lantana: 3, potter: 1,
+              robinson: 1, "west-lagunita": 1, ujamaa: 1, zap: 2,
+              alondra: 2, mirlo: 2, cardenal: 2,
+            },
+          },
+          {
+            emoji: "🌳",
+            label: "Tucked away, more nature",
+            desc: "I don't mind a longer walk",
+            traits: {
+              "west-lagunita": 5, robinson: 5, potter: 5, schiff: 4,
+              ujamaa: 4, alondra: 4, mirlo: 4, cardenal: 4, zap: 3,
+              arroyo: 2, cedro: 2, soto: 2, rinconada: 2, junipero: 2,
+              okada: 2, otero: 2, castano: 2, lantana: 2, branner: 1,
+              crothers: 1, donner: 1, larkin: 1, burbank: 2,
+              "casa-zapata": 2, "sally-ride": 2,
+            },
+          },
+          {
+            emoji: "🍽️",
+            label: "Near dining halls",
+            desc: "Food access is key",
+            traits: {
+              alondra: 5, mirlo: 5, cardenal: 5, arroyo: 4, cedro: 4,
+              soto: 4, rinconada: 4, junipero: 4, okada: 4, otero: 4,
+              castano: 4, lantana: 4, branner: 3, crothers: 3,
+              "casa-zapata": 3, donner: 3, larkin: 3, burbank: 3,
+              "sally-ride": 3, zap: 2, potter: 2, robinson: 2,
+              schiff: 2, ujamaa: 2, "west-lagunita": 2,
+            },
+          },
+        ],
+      },
+      {
+        key: "community",
+        question: "What kind of community matters to you?",
+        sub: "Some dorms have themed programs and cultural identities.",
+        options: [
+          {
+            emoji: "🌍",
+            label: "Cultural / themed house",
+            desc: "A community with shared identity",
+            traits: {
+              ujamaa: 5, "casa-zapata": 5, okada: 5, otero: 5,
+              "sally-ride": 4, junipero: 3, zap: 3, alondra: 1,
+              mirlo: 1, branner: 1, crothers: 1, castano: 1,
+              lantana: 1, robinson: 1, schiff: 1, "west-lagunita": 1,
+              donner: 1, larkin: 1, arroyo: 1, cedro: 1,
+              rinconada: 1, soto: 1, cardenal: 1, potter: 1, burbank: 1,
+            },
+          },
+          {
+            emoji: "🏠",
+            label: "Classic dorm experience",
+            desc: "Traditional residential hall",
+            traits: {
+              branner: 5, crothers: 4, donner: 4, larkin: 4,
+              "west-lagunita": 4, arroyo: 3, cedro: 3, soto: 3,
+              rinconada: 3, burbank: 4, castano: 3, lantana: 3,
+              robinson: 3, schiff: 3, potter: 3, mirlo: 3,
+              alondra: 3, cardenal: 3, junipero: 2, zap: 2,
+              ujamaa: 1, "casa-zapata": 1, okada: 1, otero: 1,
+              "sally-ride": 2,
+            },
+          },
+          {
+            emoji: "🧱",
+            label: "Newer / modern building",
+            desc: "Updated facilities matter to me",
+            traits: {
+              alondra: 5, mirlo: 5, cardenal: 5, arroyo: 5, cedro: 5,
+              soto: 5, rinconada: 5, castano: 4, lantana: 4,
+              junipero: 4, okada: 3, otero: 3, "sally-ride": 3,
+              zap: 2, robinson: 2, potter: 2, schiff: 2,
+              "west-lagunita": 2, branner: 1, crothers: 1, donner: 1,
+              larkin: 1, ujamaa: 1, "casa-zapata": 1, burbank: 1,
+            },
+          },
+        ],
+      },
+      {
+        key: "class_mix",
+        question: "Do you want to live with only freshmen?",
+        sub: "Some dorms mix all four class years.",
+        options: [
+          {
+            emoji: "🌟",
+            label: "All freshmen",
+            desc: "Everyone is new together",
+            traits: {
+              branner: 5, crothers: 5, alondra: 5, mirlo: 5, castano: 5,
+              lantana: 5, robinson: 5, schiff: 5, "west-lagunita": 5,
+              donner: 5, larkin: 5, arroyo: 5, cedro: 5, rinconada: 5,
+              soto: 5, cardenal: 0, potter: 0, ujamaa: 0, burbank: 0,
+              zap: 0, "casa-zapata": 0, "sally-ride": 0, junipero: 0,
+              okada: 0, otero: 0,
+            },
+          },
+          {
+            emoji: "👥",
+            label: "Mixed class years",
+            desc: "Learn from upperclassmen",
+            traits: {
+              cardenal: 5, potter: 5, ujamaa: 5, burbank: 5, zap: 5,
+              "casa-zapata": 5, "sally-ride": 5, junipero: 5, okada: 5,
+              otero: 5, branner: 0, crothers: 0, alondra: 0, mirlo: 0,
+              castano: 0, lantana: 0, robinson: 0, schiff: 0,
+              "west-lagunita": 0, donner: 0, larkin: 0, arroyo: 0,
+              cedro: 0, rinconada: 0, soto: 0,
+            },
+          },
+          {
+            emoji: "🤷",
+            label: "No preference",
+            desc: "Either is fine",
+            traits: {
+              branner: 3, crothers: 3, alondra: 3, mirlo: 3, castano: 3,
+              lantana: 3, robinson: 3, schiff: 3, "west-lagunita": 3,
+              donner: 3, larkin: 3, arroyo: 3, cedro: 3, rinconada: 3,
+              soto: 3, cardenal: 3, potter: 3, ujamaa: 3, burbank: 3,
+              zap: 3, "casa-zapata": 3, "sally-ride": 3, junipero: 3,
+              okada: 3, otero: 3,
+            },
+          },
+        ],
+      },
+    ];
+
+    const quizStepsEl = document.getElementById("quiz-steps");
+    const quizProgressEl = document.getElementById("quiz-progress");
+    const quizResultsEl = document.getElementById("quiz-results");
+
+    let quizStep = 0;
+    let quizAnswers = new Array(QUIZ_QUESTIONS.length).fill(null);
+
+    function renderQuizProgress() {
+      quizProgressEl.innerHTML = "";
+      QUIZ_QUESTIONS.forEach((_, i) => {
+        const bar = document.createElement("div");
+        bar.className = "quiz-progress-bar";
+        if (i < quizStep) bar.classList.add("is-done");
+        else if (i === quizStep) bar.classList.add("is-active");
+        quizProgressEl.appendChild(bar);
+      });
+    }
+
+    function renderQuizStep() {
+      quizResultsEl.classList.remove("is-active");
+      quizStepsEl.innerHTML = "";
+
+      const q = QUIZ_QUESTIONS[quizStep];
+      const step = document.createElement("div");
+      step.className = "quiz-step is-active";
+
+      const title = document.createElement("p");
+      title.className = "quiz-question";
+      title.textContent = q.question;
+
+      const sub = document.createElement("p");
+      sub.className = "quiz-question-sub";
+      sub.textContent = q.sub;
+
+      const optionsGrid = document.createElement("div");
+      optionsGrid.className = "quiz-options";
+
+      q.options.forEach((opt, oi) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "quiz-option";
+        if (quizAnswers[quizStep] === oi) btn.classList.add("is-selected");
+
+        btn.innerHTML =
+          '<span class="quiz-option-emoji">' + opt.emoji + "</span>" +
+          '<span class="quiz-option-label">' + opt.label + "</span>" +
+          '<span class="quiz-option-desc">' + opt.desc + "</span>";
+
+        btn.addEventListener("click", () => {
+          quizAnswers[quizStep] = oi;
+          optionsGrid.querySelectorAll(".quiz-option").forEach((b) => b.classList.remove("is-selected"));
+          btn.classList.add("is-selected");
+          nextBtn.disabled = false;
+        });
+
+        optionsGrid.appendChild(btn);
+      });
+
+      const nav = document.createElement("div");
+      nav.className = "quiz-nav";
+
+      const backBtn = document.createElement("button");
+      backBtn.type = "button";
+      backBtn.className = "quiz-nav-btn quiz-nav-btn--back";
+      backBtn.textContent = "← Back";
+      backBtn.disabled = quizStep === 0;
+      backBtn.addEventListener("click", () => {
+        if (quizStep > 0) { quizStep--; renderQuizProgress(); renderQuizStep(); }
+      });
+
+      const counter = document.createElement("span");
+      counter.className = "quiz-step-count";
+      counter.textContent = (quizStep + 1) + " / " + QUIZ_QUESTIONS.length;
+
+      const isLast = quizStep === QUIZ_QUESTIONS.length - 1;
+      const nextBtn = document.createElement("button");
+      nextBtn.type = "button";
+      nextBtn.className = "quiz-nav-btn quiz-nav-btn--next";
+      nextBtn.textContent = isLast ? "See my matches →" : "Next →";
+      nextBtn.disabled = quizAnswers[quizStep] === null;
+      nextBtn.addEventListener("click", () => {
+        if (quizAnswers[quizStep] === null) return;
+        if (isLast) {
+          showQuizResults();
+        } else {
+          quizStep++;
+          renderQuizProgress();
+          renderQuizStep();
+        }
+      });
+
+      nav.append(backBtn, counter, nextBtn);
+      step.append(title, sub, optionsGrid, nav);
+      quizStepsEl.appendChild(step);
+      renderQuizProgress();
+    }
+
+    /*
+     * Scoring: for each question the user answered, add that option's trait
+     * points to every dorm. Then sort descending and normalize the top score to 100%.
+     */
+    function computeQuizScores() {
+      const scores = {};
+      HOUSES.forEach((h) => { scores[h.id] = 0; });
+
+      quizAnswers.forEach((answerIdx, qIdx) => {
+        if (answerIdx === null) return;
+        const traits = QUIZ_QUESTIONS[qIdx].options[answerIdx].traits;
+        for (const [dormId, pts] of Object.entries(traits)) {
+          if (scores[dormId] !== undefined) scores[dormId] += pts;
+        }
+      });
+
+      const sorted = Object.entries(scores)
+        .map(([id, score]) => ({ id, score, house: getHouse(id) }))
+        .sort((a, b) => b.score - a.score);
+
+      const maxScore = sorted[0].score || 1;
+      sorted.forEach((entry) => {
+        entry.pct = Math.round((entry.score / maxScore) * 100);
+      });
+
+      return sorted;
+    }
+
+    function showQuizResults() {
+      quizStepsEl.innerHTML = "";
+      quizProgressEl.innerHTML = "";
+
+      const scores = computeQuizScores();
+      const top3 = scores.slice(0, 3);
+
+      quizResultsEl.innerHTML = "";
+      quizResultsEl.classList.add("is-active");
+
+      const title = document.createElement("p");
+      title.className = "quiz-results-title";
+      title.textContent = "Your top matches";
+
+      const sub = document.createElement("p");
+      sub.className = "quiz-results-sub";
+      sub.textContent = "Based on your preferences, here are your best-fit dorms.";
+
+      const list = document.createElement("div");
+      list.className = "quiz-results-list";
+
+      top3.forEach((entry, i) => {
+        const card = document.createElement("div");
+        card.className = "quiz-result-card";
+        card.addEventListener("click", () => {
+          houseId = entry.id;
+          roomType = getHouse(houseId).roomTypes[0];
+          dormSelect.value = houseId;
+          renderPills();
+          updatePreview();
+          renderFavUI();
+          document.querySelector(".shell .layout").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+
+        const rank = document.createElement("div");
+        rank.className = "quiz-result-rank";
+        rank.textContent = i + 1;
+
+        const info = document.createElement("div");
+        info.className = "quiz-result-info";
+
+        const name = document.createElement("p");
+        name.className = "quiz-result-name";
+        name.textContent = entry.house.name;
+
+        const cat = document.createElement("p");
+        cat.className = "quiz-result-category";
+        cat.textContent = entry.house.category === "frosh" ? "First-year designated" : "Four-class residence";
+
+        info.append(name, cat);
+
+        const barWrap = document.createElement("div");
+        barWrap.className = "quiz-result-bar-wrap";
+
+        const pct = document.createElement("span");
+        pct.className = "quiz-result-pct";
+        pct.textContent = entry.pct + "%";
+
+        const bar = document.createElement("div");
+        bar.className = "quiz-result-bar";
+
+        const fill = document.createElement("div");
+        fill.className = "quiz-result-bar-fill";
+        fill.style.width = entry.pct + "%";
+
+        bar.appendChild(fill);
+        barWrap.append(pct, bar);
+        card.append(rank, info, barWrap);
+        list.appendChild(card);
+      });
+
+      const restart = document.createElement("button");
+      restart.type = "button";
+      restart.className = "quiz-restart-btn";
+      restart.textContent = "↻ Retake quiz";
+      restart.addEventListener("click", () => {
+        quizStep = 0;
+        quizAnswers = new Array(QUIZ_QUESTIONS.length).fill(null);
+        quizResultsEl.classList.remove("is-active");
+        renderQuizStep();
+      });
+
+      quizResultsEl.append(title, sub, list, restart);
+    }
+
+    renderQuizStep();
     // =====================================================================
     // FEATURE 5: Per-dorm notes (Noah)
     // Same localStorage pattern Laolu used for favorites/theme. One key per
