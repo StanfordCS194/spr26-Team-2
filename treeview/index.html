@@ -1807,6 +1807,287 @@
       .walk-time-wrap { min-width: 70px; }
     }
 
+    /* --- Dorm Rankings Dashboard --- */
+    .rankings-section {
+      margin-top: 1.35rem;
+    }
+
+    .rankings-head {
+      margin-bottom: 1.15rem;
+    }
+
+    .rankings-title {
+      margin: 0 0 0.35rem;
+      font-family: var(--font-display);
+      font-size: clamp(1.35rem, 3vw, 1.65rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--charcoal);
+    }
+
+    .rankings-lede {
+      margin: 0 0 1rem;
+      max-width: 40rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .rankings-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+    }
+
+    .rankings-control-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .rankings-control-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .rankings-pill {
+      padding: 0.4rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--charcoal-soft);
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .rankings-pill:hover {
+      border-color: rgba(140, 21, 21, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .rankings-pill.is-active {
+      color: #fff;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--cardinal) 0%, var(--cardinal-deep) 100%);
+      border-color: transparent;
+      box-shadow: var(--shadow-cardinal);
+    }
+
+    [data-theme="dark"] .rankings-pill:not(.is-active) {
+      background: rgba(40, 48, 56, 0.8);
+      color: var(--charcoal-soft);
+      border-color: var(--line);
+    }
+
+    .rankings-filter-pill {
+      padding: 0.4rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--charcoal-soft);
+      background: rgba(61, 154, 140, 0.08);
+      border: 1px solid rgba(61, 154, 140, 0.2);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .rankings-filter-pill:hover {
+      background: rgba(61, 154, 140, 0.15);
+    }
+
+    .rankings-filter-pill.is-active {
+      color: #fff;
+      font-weight: 600;
+      background: var(--teal);
+      border-color: var(--teal);
+    }
+
+    [data-theme="dark"] .rankings-filter-pill:not(.is-active) {
+      background: rgba(61, 154, 140, 0.12);
+      color: var(--charcoal-soft);
+    }
+
+    .rankings-table {
+      margin-top: 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .rankings-header-row {
+      display: grid;
+      grid-template-columns: 2.5rem 1fr 120px 80px;
+      gap: 0.5rem;
+      padding: 0.6rem 0.95rem;
+      background: rgba(26, 34, 40, 0.04);
+      border-bottom: 1px solid var(--line);
+    }
+
+    [data-theme="dark"] .rankings-header-row {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .rankings-header-cell {
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .rankings-header-cell:last-child {
+      text-align: right;
+    }
+
+    .rankings-row {
+      display: grid;
+      grid-template-columns: 2.5rem 1fr 120px 80px;
+      gap: 0.5rem;
+      padding: 0.7rem 0.95rem;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.15s ease;
+      animation: fade-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .rankings-row:last-child {
+      border-bottom: none;
+    }
+
+    .rankings-row:hover {
+      background: rgba(61, 154, 140, 0.06);
+    }
+
+    [data-theme="dark"] .rankings-row:hover {
+      background: rgba(61, 154, 140, 0.1);
+    }
+
+    .rankings-row.is-selected {
+      background: rgba(140, 21, 21, 0.06);
+    }
+
+    [data-theme="dark"] .rankings-row.is-selected {
+      background: rgba(140, 21, 21, 0.12);
+    }
+
+    .rankings-rank {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .rankings-row:nth-child(2) .rankings-rank {
+      color: #d4a017;
+    }
+
+    .rankings-row:nth-child(3) .rankings-rank {
+      color: #8a8a8a;
+    }
+
+    .rankings-row:nth-child(4) .rankings-rank {
+      color: #b87333;
+    }
+
+    .rankings-dorm-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      min-width: 0;
+    }
+
+    .rankings-dorm-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--charcoal);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rankings-dorm-category {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .rankings-score-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .rankings-score-bar {
+      flex: 1;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--line);
+      overflow: hidden;
+    }
+
+    .rankings-score-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .rankings-score-bar-fill.tier-gold {
+      background: linear-gradient(90deg, #d4a017, #e6c038);
+    }
+
+    .rankings-score-bar-fill.tier-silver {
+      background: linear-gradient(90deg, #8a8a8a, #b0b0b0);
+    }
+
+    .rankings-score-bar-fill.tier-bronze {
+      background: linear-gradient(90deg, #b87333, #d4935a);
+    }
+
+    .rankings-score-bar-fill.tier-normal {
+      background: linear-gradient(90deg, var(--teal), rgba(61, 154, 140, 0.5));
+    }
+
+    .rankings-score-value {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--charcoal);
+      text-align: right;
+      min-width: 2.5rem;
+    }
+
+    .rankings-empty {
+      padding: 2rem 1rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 600px) {
+      .rankings-header-row,
+      .rankings-row {
+        grid-template-columns: 2rem 1fr 90px 55px;
+        gap: 0.35rem;
+        padding: 0.6rem 0.65rem;
+      }
+
+      .rankings-controls {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
     [data-theme="dark"] .campus-map-card {
       border-color: var(--line);
     }
@@ -2400,6 +2681,28 @@
           <span class="walk-dorm-chip" id="walk-dorm-chip"></span>
         </div>
         <div class="walk-list" id="walk-list" aria-live="polite"></div>
+      </section>
+
+      <!-- Dorm Rankings Dashboard -->
+      <section class="rankings-section glass" aria-labelledby="rankings-heading">
+        <div class="rankings-head">
+          <p class="panel-head">Dorm rankings</p>
+          <h2 id="rankings-heading" class="rankings-title">Compare every dorm at a glance</h2>
+          <p class="rankings-lede">
+            Sort all 25 residences by what matters most to you. Click any row to jump to that dorm.
+          </p>
+          <div class="rankings-controls">
+            <div class="rankings-control-group">
+              <span class="rankings-control-label">Sort by</span>
+              <div id="rankings-sort-pills"></div>
+            </div>
+            <div class="rankings-control-group">
+              <span class="rankings-control-label">Show</span>
+              <div id="rankings-filter-pills"></div>
+            </div>
+          </div>
+        </div>
+        <div class="rankings-table" id="rankings-table" role="table" aria-label="Dorm rankings"></div>
       </section>
 
       <!-- Reserved UI for a future feature; designer-context still tracks selection for consistency -->
@@ -3785,8 +4088,233 @@
     // Initial render
     renderWalkDistances();
 
+    // ===== FEATURE 6: Dorm Rankings Dashboard =====
+    //
+    // Interactive leaderboard that scores and ranks all 25 dorms across
+    // four criteria. Users can sort by any criterion and filter by dorm
+    // category. Scores are computed from the HOUSES data + DORM_COORDS,
+    // reusing existing data structures — no new data sources needed.
+    //
+    // Scoring criteria:
+    //   - Room variety:   count of distinct room types (more = higher)
+    //   - Closest to Quad: inverse walking distance to Main Quad (closer = higher)
+    //   - Community score: composite of room variety + theme house status
+    //   - Overall:        weighted average of all three above
+
+    const RANKINGS_SORT_OPTIONS = [
+      { key: "overall",   label: "Overall" },
+      { key: "variety",   label: "Room variety" },
+      { key: "proximity", label: "Closest to Quad" },
+      { key: "community", label: "Community" },
+    ];
+
+    const RANKINGS_FILTERS = [
+      { key: "all",        label: "All" },
+      { key: "frosh",      label: "First-year" },
+      { key: "four_class", label: "Four-class" },
+    ];
+
+    /*
+     * Dorms known for distinctive community identity — theme houses,
+     * self-ops, and program houses get bonus community points.
+     * Values sourced from Stanford R&DE theme house designations.
+     */
+    const COMMUNITY_BONUS = {
+      ujamaa: 3,         // Ethnic theme house
+      "casa-zapata": 3,  // Ethnic theme house
+      okada: 3,          // Ethnic theme house
+      burbank: 2,        // ITALIC arts theme
+      potter: 2,         // Explore Energy theme
+      otero: 2,          // Public Service theme
+      zap: 2,            // Self-operated row house
+      "sally-ride": 1,   // Sophomore-only community
+      lantana: 1,        // Community-service focus
+    };
+
+    const MAIN_QUAD = { lat: 37.4275, lng: -122.1700 };
+
+    let rankingsSort = "overall";
+    let rankingsFilter = "all";
+
+    const rankingsSortPills = document.getElementById("rankings-sort-pills");
+    const rankingsFilterPills = document.getElementById("rankings-filter-pills");
+    const rankingsTable = document.getElementById("rankings-table");
+
+    /*
+     * Computes a normalised 0–100 score for each dorm on every criterion.
+     *
+     * Normalisation: for each metric, find the min and max across all dorms,
+     * then scale each dorm's raw value into 0–100. This ensures every
+     * criterion contributes equally regardless of its raw range.
+     *
+     * Overall = 0.35 * variety + 0.35 * proximity + 0.30 * community
+     */
+    function computeRankingsData() {
+      const rawData = HOUSES.map((house) => {
+        const coord = DORM_COORDS.find((d) => d.id === house.id);
+        const distToQuad = coord
+          ? haversineKm(coord.lat, coord.lng, MAIN_QUAD.lat, MAIN_QUAD.lng)
+          : 2;
+
+        const variety = house.roomTypes.length;
+        const communityRaw = variety + (COMMUNITY_BONUS[house.id] || 0);
+
+        return {
+          house,
+          variety,
+          distToQuad,
+          communityRaw,
+        };
+      });
+
+      // Find min/max for normalisation
+      const maxVariety   = Math.max(...rawData.map((d) => d.variety));
+      const minVariety   = Math.min(...rawData.map((d) => d.variety));
+      const maxDist      = Math.max(...rawData.map((d) => d.distToQuad));
+      const minDist      = Math.min(...rawData.map((d) => d.distToQuad));
+      const maxCommunity = Math.max(...rawData.map((d) => d.communityRaw));
+      const minCommunity = Math.min(...rawData.map((d) => d.communityRaw));
+
+      function norm(val, min, max) {
+        return max === min ? 50 : Math.round(((val - min) / (max - min)) * 100);
+      }
+
+      return rawData.map((d) => {
+        const varietyScore   = norm(d.variety, minVariety, maxVariety);
+        // Invert distance: closer = higher score
+        const proximityScore = norm(maxDist - d.distToQuad, 0, maxDist - minDist);
+        const communityScore = norm(d.communityRaw, minCommunity, maxCommunity);
+        const overallScore   = Math.round(
+          varietyScore * 0.35 + proximityScore * 0.35 + communityScore * 0.30
+        );
+
+        return {
+          house: d.house,
+          scores: {
+            overall:   overallScore,
+            variety:   varietyScore,
+            proximity: proximityScore,
+            community: communityScore,
+          },
+        };
+      });
+    }
+
+    function renderRankingsPills() {
+      rankingsSortPills.replaceChildren();
+      RANKINGS_SORT_OPTIONS.forEach((opt) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "rankings-pill" + (rankingsSort === opt.key ? " is-active" : "");
+        btn.textContent = opt.label;
+        btn.addEventListener("click", () => {
+          rankingsSort = opt.key;
+          renderRankingsPills();
+          renderRankingsTable();
+        });
+        rankingsSortPills.appendChild(btn);
+      });
+
+      rankingsFilterPills.replaceChildren();
+      RANKINGS_FILTERS.forEach((opt) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "rankings-filter-pill" + (rankingsFilter === opt.key ? " is-active" : "");
+        btn.textContent = opt.label;
+        btn.addEventListener("click", () => {
+          rankingsFilter = opt.key;
+          renderRankingsPills();
+          renderRankingsTable();
+        });
+        rankingsFilterPills.appendChild(btn);
+      });
+    }
+
+    function renderRankingsTable() {
+      let data = computeRankingsData();
+
+      // Filter
+      if (rankingsFilter !== "all") {
+        data = data.filter((d) => d.house.category === rankingsFilter);
+      }
+
+      // Sort descending by the chosen criterion
+      data.sort((a, b) => b.scores[rankingsSort] - a.scores[rankingsSort]);
+
+      rankingsTable.replaceChildren();
+
+      if (data.length === 0) {
+        rankingsTable.innerHTML = '<div class="rankings-empty">No dorms match this filter.</div>';
+        return;
+      }
+
+      // Header row
+      const sortLabel = RANKINGS_SORT_OPTIONS.find((o) => o.key === rankingsSort).label;
+      const header = document.createElement("div");
+      header.className = "rankings-header-row";
+      header.setAttribute("role", "row");
+      header.innerHTML =
+        '<span class="rankings-header-cell">#</span>' +
+        '<span class="rankings-header-cell">Residence</span>' +
+        '<span class="rankings-header-cell">' + sortLabel + '</span>' +
+        '<span class="rankings-header-cell">Score</span>';
+      rankingsTable.appendChild(header);
+
+      // Data rows
+      data.forEach((entry, i) => {
+        const score = entry.scores[rankingsSort];
+        const row = document.createElement("div");
+        row.className = "rankings-row";
+        if (entry.house.id === houseId) row.classList.add("is-selected");
+        row.setAttribute("role", "row");
+        row.style.animationDelay = Math.min(i * 0.04, 0.6) + "s";
+
+        const tierClass =
+          i === 0 ? "tier-gold" :
+          i === 1 ? "tier-silver" :
+          i === 2 ? "tier-bronze" : "tier-normal";
+
+        const categoryLabel = entry.house.category === "frosh"
+          ? "First-year" : "Four-class";
+
+        row.innerHTML =
+          '<span class="rankings-rank">' + (i + 1) + '</span>' +
+          '<div class="rankings-dorm-info">' +
+            '<span class="rankings-dorm-name">' + entry.house.name + '</span>' +
+            '<span class="rankings-dorm-category">' + categoryLabel + '</span>' +
+          '</div>' +
+          '<div class="rankings-score-bar-wrap">' +
+            '<div class="rankings-score-bar">' +
+              '<div class="rankings-score-bar-fill ' + tierClass + '" style="width:' + score + '%"></div>' +
+            '</div>' +
+          '</div>' +
+          '<span class="rankings-score-value">' + score + '</span>';
+
+        row.addEventListener("click", () => {
+          houseId = entry.house.id;
+          roomType = getHouse(houseId).roomTypes[0];
+          dormSelect.value = houseId;
+          renderPills();
+          updatePreview();
+          renderFavUI();
+          renderWalkDistances();
+          renderRankingsTable();
+          if (typeof loadNotesForCurrentDorm === "function") loadNotesForCurrentDorm();
+          document.querySelector(".shell .layout").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+
+        rankingsTable.appendChild(row);
+      });
+    }
+
+    renderRankingsPills();
+    renderRankingsTable();
+
+    // Re-render when dorm changes so the "is-selected" highlight follows
+    dormSelect.addEventListener("change", renderRankingsTable);
+
     // =====================================================================
-    // FEATURE 6: Per-dorm notes (Noah)
+    // FEATURE 7: Per-dorm notes (Noah)
     // Same localStorage pattern Laolu used for favorites/theme. One key per
     // dorm so each dorm's notes are independent. Saves on input (debounced).
     // =====================================================================
