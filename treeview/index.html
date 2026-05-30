@@ -1646,6 +1646,167 @@
       height: 100vh;
     }
 
+    /* --- Walking Distance Panel --- */
+    .walk-section {
+      margin-top: 1.35rem;
+    }
+
+    .walk-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .walk-head-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .walk-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(1.15rem, 2.5vw, 1.35rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--charcoal);
+    }
+
+    .walk-lede {
+      margin: 0;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    .walk-dorm-chip {
+      display: inline-block;
+      padding: 0.3rem 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--cardinal);
+      background: rgba(140, 21, 21, 0.08);
+      border: 1px solid rgba(140, 21, 21, 0.15);
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .walk-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .walk-item {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.75rem 0.95rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.5);
+      transition: border-color 0.2s, transform 0.15s;
+      animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .walk-item:nth-child(1) { animation-delay: 0s; }
+    .walk-item:nth-child(2) { animation-delay: 0.06s; }
+    .walk-item:nth-child(3) { animation-delay: 0.12s; }
+    .walk-item:nth-child(4) { animation-delay: 0.18s; }
+    .walk-item:nth-child(5) { animation-delay: 0.24s; }
+
+    .walk-item:hover {
+      border-color: rgba(61, 154, 140, 0.35);
+      transform: translateY(-1px);
+    }
+
+    [data-theme="dark"] .walk-item {
+      background: rgba(30, 36, 42, 0.6);
+    }
+
+    .walk-icon {
+      flex-shrink: 0;
+      width: 2.2rem;
+      height: 2.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      background: rgba(61, 154, 140, 0.1);
+      border-radius: 10px;
+    }
+
+    .walk-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .walk-name {
+      margin: 0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--charcoal);
+    }
+
+    .walk-dist {
+      margin: 0.1rem 0 0;
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .walk-time-wrap {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.3rem;
+      min-width: 90px;
+    }
+
+    .walk-minutes {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--charcoal);
+    }
+
+    .walk-minutes span {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .walk-bar {
+      width: 100%;
+      height: 5px;
+      border-radius: 999px;
+      background: var(--line);
+      overflow: hidden;
+    }
+
+    .walk-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--teal), rgba(61, 154, 140, 0.5));
+      transform-origin: left;
+      animation: bar-grow 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .walk-item:nth-child(1) .walk-bar-fill { animation-delay: 0.15s; }
+    .walk-item:nth-child(2) .walk-bar-fill { animation-delay: 0.22s; }
+    .walk-item:nth-child(3) .walk-bar-fill { animation-delay: 0.29s; }
+    .walk-item:nth-child(4) .walk-bar-fill { animation-delay: 0.36s; }
+    .walk-item:nth-child(5) .walk-bar-fill { animation-delay: 0.43s; }
+
+    @keyframes bar-grow {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    @media (max-width: 500px) {
+      .walk-time-wrap { min-width: 70px; }
+    }
+
     [data-theme="dark"] .campus-map-card {
       border-color: var(--line);
     }
@@ -2227,6 +2388,19 @@
           </div>
         </aside>
       </div>
+
+      <!-- Walking distances from current dorm to key campus landmarks -->
+      <section class="walk-section glass" aria-labelledby="walk-heading">
+        <div class="walk-head">
+          <div class="walk-head-left">
+            <p class="panel-head">Walking distances</p>
+            <h2 id="walk-heading" class="walk-title">How far is everything?</h2>
+            <p class="walk-lede">Estimated walk times from your selected dorm to key campus spots.</p>
+          </div>
+          <span class="walk-dorm-chip" id="walk-dorm-chip"></span>
+        </div>
+        <div class="walk-list" id="walk-list" aria-live="polite"></div>
+      </section>
 
       <!-- Reserved UI for a future feature; designer-context still tracks selection for consistency -->
       <section class="designer glass" aria-labelledby="designer-heading">
@@ -3507,10 +3681,112 @@
 
     initCampusMap();
 
-    // (Laolu's standalone quiz removed — Noah's modal quiz is the active one)
+    // ===== FEATURE 5: Walking Distance Panel =====
+    //
+    // Shows estimated walking times from the currently selected dorm to five
+    // key Stanford landmarks. Uses the Haversine formula to calculate the
+    // straight-line distance between two lat/lng points on Earth's surface,
+    // then converts to walking time at ~5 km/h with a 1.3x detour factor
+    // (paths aren't straight lines — you follow sidewalks and turns).
+
+    const CAMPUS_LANDMARKS = [
+      { name: "Main Quad",          emoji: "🏛️", lat: 37.4275, lng: -122.1700 },
+      { name: "Green Library",      emoji: "📚", lat: 37.4264, lng: -122.1672 },
+      { name: "Arrillaga Dining",   emoji: "🍽️", lat: 37.4260, lng: -122.1736 },
+      { name: "Tresidder Union",    emoji: "☕", lat: 37.4243, lng: -122.1710 },
+      { name: "Maples Pavilion",    emoji: "🏀", lat: 37.4347, lng: -122.1610 },
+    ];
+
+    const WALK_SPEED_KMH = 5;
+    const DETOUR_FACTOR = 1.3;
+
+    const walkListEl = document.getElementById("walk-list");
+    const walkDormChip = document.getElementById("walk-dorm-chip");
+
+    /*
+     * Haversine formula: calculates the great-circle distance between two
+     * points on a sphere given their latitudes and longitudes.
+     *
+     * Why Haversine and not Euclidean? Lat/lng are coordinates on a curved
+     * surface. A naive sqrt((lat2-lat1)^2 + (lng2-lng1)^2) would give wrong
+     * results because 1° of longitude shrinks as you move away from the
+     * equator. Haversine accounts for Earth's curvature.
+     *
+     * Returns distance in kilometers.
+     */
+    function haversineKm(lat1, lng1, lat2, lng2) {
+      const R = 6371;
+      const toRad = (deg) => (deg * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    /*
+     * Looks up the selected dorm's lat/lng from DORM_COORDS (the campus map
+     * data), then computes walking time to each landmark. Sorts by distance
+     * so the closest spot is always first.
+     */
+    function renderWalkDistances() {
+      const house = getHouse(houseId);
+      walkDormChip.textContent = house.name;
+
+      const dormCoord = DORM_COORDS.find((d) => d.id === houseId);
+      if (!dormCoord) {
+        walkListEl.innerHTML = '<p style="color:var(--muted);font-size:0.88rem;">Location data not available for this dorm.</p>';
+        return;
+      }
+
+      const distances = CAMPUS_LANDMARKS.map((lm) => {
+        const km = haversineKm(dormCoord.lat, dormCoord.lng, lm.lat, lm.lng);
+        const walkKm = km * DETOUR_FACTOR;
+        const minutes = Math.round((walkKm / WALK_SPEED_KMH) * 60);
+        return { ...lm, km: walkKm, minutes: Math.max(1, minutes) };
+      });
+
+      distances.sort((a, b) => a.km - b.km);
+
+      const maxMinutes = Math.max(...distances.map((d) => d.minutes));
+
+      walkListEl.replaceChildren();
+
+      distances.forEach((d) => {
+        const item = document.createElement("div");
+        item.className = "walk-item";
+
+        const barPct = Math.round((d.minutes / maxMinutes) * 100);
+        const distLabel = d.km < 1
+          ? Math.round(d.km * 1000) + " m"
+          : d.km.toFixed(1) + " km";
+
+        item.innerHTML =
+          '<span class="walk-icon">' + d.emoji + '</span>' +
+          '<div class="walk-info">' +
+            '<p class="walk-name">' + d.name + '</p>' +
+            '<p class="walk-dist">' + distLabel + ' walk</p>' +
+          '</div>' +
+          '<div class="walk-time-wrap">' +
+            '<span class="walk-minutes">' + d.minutes + ' <span>min</span></span>' +
+            '<div class="walk-bar">' +
+              '<div class="walk-bar-fill" style="width:' + barPct + '%"></div>' +
+            '</div>' +
+          '</div>';
+
+        walkListEl.appendChild(item);
+      });
+    }
+
+    // Re-render whenever the dorm changes (hooks into existing dormSelect listener)
+    dormSelect.addEventListener("change", renderWalkDistances);
+    // Initial render
+    renderWalkDistances();
+
     // =====================================================================
-    // =====================================================================
-    // FEATURE 5: Per-dorm notes (Noah)
+    // FEATURE 6: Per-dorm notes (Noah)
     // Same localStorage pattern Laolu used for favorites/theme. One key per
     // dorm so each dorm's notes are independent. Saves on input (debounced).
     // =====================================================================
