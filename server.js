@@ -2,12 +2,12 @@
 // Receives 6 dorm photos from the browser, validates them, and stores them on disk.
 // Each upload gets a UUID folder with renamed photos (01-north.jpg, etc.) and metadata.json.
 
-require("dotenv").config();
+const path = require("path"); // Path utilities: join paths safely (before dotenv so .env path is reliable)
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const multer = require("multer"); // Middleware to parse multipart form uploads (files)
 const cors = require("cors"); // Allow cross-origin requests
 const fs = require("fs"); // File system: read/write to disk
-const path = require("path"); // Path utilities: join paths safely
 const { randomUUID } = require("crypto"); // Generate unique upload IDs
 
 const app = express();
@@ -185,6 +185,77 @@ app.post("/api/upload", (req, res) => {
   });
 });
 
+// Security: Only accept IDs that look like what randomUUID() actually produces.
+// This stops path traversal before we ever call path.join with user input.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUploadId(id) {
+  return typeof id === "string" && UUID_RE.test(id);
+}
+
+// Read and parse an upload's metadata.json. Returns null if the file doesn't exist.
+function readUploadMetadata(uploadId) {
+  const metaPath = path.join(UPLOADS_DIR, uploadId, "metadata.json");
+  if (!fs.existsSync(metaPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(metaPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+// === GET /api/uploads/:uploadId ===
+// Returns metadata for a single upload so the frontend can render a share page.
+app.get("/api/uploads/:uploadId", (req, res) => {
+  // Step 1: Reject anything that isn't a real UUID (before touching the filesystem)
+  if (!isValidUploadId(req.params.uploadId)) {
+    return res.status(400).json({ success: false, error: "Invalid upload ID" });
+  }
+
+  // Step 2: Try to load metadata.json — if the folder doesn't exist, 404
+  const meta = readUploadMetadata(req.params.uploadId);
+  if (!meta) {
+    return res.status(404).json({ success: false, error: "Upload not found" });
+  }
+
+  // Step 3: Return just the fields the frontend needs — no disk paths, no internal stuff
+  res.json({
+    success: true,
+    uploadId: meta.uploadId,
+    dormId: meta.dormId,
+    roomType: meta.roomType,
+    userEmail: meta.userEmail,
+    timestamp: meta.timestamp,
+    savedFiles: meta.savedFiles,
+  });
+});
+
+// === GET /api/uploads/:uploadId/photos/:filename ===
+// Serves one photo from an upload. Only files listed in savedFiles are accessible.
+app.get("/api/uploads/:uploadId/photos/:filename", (req, res) => {
+  // Step 1: Same UUID check as above
+  if (!isValidUploadId(req.params.uploadId)) {
+    return res.status(400).json({ success: false, error: "Invalid upload ID" });
+  }
+
+  // Step 2: Load metadata so we can whitelist filenames
+  const meta = readUploadMetadata(req.params.uploadId);
+  if (!meta) {
+    return res.status(404).json({ success: false, error: "Upload not found" });
+  }
+
+  // Step 3: Only serve files we actually saved — rejects anything not in savedFiles
+  // (e.g. "../../server.js" or "metadata.json" won't be in savedFiles)
+  const filename = req.params.filename;
+  if (!meta.savedFiles.includes(filename)) {
+    return res.status(404).json({ success: false, error: "Photo not found" });
+  }
+
+  // Step 4: Build the absolute path and send the file
+  const filePath = path.join(UPLOADS_DIR, req.params.uploadId, filename);
+  res.sendFile(filePath);
+});
+
 // === GET /api/mapbox-token ===
 // Serves the Mapbox public token to the frontend so it stays out of source control
 app.get("/api/mapbox-token", (req, res) => {
@@ -204,6 +275,10 @@ app.get("/api/health", (req, res) => {
 // === Startup ===
 // Start the Express server
 app.listen(PORT, () => {
+  const mapboxReady =
+    Boolean(process.env.MAPBOX_TOKEN) &&
+    process.env.MAPBOX_TOKEN !== "YOUR_MAPBOX_TOKEN_HERE";
   console.log(`TreeView server listening on http://localhost:${PORT}`);
   console.log(`Uploads directory: ${UPLOADS_DIR}`);
+  console.log(`Mapbox: ${mapboxReady ? "configured" : "missing (set MAPBOX_TOKEN in .env)"}`);
 });

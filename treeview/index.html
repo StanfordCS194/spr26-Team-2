@@ -474,6 +474,84 @@
       height: clamp(220px, 30vh, 300px);
     }
 
+    /* Designer canvas: sized to match .pannellum-host so the mode swap is seamless */
+    .design-canvas {
+      width: 100%;
+      height: clamp(220px, 30vh, 300px);
+      display: block;
+      touch-action: none; /* let our pointer-drag handler own the gesture */
+      cursor: grab;
+    }
+    .design-canvas:active { cursor: grabbing; }
+    .design-canvas[hidden] { display: none; }
+    .pannellum-host[hidden] { display: none; }
+
+    /* Mode toggle pill — overlay in the top-right corner of .preview-viewport (position: relative) */
+    .preview-mode-toggle {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      z-index: 2;
+      display: inline-flex;
+      gap: 0.25rem;
+      padding: 0.25rem;
+      border-radius: 999px;
+      background: rgba(26, 34, 40, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .preview-mode-btn {
+      appearance: none;
+      border: 0;
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.72);
+      font-family: var(--font-ui);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .preview-mode-btn:hover { color: #fff; }
+    .preview-mode-btn.is-active {
+      background: var(--cardinal);
+      color: #fff;
+    }
+
+    /* Zoom + fullscreen button stack — mirrors Pannellum's bottom-left control position */
+    .design-controls {
+      position: absolute;
+      bottom: 0.5rem;
+      left: 0.5rem;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .design-controls[hidden] { display: none; }
+    .design-ctrl-btn {
+      appearance: none;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 6px;
+      background: rgba(26, 34, 40, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.85);
+      font-family: var(--font-ui);
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .design-ctrl-btn:hover { background: rgba(26, 34, 40, 0.95); color: #fff; }
+
     /* --- Bottom section: future “design your room” tool (static placeholder for now) --- */
     .designer {
       margin-top: 1.75rem;
@@ -884,6 +962,87 @@
       word-break: break-all;
     }
 
+    .upload-copy-link-btn {
+      display: inline-block;
+      margin-top: 0.5rem;
+      margin-left: 0;
+    }
+
+    /* Panel shown when someone opens ?upload=<uuid> */
+    .shared-upload-panel {
+      margin-bottom: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(61, 154, 140, 0.35);
+      background: rgba(61, 154, 140, 0.12);
+      animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .shared-upload-panel[hidden] {
+      display: none;
+    }
+
+    .shared-upload-panel.is-error {
+      border-color: rgba(140, 21, 21, 0.45);
+      background: rgba(140, 21, 21, 0.18);
+    }
+
+    .shared-upload-title {
+      margin: 0 0 0.35rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.94);
+    }
+
+    .shared-upload-meta {
+      margin: 0 0 0.75rem;
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.45;
+    }
+
+    .shared-upload-error {
+      margin: 0;
+      font-size: 0.86rem;
+      color: #ffc6c6;
+    }
+
+    .shared-share-thumbs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.65rem;
+    }
+
+    @media (min-width: 720px) {
+      .shared-share-thumbs {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .shared-share-thumb {
+      margin: 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .shared-share-thumb img {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+    }
+
+    .shared-share-thumb figcaption {
+      margin: 0;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
     .upload-intro-title {
       margin: 0 0 0.25rem;
       text-align: center;
@@ -966,6 +1125,46 @@
       flex-wrap: wrap;
       gap: 0.5rem;
       margin-top: 0.5rem;
+    }
+
+    /* Share button (Noah) — sits next to the "My shortlist" header */
+    .shortlist-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .share-shortlist-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--teal);
+      background: rgba(61, 154, 140, 0.1);
+      border: 1px solid rgba(61, 154, 140, 0.3);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    }
+
+    .share-shortlist-btn:hover {
+      background: rgba(61, 154, 140, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .share-shortlist-btn.is-copied {
+      background: var(--teal);
+      color: #fff;
+      border-color: var(--teal);
+    }
+
+    .share-shortlist-icon {
+      font-size: 0.95rem;
     }
 
     .shortlist-chip {
@@ -1894,6 +2093,380 @@
       0%, 100% { opacity: 0.55; }
       50% { opacity: 0.85; }
     }
+
+    /* ============================================================
+       Per-dorm notes (Noah)
+       ============================================================ */
+    .notes-field {
+      margin-top: 0.4rem;
+    }
+
+    .notes-field .label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .notes-status {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--teal);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .notes-status.is-visible {
+      opacity: 1;
+    }
+
+    .notes-textarea {
+      width: 100%;
+      padding: 0.7rem 0.85rem;
+      font: inherit;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      color: var(--charcoal);
+      background-color: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      resize: vertical;
+      min-height: 4.5rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+    [data-theme="dark"] .notes-textarea {
+      background-color: rgba(30, 36, 42, 0.9);
+      color: var(--charcoal);
+      border-color: var(--line);
+    }
+
+    .notes-textarea:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-glow);
+    }
+
+    .notes-hint {
+      margin-top: 0.35rem;
+      font-size: 0.78rem;
+    }
+
+    /* ============================================================
+       Dorm match quiz (Noah) — modal-style flow that asks 7 questions,
+       scores each dorm by tag overlap, and recommends the top 3 matches.
+       ============================================================ */
+
+    /* The CTA card lives above the dorm dropdown in the controls panel */
+    .quiz-cta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+      text-align: left;
+      background: linear-gradient(135deg, rgba(140, 21, 21, 0.08), rgba(61, 154, 140, 0.1));
+      border: 1px solid rgba(140, 21, 21, 0.2);
+      border-radius: var(--radius-sm);
+      color: var(--charcoal);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .quiz-cta:hover {
+      transform: translateY(-1px);
+      border-color: var(--cardinal);
+      box-shadow: var(--shadow-cardinal);
+    }
+
+    .quiz-cta-icon {
+      flex-shrink: 0;
+      font-size: 1.6rem;
+      color: var(--cardinal);
+    }
+
+    .quiz-cta-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      font-size: 0.85rem;
+      line-height: 1.35;
+    }
+
+    .quiz-cta-sub {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .quiz-cta-arrow {
+      flex-shrink: 0;
+      font-size: 1.2rem;
+      color: var(--cardinal);
+      transition: transform 0.15s ease;
+    }
+
+    .quiz-cta:hover .quiz-cta-arrow {
+      transform: translateX(3px);
+    }
+
+    /* Full-page overlay backdrop */
+    .quiz-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background: rgba(10, 16, 22, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      animation: fade-in 0.25s ease;
+    }
+
+    /* `display: flex` overrides the user-agent [hidden] { display: none },
+       so we need an explicit override for .quiz-overlay/.quiz-options/
+       .quiz-results, otherwise the empty modal frame paints before being opened. */
+    .quiz-overlay[hidden],
+    .quiz-options[hidden],
+    .quiz-results[hidden] {
+      display: none;
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* The white card holding the active question or results */
+    .quiz-modal {
+      position: relative;
+      width: min(560px, 100%);
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 2rem 1.75rem 1.75rem;
+      background: var(--cream);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      animation: quiz-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    [data-theme="dark"] .quiz-modal {
+      background: rgba(30, 36, 42, 0.98);
+    }
+
+    @keyframes quiz-pop {
+      from { opacity: 0; transform: translateY(20px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .quiz-close {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.85rem;
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: var(--muted);
+      background: transparent;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .quiz-close:hover {
+      background: rgba(0, 0, 0, 0.08);
+      color: var(--charcoal);
+    }
+
+    .quiz-progress {
+      height: 4px;
+      width: 100%;
+      background: var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+
+    .quiz-progress-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--cardinal), var(--teal));
+      transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .quiz-step {
+      margin: 0 0 0.25rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--cardinal);
+    }
+
+    .quiz-title {
+      margin: 0 0 1.25rem;
+      font-family: var(--font-display);
+      font-size: clamp(1.3rem, 3vw, 1.7rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--charcoal);
+      line-height: 1.25;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .quiz-option {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      width: 100%;
+      text-align: left;
+      font-size: 0.92rem;
+      color: var(--charcoal);
+      background: rgba(255, 255, 255, 0.6);
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+    }
+
+    [data-theme="dark"] .quiz-option {
+      background: rgba(40, 48, 56, 0.6);
+      color: var(--charcoal);
+    }
+
+    .quiz-option:hover {
+      border-color: var(--teal);
+      transform: translateX(2px);
+    }
+
+    .quiz-option-bullet {
+      flex-shrink: 0;
+      width: 1.1rem;
+      height: 1.1rem;
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .quiz-option:hover .quiz-option-bullet {
+      border-color: var(--teal);
+    }
+
+    .quiz-footer {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+    }
+
+    .quiz-secondary-btn {
+      padding: 0.5rem 0.95rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--charcoal-soft);
+      background: rgba(0, 0, 0, 0.06);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    [data-theme="dark"] .quiz-secondary-btn {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .quiz-secondary-btn:hover {
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    /* Results page */
+    .quiz-results {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .quiz-result {
+      display: flex;
+      gap: 0.85rem;
+      padding: 0.95rem 1rem;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: border-color 0.15s ease, transform 0.12s ease;
+    }
+
+    [data-theme="dark"] .quiz-result {
+      background: rgba(40, 48, 56, 0.6);
+    }
+
+    .quiz-result:hover {
+      border-color: var(--cardinal);
+      transform: translateY(-1px);
+    }
+
+    .quiz-result-rank {
+      flex-shrink: 0;
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--cardinal);
+      border-radius: 999px;
+    }
+
+    .quiz-result-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .quiz-result-name {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--charcoal);
+    }
+
+    .quiz-result-reasons {
+      margin: 0.2rem 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .quiz-result-score {
+      flex-shrink: 0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--teal);
+      align-self: flex-start;
+      padding: 0.2rem 0.5rem;
+      background: rgba(61, 154, 140, 0.12);
+      border-radius: 999px;
+    }
   </style>
 </head>
 <body>
@@ -1903,7 +2476,13 @@
 
     <!-- Favorites shortlist bar -->
     <section class="shortlist-section" id="shortlist-section" aria-label="Your shortlisted dorms">
-      <p class="panel-head">My shortlist</p>
+      <div class="shortlist-head">
+        <p class="panel-head">My shortlist</p>
+        <button type="button" id="share-shortlist-btn" class="share-shortlist-btn" aria-label="Copy a shareable link to my shortlist">
+          <span class="share-shortlist-icon" aria-hidden="true">&#128279;</span>
+          <span class="share-shortlist-text">Share my shortlist</span>
+        </button>
+      </div>
       <div class="shortlist-chips" id="shortlist-chips"></div>
     </section>
 
@@ -1967,6 +2546,17 @@
         <!-- Left card: dorm <select> is empty here on purpose — fillDormDropdown() injects options -->
         <div class="glass">
           <p class="panel-head">Explore residences</p>
+
+          <!-- Quiz CTA (Noah) — opens the dorm-match quiz modal -->
+          <button type="button" id="open-quiz-btn" class="quiz-cta">
+            <span class="quiz-cta-icon" aria-hidden="true">&#9881;</span>
+            <span class="quiz-cta-text">
+              <strong>Not sure where to start?</strong>
+              <span class="quiz-cta-sub">Take a 7-question quiz to find your match.</span>
+            </span>
+            <span class="quiz-cta-arrow" aria-hidden="true">&rarr;</span>
+          </button>
+
           <div class="field">
             <label class="label" for="dorm-select">Dorm</label>
             <div class="select-row">
@@ -1981,6 +2571,21 @@
             <span class="label" id="room-label">Room category</span>
             <!-- Pills are created in renderPills(); click handler lives at bottom of script -->
             <div id="pills" class="pills" role="group" aria-labelledby="room-label"></div>
+          </div>
+          <!-- Per-dorm notes — persists to localStorage keyed by dorm id (same pattern as favorites/theme) -->
+          <div class="field notes-field">
+            <label class="label" for="dorm-notes">
+              <span id="notes-label">My notes</span>
+              <span class="notes-status" id="notes-status" aria-live="polite"></span>
+            </label>
+            <textarea
+              id="dorm-notes"
+              class="notes-textarea"
+              rows="3"
+              placeholder="Jot something down — paint color, dimensions, who you toured with, anything."
+              aria-describedby="notes-hint"
+            ></textarea>
+            <p class="hint notes-hint" id="notes-hint">Saved locally on this browser. Switching dorms loads that dorm's notes.</p>
           </div>
           <button type="button" class="compare-toggle" id="compare-toggle">&#8644; Compare dorms</button>
           <div class="compare-panel" id="compare-panel">
@@ -1999,8 +2604,21 @@
             <!-- Filled by updatePreview(): “Branner, Singles” style string -->
             <p id="preview-title" class="preview-title"></p>
             <div class="preview-viewport" aria-label="Immersive preview, panoramic room view">
+              <!-- Tour/Design mode toggle (overlay, top-right) — wired up by TreeViewDesigner -->
+              <div class="preview-mode-toggle" role="tablist" aria-label="Preview mode">
+                <button type="button" id="mode-tour-btn" class="preview-mode-btn is-active" role="tab" aria-selected="true" data-mode="tour">Tour</button>
+                <button type="button" id="mode-design-btn" class="preview-mode-btn" role="tab" aria-selected="false" data-mode="design">Design</button>
+              </div>
               <!-- Pannellum replaces the inside of this div at runtime -->
               <div id="treeview-panorama" class="pannellum-host"></div>
+              <!-- Three.js renders here when Design mode is active (hidden until first toggle) -->
+              <canvas id="design-canvas" class="design-canvas" hidden aria-label="3D room designer"></canvas>
+              <!-- Zoom + fullscreen controls, mirroring Pannellum's button positions (hidden in Tour mode) -->
+              <div id="design-controls" class="design-controls" hidden aria-label="Design mode controls">
+                <button type="button" class="design-ctrl-btn" id="design-zoom-in" aria-label="Zoom in">+</button>
+                <button type="button" class="design-ctrl-btn" id="design-zoom-out" aria-label="Zoom out">&minus;</button>
+                <button type="button" class="design-ctrl-btn" id="design-fullscreen" aria-label="Toggle full screen">&#x26F6;</button>
+              </div>
             </div>
           </div>
         </aside>
@@ -2017,6 +2635,7 @@
           <p id="designer-context" class="designer-context" aria-live="polite"></p>
         </div>
         <div id="designer-upload" class="designer-placeholder" aria-labelledby="upload-heading">
+          <div id="shared-upload-panel" class="shared-upload-panel" hidden aria-live="polite"></div>
           <form id="room-upload-form" class="designer-upload-form" novalidate>
             <h3 id="upload-heading" class="upload-intro-title">Upload 6 photos of your space</h3>
             <p id="upload-instructions" class="upload-intro-detail upload-dropzone-sub">
@@ -2088,8 +2707,29 @@
     </main>
   </div>
 
+  <!-- Dorm match quiz modal (Noah) — sits before the script so its IDs
+       resolve when the quiz JS grabs them at init time. Hidden until opened. -->
+  <div class="quiz-overlay" id="quiz-overlay" role="dialog" aria-modal="true" aria-labelledby="quiz-title" hidden>
+    <div class="quiz-modal">
+      <button type="button" class="quiz-close" id="quiz-close" aria-label="Close quiz">&times;</button>
+      <div class="quiz-progress" aria-hidden="true">
+        <div class="quiz-progress-bar" id="quiz-progress-bar"></div>
+      </div>
+      <p class="quiz-step" id="quiz-step"></p>
+      <h2 class="quiz-title" id="quiz-title"></h2>
+      <div class="quiz-options" id="quiz-options" role="radiogroup"></div>
+      <div class="quiz-results" id="quiz-results" hidden></div>
+      <div class="quiz-footer">
+        <button type="button" class="quiz-secondary-btn" id="quiz-back" hidden>&larr; Back</button>
+        <button type="button" class="quiz-secondary-btn" id="quiz-retake" hidden>Retake quiz</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Load Pannellum before our inline script so the global `pannellum` object exists -->
   <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.js"></script>
+  <!-- Three.js — substrate for Design mode (TreeViewDesigner IIFE near the end of the inline script) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
   <script>
     /*
      * Maps internal keys (what we store in data / HOUSES) to human-readable labels on buttons.
@@ -2326,6 +2966,7 @@
     const uploadSubmitEl = document.getElementById("upload-submit");
     const uploadSubmitTextEl = uploadSubmitEl.querySelector(".upload-submit-text");
     const uploadResultEl = document.getElementById("upload-result");
+    const sharedUploadPanelEl = document.getElementById("shared-upload-panel");
 
     // API endpoint where we send the photos. Path is relative, so it resolves to
     // http://localhost:3000/api/upload (same domain, same port)
@@ -2477,6 +3118,12 @@
 
     // Event delegation — same pattern as the room-type pills (`pillsEl` listener below)
     designerUploadRoot.addEventListener("click", (e) => {
+      const copyBtn = e.target.closest("[data-action='copy-share-link']");
+      if (copyBtn) {
+        const id = copyBtn.getAttribute("data-upload-id");
+        if (id) copyShareLink(id, copyBtn);
+        return;
+      }
       if (e.target.closest("[data-action='pick-photos']")) {
         roomPhotosInput.click();
         return;
@@ -2552,6 +3199,115 @@
       uploadResultEl.hidden = true;
       uploadResultEl.classList.remove("is-success", "is-error");
       uploadResultEl.textContent = "";
+    }
+
+    function buildShareUrl(uploadId) {
+      return (
+        window.location.origin +
+        window.location.pathname +
+        "?upload=" +
+        encodeURIComponent(uploadId)
+      );
+    }
+
+    // Match server filenames (01-north.jpg, etc.) to the same labels as the upload form
+    const SHARED_PHOTO_PREFIXES = [
+      "01-north",
+      "02-south",
+      "03-east",
+      "04-west",
+      "05-ceiling",
+      "06-floor",
+    ];
+
+    function labelForSharedPhoto(filename) {
+      for (let i = 0; i < SHARED_PHOTO_PREFIXES.length; i++) {
+        if (filename.startsWith(SHARED_PHOTO_PREFIXES[i])) return ROOM_PHOTO_LABELS[i];
+      }
+      return filename;
+    }
+
+    function formatSharedDate(iso) {
+      try {
+        return new Date(iso).toLocaleString();
+      } catch {
+        return iso || "";
+      }
+    }
+
+    function showSharedPanelError(msg) {
+      sharedUploadPanelEl.hidden = false;
+      sharedUploadPanelEl.classList.add("is-error");
+      sharedUploadPanelEl.innerHTML =
+        `<p class="shared-upload-error">${escapeUploadHtml(msg)}</p>`;
+    }
+
+    function renderSharedUploadPanel(meta) {
+      const house = getHouse(meta.dormId);
+      const dormName = escapeUploadHtml(house.name);
+      const roomLabel = escapeUploadHtml(ROOM_LABELS[meta.roomType] || meta.roomType);
+      const when = escapeUploadHtml(formatSharedDate(meta.timestamp));
+      const uploadId = meta.uploadId;
+
+      let thumbsHtml = "";
+      (meta.savedFiles || []).forEach((filename) => {
+        const label = escapeUploadHtml(labelForSharedPhoto(filename));
+        const src =
+          "/api/uploads/" +
+          encodeURIComponent(uploadId) +
+          "/photos/" +
+          encodeURIComponent(filename);
+        thumbsHtml +=
+          `<figure class="shared-share-thumb"><img src="${src}" alt="${label}" loading="lazy" width="320" height="240" decoding="async"><figcaption>${label}</figcaption></figure>`;
+      });
+
+      sharedUploadPanelEl.classList.remove("is-error");
+      sharedUploadPanelEl.hidden = false;
+      sharedUploadPanelEl.innerHTML =
+        `<h3 class="shared-upload-title">Shared upload</h3>` +
+        `<p class="shared-upload-meta"><strong>${dormName}</strong> · ${roomLabel}<br><time>${when}</time></p>` +
+        `<div class="shared-share-thumbs">${thumbsHtml}</div>`;
+    }
+
+    async function copyShareLink(uploadId, btn) {
+      const url = buildShareUrl(uploadId);
+      try {
+        await navigator.clipboard.writeText(url);
+        const prev = btn.textContent;
+        btn.textContent = "Copied!";
+        setTimeout(() => {
+          btn.textContent = prev;
+        }, 2000);
+      } catch {
+        alert(url);
+      }
+    }
+
+    async function loadSharedUploadIfPresent() {
+      const uploadId = new URLSearchParams(window.location.search).get("upload");
+      if (!uploadId) return;
+
+      sharedUploadPanelEl.hidden = false;
+      sharedUploadPanelEl.classList.remove("is-error");
+      sharedUploadPanelEl.innerHTML =
+        '<p class="shared-upload-meta">Loading shared upload…</p>';
+
+      try {
+        const res = await fetch("/api/uploads/" + encodeURIComponent(uploadId));
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {
+          /* empty */
+        }
+        if (!res.ok || !data || !data.success) {
+          const msg = (data && data.error) || "Server returned " + res.status;
+          throw new Error(msg);
+        }
+        renderSharedUploadPanel(data);
+      } catch (err) {
+        showSharedPanelError(err.message || "Could not load this upload.");
+      }
     }
 
     // Centralized logic for toggling the submit button's "uploading" state
@@ -2631,7 +3387,8 @@
         showUploadResult(
           "success",
           `<strong>Upload received!</strong> Your 3D room will be ready soon. ` +
-            `<span class="upload-result-id">ID: ${escapeUploadHtml(data.uploadId)}</span>`,
+            `<span class="upload-result-id">ID: ${escapeUploadHtml(data.uploadId)}</span> ` +
+            `<button type="button" class="upload-pick-btn upload-copy-link-btn" data-action="copy-share-link" data-upload-id="${escapeUploadHtml(data.uploadId)}">Copy share link</button>`,
         );
 
         // Clear the selected photos and reset the UI
@@ -2945,6 +3702,7 @@
     compareA.addEventListener("change", renderComparison);
     compareB.addEventListener("change", renderComparison);
 
+    loadSharedUploadIfPresent();
     // ===== FEATURE 4: Interactive Campus Map =====
     const DORM_COORDS = [
       { id: "branner", lat: 37.4255, lng: -122.1629 },
@@ -3615,6 +4373,715 @@
     }
 
     renderQuizStep();
+    // =====================================================================
+    // FEATURE 5: Per-dorm notes (Noah)
+    // Same localStorage pattern Laolu used for favorites/theme. One key per
+    // dorm so each dorm's notes are independent. Saves on input (debounced).
+    // =====================================================================
+    const notesTextarea = document.getElementById("dorm-notes");
+    const notesStatus = document.getElementById("notes-status");
+    const notesLabel = document.getElementById("notes-label");
+
+    // We namespace localStorage keys so we don't collide with other features.
+    function notesKey(id) {
+      return "tv-notes:" + id;
+    }
+
+    function loadNotesForCurrentDorm() {
+      const saved = localStorage.getItem(notesKey(houseId)) || "";
+      notesTextarea.value = saved;
+      notesLabel.textContent = "Notes for " + getHouse(houseId).name;
+    }
+
+    // Debounce so we don't hammer localStorage on every keystroke.
+    let notesSaveTimer;
+    let notesStatusTimer;
+    function scheduleNotesSave() {
+      clearTimeout(notesSaveTimer);
+      notesSaveTimer = setTimeout(() => {
+        const value = notesTextarea.value;
+        if (value) {
+          localStorage.setItem(notesKey(houseId), value);
+        } else {
+          // Empty textarea — clean up the key instead of storing "".
+          localStorage.removeItem(notesKey(houseId));
+        }
+        // Flash a "Saved" indicator next to the label.
+        notesStatus.textContent = "Saved";
+        notesStatus.classList.add("is-visible");
+        clearTimeout(notesStatusTimer);
+        notesStatusTimer = setTimeout(() => {
+          notesStatus.classList.remove("is-visible");
+        }, 1200);
+      }, 350);
+    }
+
+    notesTextarea.addEventListener("input", scheduleNotesSave);
+
+    // When the dorm changes, swap to that dorm's notes. We re-use the existing
+    // dormSelect change pattern — Laolu's renderFavUI listener and the pills
+    // listener already fire on the same event; ours just adds to that chain.
+    dormSelect.addEventListener("change", loadNotesForCurrentDorm);
+
+    // First paint.
+    loadNotesForCurrentDorm();
+
+    // =====================================================================
+    // FEATURE 6 (Noah): Shareable shortlist links
+    //
+    // The favorites Laolu built live in localStorage, so they only exist
+    // on the device that starred them. This feature lets the user copy a
+    // link that encodes their shortlist + current dorm/room so a roommate
+    // can open the link and see the same selection.
+    //
+    // URL shape:
+    //   /?shortlist=<base64-csv-of-dorm-ids>&dorm=<id>&room=<roomType>
+    //
+    // Tech: URLSearchParams reads/writes the query string, btoa/atob
+    // base64-encodes the list (compact + harder to fat-finger), and
+    // navigator.clipboard.writeText copies the link to the user's
+    // clipboard. The "shortlist" param is validated against HOUSES so
+    // a tampered link can't poison the favorites with unknown ids.
+    // =====================================================================
+    const shareBtn = document.getElementById("share-shortlist-btn");
+    const shareBtnText = shareBtn.querySelector(".share-shortlist-text");
+
+    // On page load: if the URL includes ?shortlist=..., decode + apply it.
+    function loadShortlistFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get("shortlist");
+      if (encoded) {
+        try {
+          const ids = atob(encoded).split(",").filter((id) => HOUSES.some((h) => h.id === id));
+          if (ids.length) {
+            saveFavorites(ids);
+            renderFavUI();
+          }
+        } catch {
+          // Malformed base64 — silently ignore, the user's own shortlist (if any) stays.
+        }
+      }
+      const dormParam = params.get("dorm");
+      const roomParam = params.get("room");
+      if (dormParam && HOUSES.some((h) => h.id === dormParam)) {
+        houseId = dormParam;
+        const house = getHouse(houseId);
+        roomType = house.roomTypes.includes(roomParam) ? roomParam : house.roomTypes[0];
+        dormSelect.value = houseId;
+        renderPills();
+        updatePreview();
+        renderFavUI();
+        // Also refresh the notes for the new dorm
+        if (typeof loadNotesForCurrentDorm === "function") loadNotesForCurrentDorm();
+      }
+    }
+
+    async function copyShareLink() {
+      const favs = getFavorites();
+      if (favs.length === 0) {
+        // Friendly nudge instead of copying an empty link
+        shareBtnText.textContent = "Star a dorm first";
+        clearTimeout(copyShareLink._t);
+        copyShareLink._t = setTimeout(() => {
+          shareBtnText.textContent = "Share my shortlist";
+        }, 1800);
+        return;
+      }
+      const params = new URLSearchParams();
+      params.set("shortlist", btoa(favs.join(",")));
+      params.set("dorm", houseId);
+      params.set("room", roomType);
+      const url = window.location.origin + window.location.pathname + "?" + params.toString();
+
+      try {
+        await navigator.clipboard.writeText(url);
+        shareBtn.classList.add("is-copied");
+        shareBtnText.textContent = "Link copied";
+      } catch {
+        // Clipboard API can fail (insecure context, denied permission) — fall back to prompt
+        window.prompt("Copy this link to share your shortlist:", url);
+        shareBtnText.textContent = "Share my shortlist";
+        return;
+      }
+      clearTimeout(copyShareLink._t);
+      copyShareLink._t = setTimeout(() => {
+        shareBtn.classList.remove("is-copied");
+        shareBtnText.textContent = "Share my shortlist";
+      }, 1800);
+    }
+
+    shareBtn.addEventListener("click", copyShareLink);
+
+    // Apply any URL-encoded shortlist now that all helpers are defined.
+    loadShortlistFromURL();
+
+    // =====================================================================
+    // FEATURE 7 (Noah): Dorm match quiz
+    //
+    // Seven-question quiz that scores every dorm by tag overlap with the
+    // user's answers, then surfaces the top 3 matches with explanations.
+    //
+    // How scoring works:
+    //   1. Each answer in a quiz question contributes 0..N "tags" to the
+    //      user's profile (a Set).
+    //   2. Each dorm has a derived tag set (from its HOUSES data plus a
+    //      DORM_EXTRA_TAGS map for things HOUSES doesn't cover — theme
+    //      house designations, neighborhood/location, vibe, special
+    //      status — all researched from Stanford R&DE and resed.stanford.edu).
+    //   3. score(dorm) = |userTags ∩ dormTags|. Higher = better match.
+    //   4. We sort by score, break ties by random shuffle so identical
+    //      scores don't always show the same dorm first, then take top 3.
+    // =====================================================================
+    const QUIZ_QUESTIONS = [
+      {
+        text: "Which year status are you applying for?",
+        options: [
+          { label: "First-year (mostly first-year residents)", tags: ["category:frosh"] },
+          { label: "Four-class (any year, mixed students)", tags: ["category:four_class"] },
+          { label: "Either is fine", tags: [] },
+        ],
+      },
+      {
+        text: "How many people in your room?",
+        options: [
+          { label: "Just me — I want a single", tags: ["has:single"] },
+          { label: "Me and one other — a double", tags: ["has:one_room_double", "has:two_room_double"] },
+          { label: "Three of us — a triple", tags: ["has:one_room_triple", "has:two_room_triple", "has:three_room_triple"] },
+          { label: "Flexible / not sure", tags: [] },
+        ],
+      },
+      {
+        text: "If you're sharing, do you want one room or connected rooms?",
+        options: [
+          { label: "Everyone in one room together", tags: ["has:one_room_double", "has:one_room_triple"] },
+          { label: "Separate connected rooms with a shared common area", tags: ["has:two_room_double", "has:two_room_triple", "has:three_room_triple"] },
+          { label: "Doesn't matter to me", tags: [] },
+        ],
+      },
+      {
+        text: "How much variety do you want in the building?",
+        options: [
+          { label: "Lots of options (4+ different room types in one building)", tags: ["variety:high"] },
+          { label: "Simpler is fine (fewer room types per building)", tags: ["variety:low"] },
+          { label: "No preference", tags: [] },
+        ],
+      },
+      {
+        text: "Are you interested in a themed or focus community house?",
+        options: [
+          { label: "Yes — a cultural / ethnic theme house (Ujamaa, Casa Zapata, Okada)", tags: ["theme:yes", "theme:ethnic"] },
+          { label: "Yes — an academic theme house (Burbank arts, Potter energy, Otero public service)", tags: ["theme:yes", "theme:academic"] },
+          { label: "No, regular residence is what I want", tags: ["theme:no"] },
+          { label: "Just show me what fits otherwise", tags: [] },
+        ],
+      },
+      {
+        text: "What's your social vibe?",
+        options: [
+          { label: "Big, lively, lots of common-area energy", tags: ["vibe:social"] },
+          { label: "Small, cozy, close-knit community", tags: ["vibe:cozy"] },
+          { label: "Somewhere in the middle", tags: [] },
+        ],
+      },
+      {
+        text: "Where on campus would you like to live?",
+        options: [
+          { label: "East Campus (Branner, Stern, Wilbur — near the science quad)", tags: ["location:east"] },
+          { label: "Central (Lagunita, Florence Moore, Crothers — close to main quad)", tags: ["location:central"] },
+          { label: "West Campus (Governor's Corner, Wisteria — quieter, near the foothills)", tags: ["location:west"] },
+          { label: "The Row (smaller, character-rich houses)", tags: ["location:row"] },
+          { label: "No preference", tags: [] },
+        ],
+      },
+    ];
+
+    // Per-dorm metadata sourced from Stanford R&DE + Residential Education
+    // (resed.stanford.edu / rde.stanford.edu). Each tag is something we can
+    // explain to the user — see REASON_LABELS below for human-readable forms.
+    //
+    // Theme designations:
+    //   "theme:ethnic"   — officially designated Ethnic Theme House
+    //                      (Ujamaa, Casa Zapata, Okada)
+    //   "theme:academic" — academic / focus theme house
+    //                      (Burbank=ITALIC arts, Potter=Explore Energy,
+    //                       Otero=Public Service & Civic Engagement)
+    //   "program:sle"    — hosts the Structured Liberal Education program
+    //                      (Alondra, Cardenal — NOT a theme house, but a
+    //                       program house, kept distinct for accuracy)
+    //   "focus:service"  — community-service focus house (Lantana)
+    //   "self-op"        — self-operated row house (ZAP)
+    //
+    // Location buckets (approximate, based on neighborhood groupings):
+    //   "location:east"    — East Campus: Branner standalone, Stern Hall,
+    //                        Wilbur Hall
+    //   "location:central" — Crothers, Lagunita Court, Florence Moore
+    //   "location:west"    — Sterling Quad (Governor's Corner), Gerhard
+    //                        Casper Quad (Wisteria F)
+    //   "location:row"     — The Row (ZAP)
+    //
+    // Vibe tags are conservative — only the dorms with clearly distinctive
+    // size or culture get them. Most dorms stay neutral.
+    const DORM_EXTRA_TAGS = {
+      // Ethnic theme houses (officially designated)
+      ujamaa: ["theme:yes", "theme:ethnic", "location:central"],
+      "casa-zapata": ["theme:yes", "theme:ethnic", "location:east"],
+      okada: ["theme:yes", "theme:ethnic", "location:east"],
+
+      // Academic theme houses
+      burbank: ["theme:yes", "theme:academic", "location:east"],  // ITALIC+Arts
+      potter: ["theme:yes", "theme:academic", "location:west"],   // Explore Energy
+      otero: ["theme:yes", "theme:academic", "location:east"],    // Public Service & Civic Engagement
+
+      // SLE program (academic, not a theme house but program-based)
+      alondra: ["program:sle", "location:central"],
+      cardenal: ["program:sle", "location:central"],
+
+      // The Row — self-operated, smaller community
+      zap: ["self-op", "vibe:cozy", "location:row"],
+
+      // Sally Ride is all-sophomore per Stanford (more restrictive than four-class)
+      "sally-ride": ["year:sophomore", "location:east"],
+
+      // Large frosh dorms known for social energy
+      branner: ["vibe:social", "location:east"],
+      crothers: ["vibe:social", "location:central"],
+
+      // Lantana has a community-service focus (not an official theme house)
+      lantana: ["focus:service", "location:west"],
+
+      // Location tags for the rest — vibe stays neutral where unclear
+      "west-lagunita": ["location:central"],
+      castano: ["location:west"],
+      schiff: ["location:west"],
+      robinson: ["location:west"],
+      mirlo: ["location:central"],
+      donner: ["location:east"],
+      larkin: ["location:east"],
+      arroyo: ["location:east"],
+      cedro: ["location:east"],
+      rinconada: ["location:east"],
+      soto: ["location:east"],
+      junipero: ["location:east"],
+    };
+
+    // Builds the full tag set for a dorm by combining HOUSES data with the
+    // extras above. Memoised so we don't recompute per-question.
+    const _dormTagCache = new Map();
+    function getDormTagSet(dorm) {
+      if (_dormTagCache.has(dorm.id)) return _dormTagCache.get(dorm.id);
+      const tags = new Set(["category:" + dorm.category]);
+      dorm.roomTypes.forEach((rt) => tags.add("has:" + rt));
+      tags.add(dorm.roomTypes.length >= 4 ? "variety:high" : "variety:low");
+      const extras = DORM_EXTRA_TAGS[dorm.id] || [];
+      extras.forEach((t) => tags.add(t));
+      // Default theme:no for dorms that aren't tagged as themed
+      if (!extras.includes("theme:yes")) tags.add("theme:no");
+      _dormTagCache.set(dorm.id, tags);
+      return tags;
+    }
+
+    // Human-readable reasons for the results card
+    const REASON_LABELS = {
+      "category:frosh": "First-year designated",
+      "category:four_class": "Four-class undergraduate",
+      "has:single": "offers singles",
+      "has:one_room_double": "offers 1-room doubles",
+      "has:two_room_double": "offers 2-room doubles",
+      "has:one_room_triple": "offers 1-room triples",
+      "has:two_room_triple": "offers 2-room triples",
+      "has:three_room_triple": "offers 3-room triples",
+      "variety:high": "lots of room type options",
+      "variety:low": "simpler room type lineup",
+      "theme:yes": "themed / focus house",
+      "theme:no": "regular residence",
+      "theme:ethnic": "ethnic / cultural theme house",
+      "theme:academic": "academic theme house",
+      "program:sle": "Structured Liberal Education program house",
+      "focus:service": "community-service focus house",
+      "self-op": "self-operated row house",
+      "year:sophomore": "all-sophomore residence",
+      "vibe:social": "big, social energy",
+      "vibe:cozy": "cozy, close-knit",
+      "location:east": "East Campus location",
+      "location:central": "central-campus location",
+      "location:west": "West Campus location",
+      "location:row": "in The Row",
+    };
+
+    // ---------- Quiz state machine ----------
+    const quizOverlay = document.getElementById("quiz-overlay");
+    const quizStepEl = document.getElementById("quiz-step");
+    const quizTitleEl = document.getElementById("quiz-title");
+    const quizOptionsEl = document.getElementById("quiz-options");
+    const quizResultsEl = document.getElementById("quiz-results");
+    const quizProgressBar = document.getElementById("quiz-progress-bar");
+    const quizBackBtn = document.getElementById("quiz-back");
+    const quizRetakeBtn = document.getElementById("quiz-retake");
+    const quizCloseBtn = document.getElementById("quiz-close");
+    const openQuizBtn = document.getElementById("open-quiz-btn");
+
+    let quizStep = 0;          // 0..QUIZ_QUESTIONS.length-1 are questions; length = results page
+    let quizAnswerTags = [];   // parallel array — tags chosen at each step
+
+    function openQuiz() {
+      quizStep = 0;
+      quizAnswerTags = [];
+      quizOverlay.hidden = false;
+      document.body.style.overflow = "hidden"; // prevent background scroll
+      renderQuiz();
+    }
+
+    function closeQuiz() {
+      quizOverlay.hidden = true;
+      document.body.style.overflow = "";
+    }
+
+    function renderQuiz() {
+      const total = QUIZ_QUESTIONS.length;
+      if (quizStep < total) {
+        const q = QUIZ_QUESTIONS[quizStep];
+        quizStepEl.textContent = "Question " + (quizStep + 1) + " of " + total;
+        quizTitleEl.textContent = q.text;
+        quizOptionsEl.hidden = false;
+        quizResultsEl.hidden = true;
+        quizOptionsEl.replaceChildren();
+        q.options.forEach((opt, idx) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "quiz-option";
+          btn.dataset.idx = String(idx);
+          btn.innerHTML =
+            '<span class="quiz-option-bullet" aria-hidden="true"></span>' +
+            '<span>' + opt.label + '</span>';
+          quizOptionsEl.appendChild(btn);
+        });
+        quizProgressBar.style.width = (quizStep / total) * 100 + "%";
+        quizBackBtn.hidden = quizStep === 0;
+        quizRetakeBtn.hidden = true;
+      } else {
+        // Results page
+        quizStepEl.textContent = "Your matches";
+        quizTitleEl.textContent = "Top 3 dorms for you";
+        quizOptionsEl.hidden = true;
+        quizResultsEl.hidden = false;
+        renderQuizResults();
+        quizProgressBar.style.width = "100%";
+        quizBackBtn.hidden = false;
+        quizRetakeBtn.hidden = false;
+      }
+    }
+
+    function renderQuizResults() {
+      // Flatten all picked tags into one Set
+      const userTags = new Set();
+      quizAnswerTags.forEach((tags) => tags.forEach((t) => userTags.add(t)));
+
+      // Score every dorm
+      const scored = HOUSES.map((dorm) => {
+        const dormTags = getDormTagSet(dorm);
+        const matched = [];
+        userTags.forEach((t) => {
+          if (dormTags.has(t)) matched.push(t);
+        });
+        return { dorm, score: matched.length, matched };
+      });
+      // Sort by score desc; randomise within ties so it doesn't always pick
+      // the same alphabetically-first dorm on identical scores.
+      scored.sort((a, b) => b.score - a.score || Math.random() - 0.5);
+      const top = scored.slice(0, 3);
+
+      quizResultsEl.replaceChildren();
+      top.forEach((entry, i) => {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "quiz-result";
+        card.dataset.dormId = entry.dorm.id;
+        // Build reasons string from the matched tags
+        const reasons = entry.matched
+          .map((t) => REASON_LABELS[t])
+          .filter(Boolean)
+          .slice(0, 4)
+          .join(" · ");
+        card.innerHTML =
+          '<span class="quiz-result-rank">' + (i + 1) + '</span>' +
+          '<div class="quiz-result-body">' +
+            '<p class="quiz-result-name">' + entry.dorm.name + '</p>' +
+            '<p class="quiz-result-reasons">' + (reasons || "Closest available match for your preferences") + '</p>' +
+          '</div>' +
+          '<span class="quiz-result-score">' + entry.score + ' match' + (entry.score === 1 ? '' : 'es') + '</span>';
+        quizResultsEl.appendChild(card);
+      });
+    }
+
+    // Option click → record tags, advance
+    quizOptionsEl.addEventListener("click", (e) => {
+      const btn = e.target.closest(".quiz-option");
+      if (!btn) return;
+      const idx = Number(btn.dataset.idx);
+      const opt = QUIZ_QUESTIONS[quizStep].options[idx];
+      quizAnswerTags[quizStep] = opt.tags;
+      quizStep++;
+      renderQuiz();
+    });
+
+    // Result click → preselect that dorm in the dropdown, close the quiz
+    quizResultsEl.addEventListener("click", (e) => {
+      const card = e.target.closest(".quiz-result");
+      if (!card) return;
+      const id = card.dataset.dormId;
+      if (!HOUSES.some((h) => h.id === id)) return;
+      houseId = id;
+      const house = getHouse(id);
+      roomType = house.roomTypes[0];
+      dormSelect.value = id;
+      renderPills();
+      updatePreview();
+      renderFavUI();
+      if (typeof loadNotesForCurrentDorm === "function") loadNotesForCurrentDorm();
+      closeQuiz();
+    });
+
+    quizBackBtn.addEventListener("click", () => {
+      if (quizStep > 0) {
+        quizStep--;
+        renderQuiz();
+      }
+    });
+
+    quizRetakeBtn.addEventListener("click", () => {
+      quizStep = 0;
+      quizAnswerTags = [];
+      renderQuiz();
+    });
+
+    quizCloseBtn.addEventListener("click", closeQuiz);
+
+    // Click on the overlay background closes the modal
+    quizOverlay.addEventListener("click", (e) => {
+      if (e.target === quizOverlay) closeQuiz();
+    });
+
+    // Esc closes the modal when it's open
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !quizOverlay.hidden) closeQuiz();
+    });
+
+    openQuizBtn.addEventListener("click", openQuiz);
+
+    /* ===== Designer mode — Three.js panorama substrate =====
+     * Renders ZAP_One on an inside-out sphere so a real 3D scene exists for
+     * future furniture/share work. v1 is read-only; Tour mode remains the default.
+     */
+    (function initTreeViewDesigner() {
+      const tourBtn        = document.getElementById("mode-tour-btn");
+      const designBtn      = document.getElementById("mode-design-btn");
+      const canvas         = document.getElementById("design-canvas");
+      const panoHost       = document.getElementById("treeview-panorama");
+      const designControls = document.getElementById("design-controls");
+      const zoomInBtn      = document.getElementById("design-zoom-in");
+      const zoomOutBtn     = document.getElementById("design-zoom-out");
+      const fullscreenBtn  = document.getElementById("design-fullscreen");
+
+      // Graceful degradation: if the Three.js CDN is blocked, Tour mode still works.
+      if (typeof THREE === "undefined") {
+        console.warn("[designer] THREE.js failed to load — Design mode disabled.");
+        designBtn.disabled = true;
+        designBtn.title = "Design mode unavailable (3D library failed to load)";
+        return;
+      }
+
+      const FIRST_SCENE_URL = pano("ZAP_One.jpeg");
+      // Match Pannellum baseScene (haov: 110, vaov: 45) — half-angles for yaw/pitch clamps.
+      const YAW_LIMIT_RAD   = THREE.MathUtils.degToRad(55);
+      const PITCH_LIMIT_RAD = THREE.MathUtils.degToRad(22.5);
+      const DRAG_SENSITIVITY = 0.0025;
+      const INERTIA = 0.88;    // velocity multiplied each frame after pointer release
+      const MIN_FOV = 50;      // degrees — matches Pannellum minHfov
+      const MAX_FOV = 90;      // degrees — matches Pannellum maxHfov
+      const ZOOM_STEP = 3;     // degrees per button press or scroll tick
+
+      let renderer, scene, camera;
+      let yaw = 0, pitch = 0;
+      let velYaw = 0, velPitch = 0;
+      const lookTarget = new THREE.Vector3();
+      let initialized = false;
+      let animFrame = null;
+      let resizeTimer = null;
+      let dragging = false;
+      let lastX = 0, lastY = 0;
+
+      function updateCamera() {
+        // Standard first-person spherical look: yaw around Y, pitch around X.
+        // At yaw=0, pitch=0 the camera looks down -Z (center of the equirectangular image).
+        lookTarget.set(
+          Math.sin(yaw) * Math.cos(pitch),
+          Math.sin(pitch),
+          -Math.cos(yaw) * Math.cos(pitch)
+        );
+        camera.lookAt(lookTarget);
+      }
+
+      function clampAngles() {
+        if (yaw < -YAW_LIMIT_RAD)         { yaw   = -YAW_LIMIT_RAD;   velYaw   = 0; }
+        else if (yaw > YAW_LIMIT_RAD)     { yaw   =  YAW_LIMIT_RAD;   velYaw   = 0; }
+        if (pitch < -PITCH_LIMIT_RAD)     { pitch = -PITCH_LIMIT_RAD; velPitch = 0; }
+        else if (pitch > PITCH_LIMIT_RAD) { pitch =  PITCH_LIMIT_RAD; velPitch = 0; }
+      }
+
+      function setFov(fov) {
+        camera.fov = Math.min(MAX_FOV, Math.max(MIN_FOV, fov));
+        camera.updateProjectionMatrix();
+      }
+
+      function sizeRendererToCanvas() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (!w || !h) return; // canvas hidden — skip to avoid a 0×0 framebuffer
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+
+      function init() {
+        if (initialized) return;
+        initialized = true;
+
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.outputEncoding = THREE.sRGBEncoding;
+
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
+        camera.position.set(0, 0, 0); // camera at origin; sphere wraps around it
+
+        // Inside-out sphere — scale.x = -1 flips face winding so the texture is
+        // visible from inside, and the equirectangular UV wrapping reads left-to-right.
+        const geom = new THREE.SphereGeometry(50, 64, 40);
+        geom.scale(-1, 1, 1);
+
+        const texLoader = new THREE.TextureLoader();
+        texLoader.setCrossOrigin("anonymous");
+        const texture = texLoader.load(FIRST_SCENE_URL);
+        texture.encoding = THREE.sRGBEncoding;
+
+        scene.add(new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ map: texture })));
+
+        sizeRendererToCanvas();
+        updateCamera();
+        bindEvents();
+      }
+
+      function bindEvents() {
+        // --- Pointer drag (look-around: drag right = pan right, matching Pannellum) ---
+        canvas.addEventListener("pointerdown", (e) => {
+          dragging = true;
+          velYaw = velPitch = 0; // kill any coasting momentum on new grab
+          lastX = e.clientX;
+          lastY = e.clientY;
+          canvas.setPointerCapture(e.pointerId);
+        });
+
+        canvas.addEventListener("pointermove", (e) => {
+          if (!dragging) return;
+          const dx = e.clientX - lastX;
+          const dy = e.clientY - lastY;
+          lastX = e.clientX;
+          lastY = e.clientY;
+          velYaw   = dx * DRAG_SENSITIVITY; // store for inertia coast on release
+          velPitch = dy * DRAG_SENSITIVITY;
+          yaw   += velYaw;
+          pitch -= velPitch; // drag down (dy > 0) = look down = pitch decreases
+          clampAngles();
+          updateCamera();
+        });
+
+        const endDrag = (e) => {
+          dragging = false;
+          if (e && e.pointerId !== undefined && canvas.hasPointerCapture(e.pointerId)) {
+            canvas.releasePointerCapture(e.pointerId);
+          }
+        };
+        canvas.addEventListener("pointerup",     endDrag);
+        canvas.addEventListener("pointercancel", endDrag);
+
+        // --- Scroll wheel zoom (matches Pannellum: scroll up = zoom in = smaller FOV) ---
+        canvas.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          setFov(camera.fov + (e.deltaY > 0 ? ZOOM_STEP : -ZOOM_STEP));
+        }, { passive: false });
+
+        // --- Zoom buttons ---
+        zoomInBtn.addEventListener("click",  () => setFov(camera.fov - ZOOM_STEP));
+        zoomOutBtn.addEventListener("click", () => setFov(camera.fov + ZOOM_STEP));
+
+        // --- Fullscreen ---
+        fullscreenBtn.addEventListener("click", () => {
+          if (!document.fullscreenElement) {
+            canvas.requestFullscreen().catch(err => console.warn("[designer] fullscreen:", err));
+          } else {
+            document.exitFullscreen();
+          }
+        });
+        // Resize the renderer once the browser has settled into/out of fullscreen
+        document.addEventListener("fullscreenchange", () =>
+          setTimeout(sizeRendererToCanvas, 50)
+        );
+      }
+
+      function tick() {
+        animFrame = requestAnimationFrame(tick);
+        // Inertia coast: apply decaying velocity after the pointer is released
+        if (!dragging && (Math.abs(velYaw) > 0.00005 || Math.abs(velPitch) > 0.00005)) {
+          yaw   += velYaw;
+          pitch -= velPitch;
+          clampAngles();
+          velYaw   *= INERTIA;
+          velPitch *= INERTIA;
+          updateCamera();
+        }
+        renderer.render(scene, camera);
+      }
+
+      function start() {
+        init();
+        sizeRendererToCanvas();
+        if (animFrame === null) tick();
+      }
+
+      function stop() {
+        if (animFrame !== null) {
+          cancelAnimationFrame(animFrame);
+          animFrame = null;
+        }
+      }
+
+      function setMode(mode) {
+        const designOn = mode === "design";
+        panoHost.hidden        = designOn;
+        canvas.hidden          = !designOn;
+        designControls.hidden  = !designOn;
+        tourBtn.classList.toggle("is-active",  !designOn);
+        designBtn.classList.toggle("is-active", designOn);
+        tourBtn.setAttribute("aria-selected",  String(!designOn));
+        designBtn.setAttribute("aria-selected", String(designOn));
+        if (designOn) {
+          start();
+        } else {
+          stop();
+          // Pannellum needs a nudge after its host returns from display:none
+          if (typeof panoramaViewer !== "undefined") panoramaViewer.resize();
+        }
+      }
+
+      tourBtn.addEventListener("click",  () => setMode("tour"));
+      designBtn.addEventListener("click", () => setMode("design"));
+
+      window.addEventListener("resize", () => {
+        if (!initialized || canvas.hidden) return;
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(sizeRendererToCanvas, 120);
+      });
+    })();
   </script>
 </body>
 </html>
