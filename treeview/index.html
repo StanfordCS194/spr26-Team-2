@@ -127,37 +127,38 @@
 
     body {
       margin: 0;
+      padding: 0;
+      height: 100vh;
       min-height: 100vh;
       font-family: var(--font-ui);
       line-height: 1.55;
-      color: var(--charcoal-soft);
       background: var(--cream);
+      color: var(--charcoal);
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Modern, thin, theme-aware scrollbar */
     ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
     }
     ::-webkit-scrollbar-track {
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: var(--muted);
-      border-radius: 99px;
-      border: 2px solid transparent;
+      background: rgba(140, 148, 156, 0.3);
+      border-radius: 10px;
+      border: 3px solid transparent;
       background-clip: padding-box;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: var(--charcoal-soft);
-      border: 2px solid transparent;
+      background: rgba(140, 148, 156, 0.6);
+      border: 3px solid transparent;
       background-clip: padding-box;
     }
     /* Firefox support */
     * {
       scrollbar-width: thin;
-      scrollbar-color: var(--muted) transparent;
+      scrollbar-color: rgba(140, 148, 156, 0.3) transparent;
     }
 
     /* Keyboard users get a visible ring; I matched it to the teal accent */
@@ -2936,7 +2937,7 @@
           <button type="button" class="sidebar-nav-btn is-active" data-view="map" aria-current="page">Explore Map</button>
           <button type="button" class="sidebar-nav-btn" data-view="walk">Distance Calculator</button>
           <button type="button" class="sidebar-nav-btn" data-view="rankings">Dorm Rankings</button>
-          <button type="button" class="sidebar-nav-btn" data-view="designer">Design Room</button>
+          <button type="button" class="sidebar-nav-btn" data-view="designer">Create 3D Room</button>
         </nav>
         <section class="shortlist-section" id="shortlist-section" aria-label="Your shortlisted dorms">
           <div class="shortlist-head">
@@ -3089,7 +3090,7 @@
 
           <!-- view-rankings: dorm leaderboard -->
           <section class="dashboard-view" id="view-rankings" data-view="rankings" hidden aria-labelledby="rankings-heading">
-            <section class="rankings-section glass" aria-labelledby="rankings-heading">
+            <section class="rankings-section" aria-labelledby="rankings-heading">
         <div class="rankings-head">
           <p class="panel-head">Dorm rankings</p>
           <h2 id="rankings-heading" class="rankings-title">Compare every dorm at a glance</h2>
@@ -3115,10 +3116,10 @@
           <section class="dashboard-view" id="view-designer" data-view="designer" hidden aria-labelledby="designer-heading">
             <section class="designer glass" aria-labelledby="designer-heading">
         <div class="designer-head">
-          <p class="panel-head">Design your own room</p>
-          <h2 id="designer-heading" class="designer-title">Lay out your space</h2>
+          <p class="panel-head">Create 3D Room</p>
+          <h2 id="designer-heading" class="designer-title">Generate a 3D model of your space</h2>
           <p class="designer-lede">
-            Customize how your room could look for the dorm and room category you select.
+            Upload wide-angle photos of your current room to generate a draggable, immersive 3D space.
           </p>
           <p id="designer-context" class="designer-context" aria-live="polite"></p>
         </div>
@@ -3859,13 +3860,25 @@
         // Show the upload ID so user can reference this upload
         showUploadResult(
           "success",
-          `<strong>Upload received!</strong> Your 3D room will be ready soon. ` +
+          `<strong>Upload received!</strong> Your 3D room is ready to preview. ` +
             `<span class="upload-result-id">ID: ${escapeUploadHtml(data.uploadId)}</span> ` +
             `<button type="button" class="upload-pick-btn upload-copy-link-btn" data-action="copy-share-link" data-upload-id="${escapeUploadHtml(data.uploadId)}">Copy share link</button>`,
         );
 
+        if (window.previewUploadedRoom) {
+          const urls = [
+            roomPhotoEntries[2].url, // East
+            roomPhotoEntries[3].url, // West
+            roomPhotoEntries[4].url, // Ceiling
+            roomPhotoEntries[5].url, // Floor
+            roomPhotoEntries[1].url, // South
+            roomPhotoEntries[0].url  // North
+          ];
+          window.previewUploadedRoom(urls);
+        }
+
         // Clear the selected photos and reset the UI
-        roomPhotoEntries.forEach(revokeRoomPhoto); // Free up object URLs from memory
+        // We skip revoking URLs here because Three.js needs them for the skybox!
         roomPhotoEntries = []; // Empty the array
         renderRoomUploadUI(); // Redraw the form (thumbnails disappear, button disables again)
       } catch (err) {
@@ -3977,8 +3990,13 @@
     renderPills();
     updatePreview();
 
-    // Boot the 360 viewer — string arg must match id="treeview-panorama" in the HTML
-    const panoramaViewer = pannellum.viewer("treeview-panorama", getDemoTourConfig());
+    // Boot the 360 viewer — initialized lazily when the residences tab becomes active
+    let panoramaViewer = null;
+    function initPanoramaViewer() {
+      if (!panoramaViewer) {
+        panoramaViewer = pannellum.viewer("treeview-panorama", getDemoTourConfig());
+      }
+    }
     /*
      * Pannellum doesn’t always reflow on its own when the window resizes.
      * Debouncing with setTimeout avoids calling resize() dozens of times while someone drags the edge.
@@ -4046,6 +4064,7 @@
         requestAnimationFrame(() => campusMap.resize());
       }
       if (viewId === "residences") {
+        initPanoramaViewer();
         resizeMainPanorama();
       }
       if (window.innerWidth <= 768 && appSidebarEl) {
@@ -5493,9 +5512,26 @@
         } else {
           stop();
           // Pannellum needs a nudge after its host returns from display:none
-          if (typeof panoramaViewer !== "undefined") panoramaViewer.resize();
+          if (typeof panoramaViewer !== "undefined" && panoramaViewer) panoramaViewer.resize();
         }
       }
+
+      window.updateDesignerSkybox = function(urls) {
+        if (!initialized) init();
+        const loader = new THREE.CubeTextureLoader();
+        scene.background = loader.load(urls);
+        // Hide the initial panorama sphere
+        scene.children.forEach(child => {
+          if (child.isMesh && child.geometry.type === 'SphereGeometry') {
+            child.visible = false;
+          }
+        });
+      };
+
+      window.previewUploadedRoom = function(urls) {
+        setMode("design");
+        window.updateDesignerSkybox(urls);
+      };
 
       tourBtn.addEventListener("click",  () => setMode("tour"));
       designBtn.addEventListener("click", () => setMode("design"));
@@ -5506,6 +5542,9 @@
         resizeTimer = setTimeout(sizeRendererToCanvas, 120);
       });
     })();
+
+    // Set initial view on load
+    setActiveView(activeDashboardView);
   </script>
 </body>
 </html>
