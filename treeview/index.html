@@ -115,6 +115,40 @@
       background-clip: text;
     }
 
+    [data-theme="dark"] .theme-toggle {
+      color: #fff;
+    }
+
+    [data-theme="dark"] .upload-pick-btn,
+    [data-theme="dark"] .upload-copy-link-btn,
+    [data-theme="dark"] .room3d-action-btn {
+      color: #f7f4ee;
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.28);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    [data-theme="dark"] .upload-pick-btn:hover,
+    [data-theme="dark"] .upload-copy-link-btn:hover,
+    [data-theme="dark"] .room3d-action-btn:hover:not(:disabled) {
+      color: #fff;
+      background: rgba(61, 154, 140, 0.26);
+      border-color: rgba(61, 154, 140, 0.55);
+    }
+
+    [data-theme="dark"] .upload-submit:disabled {
+      opacity: 1;
+      color: rgba(255, 255, 255, 0.72);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    [data-theme="dark"] .shared-upload-panel {
+      color: #e8e4de;
+      background: rgba(20, 26, 30, 0.72);
+      border-color: rgba(61, 154, 140, 0.42);
+    }
+
     /* Makes width/height math less painful (padding counts inside the box, not on top of it) */
     *, *::before, *::after {
       box-sizing: border-box;
@@ -983,6 +1017,10 @@
       overflow: hidden;
     }
 
+    .designer-placeholder[hidden] {
+      display: none;
+    }
+
     /* Same pulsing glow — sits behind the upload UI */
     .designer-placeholder::before {
       content: "";
@@ -1001,6 +1039,25 @@
       display: flex;
       flex-direction: column;
       gap: 1rem;
+    }
+
+    .designer-upload-form[hidden] {
+      display: none;
+    }
+
+    .designer-upload-form:not([hidden]) {
+      animation: upload-menu-drop 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes upload-menu-drop {
+      from {
+        opacity: 0;
+        transform: translateY(-0.65rem);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* Room name field — sits at the top of the upload form */
@@ -1269,13 +1326,20 @@
     }
 
     /* Wall assignment dropdown (top-left) — which face this slot maps to */
-    .upload-thumb-slot-select {
+    .upload-thumb-slot-picker {
       position: absolute;
       top: 0.35rem;
       left: 0.35rem;
       z-index: 2;
       max-width: calc(100% - 2.5rem);
-      padding: 0.2rem 1.4rem 0.2rem 0.5rem;
+    }
+
+    .upload-thumb-slot-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      max-width: 100%;
+      padding: 0.2rem 0.5rem;
       font-family: var(--font-ui);
       font-size: 0.66rem;
       font-weight: 700;
@@ -1286,27 +1350,72 @@
       border-radius: 999px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
       cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      background-image:
-        linear-gradient(135deg, var(--cardinal) 0%, var(--cardinal-deep) 100%),
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23fff' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
-      background-repeat: no-repeat, no-repeat;
-      background-position: 0 0, right 0.4rem center;
-      background-size: auto, 0.55rem;
     }
 
-    .upload-thumb-slot-select:hover,
-    .upload-thumb-slot-select:focus {
+    .upload-thumb-slot-trigger::after {
+      content: "▾";
+      font-size: 0.62rem;
+      line-height: 1;
+      opacity: 0.9;
+    }
+
+    .upload-thumb-slot-trigger:hover,
+    .upload-thumb-slot-trigger:focus {
       outline: none;
       border-color: rgba(61, 154, 140, 0.65);
       box-shadow: 0 0 0 2px rgba(61, 154, 140, 0.35), 0 2px 8px rgba(0, 0, 0, 0.35);
     }
 
-    .upload-thumb-slot-select option {
-      color: var(--charcoal);
-      background: #fff;
+    .upload-thumb-slot-menu {
+      position: absolute;
+      top: calc(100% + 0.3rem);
+      left: 0;
+      min-width: 8.75rem;
+      padding: 0.3rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.15rem;
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid rgba(46, 54, 61, 0.12);
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .upload-thumb-slot-picker.is-open .upload-thumb-slot-menu {
+      display: flex;
+    }
+
+    .upload-thumb-slot-option {
+      width: 100%;
+      padding: 0.42rem 0.55rem;
+      text-align: left;
+      font-size: 0.74rem;
+      color: #1a2228;
+      border-radius: 8px;
+      background: transparent;
       font-weight: 600;
+    }
+
+    .upload-thumb-slot-option:hover,
+    .upload-thumb-slot-option.is-selected {
+      color: #fff;
+      background: var(--cardinal);
+    }
+
+    [data-theme="dark"] .upload-thumb-slot-menu {
+      background: #12181d;
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    [data-theme="dark"] .upload-thumb-slot-option {
+      color: #f7f4ee;
+    }
+
+    [data-theme="dark"] .upload-thumb-slot-option:hover,
+    [data-theme="dark"] .upload-thumb-slot-option.is-selected {
+      color: #fff;
+      background: rgba(140, 21, 21, 0.92);
     }
 
     /* Footer row: arrows on the left, file size on the right */
@@ -1377,20 +1486,22 @@
 
     .upload-ready-icon {
       display: inline-flex;
-      width: 1.1rem;
+      width: 0;
       height: 1.1rem;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
       border-radius: 999px;
       background: rgba(61, 154, 140, 0.35);
       color: #b4f5dc;
       font-size: 0.65rem;
       opacity: 0;
       transform: scale(0.8);
-      transition: opacity 0.25s ease, transform 0.25s ease;
+      transition: opacity 0.25s ease, transform 0.25s ease, width 0.25s ease;
     }
 
     .upload-ready.is-ready .upload-ready-icon {
+      width: 1.1rem;
       opacity: 1;
       transform: scale(1);
     }
@@ -1626,7 +1737,15 @@
       word-break: break-word;
     }
 
-    .room3d-edit-btn {
+    .room3d-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .room3d-action-btn {
       padding: 0.45rem 0.95rem;
       font-size: 0.82rem;
       font-weight: 600;
@@ -1637,9 +1756,49 @@
       transition: background 0.2s ease, transform 0.15s ease;
     }
 
-    .room3d-edit-btn:hover {
+    .room3d-action-btn:hover:not(:disabled) {
       background: rgba(61, 154, 140, 0.22);
       transform: translateY(-1px);
+    }
+
+    .room3d-action-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .upload-not-found {
+      margin-top: 1.5rem;
+      padding: clamp(1.25rem, 3vw, 2rem);
+      text-align: center;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.12), transparent 55%),
+        rgba(26, 34, 40, 0.72);
+      box-shadow: var(--shadow-md);
+    }
+
+    .upload-not-found[hidden] {
+      display: none;
+    }
+
+    .upload-not-found-title {
+      margin: 0 0 0.4rem;
+      font-family: var(--font-display);
+      font-size: clamp(1.2rem, 2.5vw, 1.45rem);
+      color: var(--charcoal);
+    }
+
+    .upload-not-found-copy {
+      max-width: 34rem;
+      margin: 0 auto 1rem;
+      color: var(--muted);
+    }
+
+    .upload-not-found-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .room3d-viewport {
@@ -3141,8 +3300,8 @@
           </div>
         </div>
         <nav class="sidebar-nav" id="sidebar-nav" aria-label="Main">
-          <button type="button" class="sidebar-nav-btn" data-view="residences">Residences</button>
           <button type="button" class="sidebar-nav-btn is-active" data-view="map" aria-current="page">Explore Map</button>
+          <button type="button" class="sidebar-nav-btn" data-view="residences">Residences</button>
           <button type="button" class="sidebar-nav-btn" data-view="walk">Distance Calculator</button>
           <button type="button" class="sidebar-nav-btn" data-view="rankings">Dorm Rankings</button>
           <button type="button" class="sidebar-nav-btn" data-view="designer">Create 3D Room</button>
@@ -3400,7 +3559,11 @@
         <div id="room3d-stage" class="room3d-stage" hidden>
           <div class="room3d-head">
             <h3 id="room3d-title" class="room3d-title">Your 3D room</h3>
-            <button type="button" id="room3d-edit-btn" class="room3d-edit-btn">↺ Edit photos</button>
+            <div class="room3d-actions" aria-label="3D room actions">
+              <button type="button" id="room3d-edit-btn" class="room3d-action-btn">↺ Edit photos</button>
+              <button type="button" id="room3d-new-upload-btn" class="room3d-action-btn">＋ New upload</button>
+              <button type="button" id="room3d-copy-link-btn" class="room3d-action-btn" disabled>Copy share link</button>
+            </div>
           </div>
           <div class="preview-viewport room3d-viewport" aria-label="Your 3D room, drag to look around">
             <canvas id="room3d-canvas" class="design-canvas" aria-label="3D room view"></canvas>
@@ -3411,6 +3574,15 @@
             </div>
           </div>
           <p class="room3d-hint">Drag to look around · scroll to zoom</p>
+        </div>
+        <div id="upload-not-found" class="upload-not-found" hidden role="status" aria-live="polite">
+          <h3 class="upload-not-found-title">Upload not found</h3>
+          <p class="upload-not-found-copy">
+            This shared room link may be invalid, expired, deleted, or mistyped.
+          </p>
+          <button type="button" id="upload-not-found-start" class="room3d-action-btn upload-not-found-action">
+            ＋ Start a new upload
+          </button>
         </div>
             </section>
           </section>
@@ -3679,6 +3851,9 @@
     const uploadSubmitTextEl = uploadSubmitEl.querySelector(".upload-submit-text");
     const uploadResultEl = document.getElementById("upload-result");
     const sharedUploadPanelEl = document.getElementById("shared-upload-panel");
+    const room3dCopyLinkBtn = document.getElementById("room3d-copy-link-btn");
+    const uploadNotFoundEl = document.getElementById("upload-not-found");
+    const uploadNotFoundStartBtn = document.getElementById("upload-not-found-start");
 
     // API endpoint where we send the photos. Path is relative, so it resolves to
     // http://localhost:3000/api/upload (same domain, same port)
@@ -3705,6 +3880,9 @@
     const ALLOWED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 
     let roomPhotoEntries = [];
+    let activeSharedUploadMeta = null;
+    let sharedUploadHydrated = false;
+    let currentRoomUploadId = null;
     let lastFormatRejectNames = [];
     let lastSizeRejectNames = [];
     let lastCapSkip = false;
@@ -3720,6 +3898,63 @@
 
     function revokeRoomPhoto(entry) {
       if (entry && entry.url) URL.revokeObjectURL(entry.url);
+    }
+
+    function resetRoomPhotoEntries(entries = []) {
+      roomPhotoEntries.forEach(revokeRoomPhoto);
+      roomPhotoEntries = entries;
+    }
+
+    function setCurrentRoomUploadId(uploadId) {
+      currentRoomUploadId = uploadId || null;
+      if (room3dCopyLinkBtn) {
+        room3dCopyLinkBtn.disabled = !currentRoomUploadId;
+        room3dCopyLinkBtn.textContent = "Copy share link";
+      }
+    }
+
+    function hideUploadNotFoundScreen() {
+      if (!uploadNotFoundEl) return;
+      uploadNotFoundEl.hidden = true;
+    }
+
+    function showUploadNotFoundScreen(message) {
+      hideSharedUploadPanel();
+      setCurrentRoomUploadId(null);
+      activeSharedUploadMeta = null;
+      sharedUploadHydrated = false;
+      designerUploadRoot.hidden = true;
+      roomUploadForm.hidden = true;
+      const stage = document.getElementById("room3d-stage");
+      if (stage) stage.hidden = true;
+      if (uploadNotFoundEl) {
+        const copy = uploadNotFoundEl.querySelector(".upload-not-found-copy");
+        if (copy) copy.textContent = message || "This shared room link may be invalid, expired, deleted, or mistyped.";
+        uploadNotFoundEl.hidden = false;
+      }
+    }
+
+    function beginNewRoomUpload() {
+      activeSharedUploadMeta = null;
+      sharedUploadHydrated = false;
+      setCurrentRoomUploadId(null);
+      resetRoomPhotoEntries([]);
+      roomNameInput.value = "My Room";
+      clearUploadResult();
+      hideSharedUploadPanel();
+      hideUploadNotFoundScreen();
+      renderRoomUploadUI();
+      designerUploadRoot.hidden = false;
+      roomUploadForm.hidden = false;
+      const stage = document.getElementById("room3d-stage");
+      if (stage) stage.hidden = true;
+    }
+
+    if (uploadNotFoundStartBtn) {
+      uploadNotFoundStartBtn.addEventListener("click", () => {
+        beginNewRoomUpload();
+        designerUploadRoot.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
 
     function formatPhotoSize(bytes) {
@@ -3806,23 +4041,49 @@
         img.decoding = "async";
         img.draggable = false; // let the whole tile own the drag, not the <img>
         img.src = entry.url;
-        // Wall assignment dropdown (top-left) — pick which face this photo maps to
-        const slotSelect = document.createElement("select");
-        slotSelect.className = "upload-thumb-slot-select";
-        slotSelect.setAttribute("aria-label", `Assign ${entry.file.name} to wall`);
+        // Wall assignment menu (top-left) — pick which face this photo maps to
+        const slotPicker = document.createElement("div");
+        slotPicker.className = "upload-thumb-slot-picker";
+        const slotTrigger = document.createElement("button");
+        slotTrigger.type = "button";
+        slotTrigger.className = "upload-thumb-slot-trigger";
+        slotTrigger.dataset.slotTrigger = String(idx);
+        slotTrigger.setAttribute("aria-haspopup", "menu");
+        slotTrigger.setAttribute("aria-expanded", "false");
+        slotTrigger.setAttribute("aria-label", `Assign ${entry.file.name} to wall`);
+        slotTrigger.textContent = WALL_SLOT_OPTIONS[idx].label;
+        const slotMenu = document.createElement("div");
+        slotMenu.className = "upload-thumb-slot-menu";
+        slotMenu.setAttribute("role", "menu");
         WALL_SLOT_OPTIONS.forEach((opt) => {
-          const option = document.createElement("option");
-          option.value = String(opt.value);
-          option.textContent = opt.label;
-          if (opt.value === idx) option.selected = true;
-          slotSelect.appendChild(option);
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "upload-thumb-slot-option";
+          item.classList.toggle("is-selected", opt.value === idx);
+          item.dataset.slotValue = String(opt.value);
+          item.setAttribute("role", "menuitem");
+          item.textContent = opt.label;
+          slotMenu.appendChild(item);
         });
-        slotSelect.addEventListener("mousedown", (ev) => ev.stopPropagation());
-        slotSelect.addEventListener("click", (ev) => ev.stopPropagation());
-        slotSelect.addEventListener("change", () => {
-          const newSlot = Number.parseInt(slotSelect.value, 10);
-          if (!Number.isNaN(newSlot) && newSlot !== idx) moveRoomPhoto(idx, newSlot);
+        slotPicker.addEventListener("mousedown", (ev) => ev.stopPropagation());
+        slotPicker.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          const item = ev.target.closest("[data-slot-value]");
+          if (item) {
+            const newSlot = Number.parseInt(item.dataset.slotValue, 10);
+            closeWallSlotMenus();
+            if (!Number.isNaN(newSlot) && newSlot !== idx) moveRoomPhoto(idx, newSlot);
+            return;
+          }
+          const trigger = ev.target.closest("[data-slot-trigger]");
+          if (trigger) {
+            const open = !slotPicker.classList.contains("is-open");
+            closeWallSlotMenus();
+            slotPicker.classList.toggle("is-open", open);
+            slotTrigger.setAttribute("aria-expanded", open ? "true" : "false");
+          }
         });
+        slotPicker.append(slotTrigger, slotMenu);
         const lbl = document.createElement("p");
         lbl.className = "upload-thumb-label";
         lbl.textContent = entry.file.name;
@@ -3835,7 +4096,7 @@
           `Remove photo ${ROOM_PHOTO_LABELS[idx]}, ${entry.file.name}`,
         );
         removeBtn.appendChild(document.createTextNode("\u00d7"));
-        preview.append(img, slotSelect, lbl, removeBtn);
+        preview.append(img, slotPicker, lbl, removeBtn);
         const meta = document.createElement("div");
         meta.className = "upload-thumb-meta";
         // Reorder controls \u2014 drag works on desktop; these arrows are the touch/keyboard path
@@ -3875,6 +4136,14 @@
       else uploadReadyTextEl.textContent = "Select more photos";
     }
 
+    function closeWallSlotMenus() {
+      uploadThumbsEl.querySelectorAll(".upload-thumb-slot-picker.is-open").forEach((picker) => {
+        picker.classList.remove("is-open");
+        const trigger = picker.querySelector("[data-slot-trigger]");
+        if (trigger) trigger.setAttribute("aria-expanded", "false");
+      });
+    }
+
     // Event delegation — same pattern as the room-type pills (`pillsEl` listener below)
     designerUploadRoot.addEventListener("click", (e) => {
       const copyBtn = e.target.closest("[data-action='copy-share-link']");
@@ -3906,6 +4175,14 @@
         return;
       }
       if (e.target.closest("[data-action='open-dropzone']")) roomPhotosInput.click();
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".upload-thumb-slot-picker")) closeWallSlotMenus();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeWallSlotMenus();
     });
 
     // Move a photo from one slot to another, re-rendering so the face labels follow.
@@ -4075,31 +4352,53 @@
         `<p class="shared-upload-error">${escapeUploadHtml(msg)}</p>`;
     }
 
-    function renderSharedUploadPanel(meta) {
-      const house = getHouse(meta.dormId);
-      const dormName = escapeUploadHtml(house.name);
-      const roomLabel = escapeUploadHtml(ROOM_LABELS[meta.roomType] || meta.roomType);
-      const when = escapeUploadHtml(formatSharedDate(meta.timestamp));
+    function photoUrlsForSharedUpload(meta) {
       const uploadId = meta.uploadId;
+      return (meta.savedFiles || []).map((filename) =>
+        "/api/uploads/" +
+        encodeURIComponent(uploadId) +
+        "/photos/" +
+        encodeURIComponent(filename)
+      );
+    }
 
-      let thumbsHtml = "";
-      (meta.savedFiles || []).forEach((filename) => {
-        const label = escapeUploadHtml(labelForSharedPhoto(filename));
-        const src =
-          "/api/uploads/" +
-          encodeURIComponent(uploadId) +
-          "/photos/" +
-          encodeURIComponent(filename);
-        thumbsHtml +=
-          `<figure class="shared-share-thumb"><img src="${src}" alt="${label}" loading="lazy" width="320" height="240" decoding="async"><figcaption>${label}</figcaption></figure>`;
-      });
-
+    function hideSharedUploadPanel() {
       sharedUploadPanelEl.classList.remove("is-error");
-      sharedUploadPanelEl.hidden = false;
-      sharedUploadPanelEl.innerHTML =
-        `<h3 class="shared-upload-title">Shared upload</h3>` +
-        `<p class="shared-upload-meta"><strong>${dormName}</strong> · ${roomLabel}<br><time>${when}</time></p>` +
-        `<div class="shared-share-thumbs">${thumbsHtml}</div>`;
+      sharedUploadPanelEl.hidden = true;
+      sharedUploadPanelEl.textContent = "";
+    }
+
+    function renderSharedUploadSkybox(meta) {
+      const photoUrls = photoUrlsForSharedUpload(meta);
+      if (photoUrls.length < MAX_ROOM_PHOTOS || typeof window.renderRoomBuilderSkybox !== "function") return;
+      const roomName = (meta.roomName || "").trim() || "Shared 3D room";
+      window.renderRoomBuilderSkybox(photoUrls, roomName);
+      setActiveView("designer");
+    }
+
+    async function hydrateSharedUploadForEditing(meta) {
+      const photoUrls = photoUrlsForSharedUpload(meta);
+      const savedFiles = meta.savedFiles || [];
+      if (photoUrls.length < MAX_ROOM_PHOTOS) {
+        throw new Error("This shared upload does not have all six room photos.");
+      }
+
+      const entries = await Promise.all(photoUrls.slice(0, MAX_ROOM_PHOTOS).map(async (url, i) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Could not load shared photo " + (i + 1) + ".");
+        const blob = await res.blob();
+        const fileName = savedFiles[i] || ("shared-room-" + (i + 1) + ".jpg");
+        const file = new File([blob], fileName, { type: blob.type || "image/jpeg" });
+        return { file, url: URL.createObjectURL(file) };
+      }));
+
+      resetRoomPhotoEntries(entries);
+      roomNameInput.value = (meta.roomName || "").trim() || "Shared 3D room";
+      lastFormatRejectNames = [];
+      lastSizeRejectNames = [];
+      lastCapSkip = false;
+      renderRoomUploadUI();
+      sharedUploadHydrated = true;
     }
 
     async function copyUploadShareLink(uploadId, btn) {
@@ -4120,10 +4419,9 @@
       const uploadId = new URLSearchParams(window.location.search).get("upload");
       if (!uploadId) return;
 
-      sharedUploadPanelEl.hidden = false;
-      sharedUploadPanelEl.classList.remove("is-error");
-      sharedUploadPanelEl.innerHTML =
-        '<p class="shared-upload-meta">Loading shared upload…</p>';
+      designerUploadRoot.hidden = true;
+      roomUploadForm.hidden = true;
+      hideSharedUploadPanel();
 
       try {
         const res = await fetch("/api/uploads/" + encodeURIComponent(uploadId));
@@ -4135,11 +4433,22 @@
         }
         if (!res.ok || !data || !data.success) {
           const msg = (data && data.error) || "Server returned " + res.status;
+          if (res.status === 400 || res.status === 404) {
+            showUploadNotFoundScreen(msg);
+            return;
+          }
           throw new Error(msg);
         }
-        renderSharedUploadPanel(data);
+        activeSharedUploadMeta = data;
+        sharedUploadHydrated = false;
+        setCurrentRoomUploadId(data.uploadId);
+        designerUploadRoot.hidden = true;
+        roomUploadForm.hidden = true;
+        hideUploadNotFoundScreen();
+        hideSharedUploadPanel();
+        renderSharedUploadSkybox(data);
       } catch (err) {
-        showSharedPanelError(err.message || "Could not load this upload.");
+        showUploadNotFoundScreen(err.message || "Could not load this upload.");
       }
     }
 
@@ -4231,20 +4540,13 @@
           throw new Error(msg);
         }
 
-        // === Success! ===
-        // Show the upload ID so user can reference this upload
-        showUploadResult(
-          "success",
-          `<strong>Upload received!</strong> Your 3D room is ready to preview. ` +
-            `<span class="upload-result-id">ID: ${escapeUploadHtml(data.uploadId)}</span> ` +
-            `<button type="button" class="upload-pick-btn upload-copy-link-btn" data-action="copy-share-link" data-upload-id="${escapeUploadHtml(data.uploadId)}">Copy share link</button>`,
-        );
-
-        // The 3D room was already rendered above from the local photos. Clear the
-        // selected photos and reset the form. We skip revoking the object URLs here
-        // because Three.js still needs them for the skybox textures!
-        roomPhotoEntries = []; // Empty the array
-        renderRoomUploadUI(); // Redraw the form (thumbnails disappear, button disables again)
+        setCurrentRoomUploadId(data.uploadId);
+        activeSharedUploadMeta = null;
+        sharedUploadHydrated = false;
+        hideUploadNotFoundScreen();
+        clearUploadResult();
+        designerUploadRoot.hidden = true;
+        roomUploadForm.hidden = true;
       } catch (err) {
         // === Error handling ===
         // Show error message to user
@@ -4392,10 +4694,30 @@
 
     // ===== Dashboard view switching =====
     const DASHBOARD_VIEWS = ["residences", "map", "walk", "rankings", "designer"];
+    const VIEW_HASHES = {
+      map: "#map",
+      residences: "#residences",
+      walk: "#distance",
+      rankings: "#rankings",
+      designer: "#designer",
+    };
+    const HASH_TO_VIEW = Object.fromEntries(
+      Object.entries(VIEW_HASHES).map(([view, hash]) => [hash, view])
+    );
     let activeDashboardView = "map";
     const sidebarNavButtons = document.querySelectorAll(".sidebar-nav-btn");
     const appSidebarEl = document.getElementById("app-sidebar");
     const sidebarMenuBtnEl = document.getElementById("sidebar-menu-btn");
+
+    function viewFromHash() {
+      return HASH_TO_VIEW[window.location.hash.toLowerCase()] || null;
+    }
+
+    function updateViewHash(viewId) {
+      const hash = VIEW_HASHES[viewId];
+      if (!hash || window.location.hash === hash) return;
+      history.replaceState(null, "", window.location.pathname + window.location.search + hash);
+    }
 
     function resizeMainPanorama() {
       clearTimeout(resizePanoramaTimer);
@@ -4404,7 +4726,8 @@
       }, 120);
     }
 
-    function setActiveView(viewId) {
+    function setActiveView(viewId, options = {}) {
+      const { updateHash = true } = options;
       if (!DASHBOARD_VIEWS.includes(viewId)) return;
       activeDashboardView = viewId;
       document.querySelectorAll(".dashboard-view").forEach((el) => {
@@ -4424,6 +4747,9 @@
         initPanoramaViewer();
         resizeMainPanorama();
       }
+      if (updateHash) {
+        updateViewHash(viewId);
+      }
       if (window.innerWidth <= 768 && appSidebarEl) {
         appSidebarEl.classList.remove("is-nav-open");
         if (sidebarMenuBtnEl) sidebarMenuBtnEl.setAttribute("aria-expanded", "false");
@@ -4434,6 +4760,10 @@
 
     sidebarNavButtons.forEach((btn) => {
       btn.addEventListener("click", () => setActiveView(btn.dataset.view));
+    });
+
+    window.addEventListener("hashchange", () => {
+      setActiveView(viewFromHash() || "map", { updateHash: false });
     });
 
     if (sidebarMenuBtnEl && appSidebarEl) {
@@ -4622,7 +4952,6 @@
     compareA.addEventListener("change", renderComparison);
     compareB.addEventListener("change", renderComparison);
 
-    loadSharedUploadIfPresent();
     // ===== FEATURE 4: Interactive Campus Map =====
     const DORM_COORDS = [
       { id: "branner", lat: 37.4255, lng: -122.1629 },
@@ -5894,6 +6223,8 @@
       const titleEl      = document.getElementById("room3d-title");
       const canvas       = document.getElementById("room3d-canvas");
       const editBtn      = document.getElementById("room3d-edit-btn");
+      const newUploadBtn = document.getElementById("room3d-new-upload-btn");
+      const copyLinkBtn  = document.getElementById("room3d-copy-link-btn");
       const zoomInBtn    = document.getElementById("room3d-zoom-in");
       const zoomOutBtn   = document.getElementById("room3d-zoom-out");
       const fullscreenBtn = document.getElementById("room3d-fullscreen");
@@ -6056,10 +6387,38 @@
         });
         document.addEventListener("fullscreenchange", () => setTimeout(sizeRendererToCanvas, 50));
 
-        editBtn.addEventListener("click", () => {
-          stage.hidden = true;
+        editBtn.addEventListener("click", async () => {
+          const prevText = editBtn.textContent;
+          editBtn.disabled = true;
+          try {
+            if (activeSharedUploadMeta && !sharedUploadHydrated) {
+              editBtn.textContent = "Loading photos...";
+              await hydrateSharedUploadForEditing(activeSharedUploadMeta);
+            }
+            if (designerUploadRoot) designerUploadRoot.hidden = false;
+            if (roomUploadForm) roomUploadForm.hidden = false;
+            stage.hidden = true;
+            stop();
+            if (designerForm) designerForm.scrollIntoView({ behavior: "smooth", block: "start" });
+          } catch (err) {
+            if (designerUploadRoot) designerUploadRoot.hidden = false;
+            if (roomUploadForm) roomUploadForm.hidden = false;
+            showUploadResult("error", `Could not load shared photos for editing: ${escapeUploadHtml(err.message || "Please try again.")}`);
+          } finally {
+            editBtn.disabled = false;
+            editBtn.textContent = prevText;
+          }
+        });
+
+        newUploadBtn.addEventListener("click", () => {
+          beginNewRoomUpload();
           stop();
           if (designerForm) designerForm.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+
+        copyLinkBtn.addEventListener("click", () => {
+          if (!currentRoomUploadId) return;
+          copyUploadShareLink(currentRoomUploadId, copyLinkBtn);
         });
       }
 
@@ -6117,8 +6476,10 @@
       });
     })();
 
-    // Set initial view on load
-    setActiveView(activeDashboardView);
+    // Set initial view on load. Shared upload links always land on the designer.
+    const hasSharedUploadParam = new URLSearchParams(window.location.search).has("upload");
+    setActiveView(hasSharedUploadParam ? "designer" : (viewFromHash() || "map"), { updateHash: false });
+    loadSharedUploadIfPresent();
   </script>
 </body>
 </html>
