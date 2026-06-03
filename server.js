@@ -106,6 +106,8 @@ app.post("/api/upload", (req, res) => {
     const dormId = sanitize(req.body.dormId); // e.g., "branner"
     const roomType = sanitize(req.body.roomType); // e.g., "single"
     const userEmail = (req.body.userEmail || "").toString().slice(0, 200);
+    // User-chosen display name for this room (free text, not a filesystem path) — trim + cap length
+    const roomName = (req.body.roomName || "").toString().trim().slice(0, 60);
 
     // Step 4: Verify required fields are present
     if (!dormId || !roomType) {
@@ -145,6 +147,7 @@ app.post("/api/upload", (req, res) => {
         uploadId,
         dormId,
         roomType,
+        roomName, // User-chosen display name (may be empty)
         userEmail,
         timestamp: new Date().toISOString(), // When the upload happened
         originalNames, // Original filenames from browser
@@ -224,6 +227,7 @@ app.get("/api/uploads/:uploadId", (req, res) => {
     uploadId: meta.uploadId,
     dormId: meta.dormId,
     roomType: meta.roomType,
+    roomName: meta.roomName || "",
     userEmail: meta.userEmail,
     timestamp: meta.timestamp,
     savedFiles: meta.savedFiles,
