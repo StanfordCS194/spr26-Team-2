@@ -48,6 +48,18 @@
       --font-ui: "Outfit", system-ui, sans-serif;
       --font-display: "Fraunces", Georgia, serif;
       --max: 1040px;
+
+      /* Theme-responsive sidebar tokens */
+      --sidebar-bg: #f8f6f0;
+      --sidebar-border: rgba(46, 54, 61, 0.08);
+      --sidebar-text: var(--charcoal);
+      --sidebar-text-muted: var(--muted);
+      --sidebar-btn-bg: rgba(255, 255, 255, 0.65);
+      --sidebar-btn-border: rgba(46, 54, 61, 0.1);
+      --sidebar-btn-color: var(--charcoal-soft);
+      --sidebar-btn-hover-bg: #ffffff;
+      --sidebar-btn-hover-color: var(--charcoal);
+      --sidebar-btn-hover-border: var(--teal);
     }
 
     [data-theme="dark"] {
@@ -60,6 +72,18 @@
       --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
       --shadow-md: 0 12px 40px rgba(0, 0, 0, 0.3);
       --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.4);
+
+      /* Theme-responsive sidebar tokens */
+      --sidebar-bg: #0f1418;
+      --sidebar-border: rgba(200, 200, 200, 0.12);
+      --sidebar-text: #e8e4de;
+      --sidebar-text-muted: rgba(232, 228, 222, 0.65);
+      --sidebar-btn-bg: rgba(40, 48, 56, 0.55);
+      --sidebar-btn-border: rgba(255, 255, 255, 0.08);
+      --sidebar-btn-color: rgba(232, 228, 222, 0.75);
+      --sidebar-btn-hover-bg: rgba(50, 58, 66, 0.85);
+      --sidebar-btn-hover-color: #e8e4de;
+      --sidebar-btn-hover-border: rgba(61, 154, 140, 0.35);
     }
 
     [data-theme="dark"] .page::before {
@@ -96,6 +120,11 @@
       box-sizing: border-box;
     }
 
+    html,
+    body {
+      height: 100%;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -104,6 +133,31 @@
       color: var(--charcoal-soft);
       background: var(--cream);
       -webkit-font-smoothing: antialiased;
+    }
+
+    /* Modern, thin, theme-aware scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--muted);
+      border-radius: 99px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--charcoal-soft);
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    /* Firefox support */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--muted) transparent;
     }
 
     /* Keyboard users get a visible ring; I matched it to the teal accent */
@@ -125,9 +179,343 @@
      * The gradients and noise sit on pseudo-elements so they stay behind all content (negative z-index).
      */
     .page {
-      min-height: 100vh;
+      min-height: 100%;
+      height: 100%;
       position: relative;
-      overflow-x: hidden;
+      overflow: hidden;
+    }
+
+    /* --- Dashboard shell: sidebar + single-view workspace --- */
+    .app-shell {
+      display: flex;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    .app-sidebar {
+      width: 280px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1.25rem 1rem;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--sidebar-border);
+      overflow-y: auto;
+      z-index: 10;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.65rem;
+      text-align: center;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--sidebar-border);
+      transition: border-color 0.3s ease;
+    }
+
+    .sidebar-logo {
+      width: 72px;
+      height: 72px;
+      object-fit: contain;
+    }
+
+    .sidebar-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--sidebar-text);
+      transition: color 0.3s ease;
+    }
+
+    .sidebar-tagline {
+      margin: 0;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: var(--sidebar-text-muted);
+      transition: color 0.3s ease;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .sidebar-nav-btn {
+      width: 100%;
+      text-align: left;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--sidebar-btn-color);
+      background: var(--sidebar-btn-bg);
+      border: 1px solid var(--sidebar-btn-border);
+      border-radius: var(--radius-sm);
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .sidebar-nav-btn:hover {
+      color: var(--sidebar-btn-hover-color);
+      background: var(--sidebar-btn-hover-bg);
+      border-color: var(--sidebar-btn-hover-border);
+    }
+
+    .sidebar-nav-btn.is-active {
+      color: #fff;
+      background: var(--cardinal);
+      border-color: var(--cardinal-deep);
+      box-shadow: var(--shadow-cardinal);
+    }
+
+    .app-sidebar .shortlist-section {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .app-sidebar .shortlist-section.has-items {
+      display: block;
+    }
+
+    .app-sidebar .shortlist-head .panel-head {
+      color: var(--sidebar-text-muted);
+    }
+
+    .sidebar-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--sidebar-border);
+      flex-shrink: 0;
+      transition: border-color 0.3s ease;
+    }
+
+    .app-sidebar .theme-toggle {
+      position: static;
+      align-self: center;
+      width: 2.75rem;
+      height: 2.75rem;
+    }
+
+    .app-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .app-workspace {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .dashboard-view {
+      display: none;
+      height: 100%;
+      overflow-y: auto;
+      padding: clamp(1rem, 2vw, 1.35rem);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .dashboard-view.is-active {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .dashboard-view-inner {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-workspace .shell,
+    .app-workspace .campus-map-section {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #view-map.is-active {
+      padding: 0;
+    }
+
+    #view-map .campus-map-section {
+      height: 100%;
+    }
+
+    #view-map .campus-map-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      height: 100%;
+      border-radius: 0;
+    }
+
+    #view-map .campus-map-container {
+      flex: 1;
+      height: auto;
+      min-height: 280px;
+    }
+
+    #view-residences .layout {
+      flex: 1;
+      min-height: 0;
+    }
+
+    #view-residences .pannellum-host,
+    #view-residences .design-canvas {
+      height: clamp(240px, 42vh, 420px);
+    }
+
+    .dashboard-view .walk-section,
+    .dashboard-view .rankings-section,
+    .dashboard-view .designer {
+      margin-top: 0;
+      flex: none;
+      min-height: auto;
+    }
+
+    .sidebar-menu-btn {
+      display: none;
+    }
+
+    .mobile-header {
+      display: none;
+    }
+
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 998;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .sidebar-backdrop.is-visible {
+      display: block;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sidebar-selector-wrap {
+      padding: 0.25rem 0.5rem 1rem;
+      border-bottom: 1px solid var(--sidebar-border);
+      transition: border-color 0.3s ease;
+    }
+
+    .sidebar-selector-wrap .field {
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .mobile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 56px;
+        padding: 0 1rem;
+        background: var(--sidebar-bg);
+        border-bottom: 1px solid var(--sidebar-border);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        transition: background 0.3s ease, border-color 0.3s ease;
+      }
+
+      .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.25rem;
+        color: var(--sidebar-text);
+        background: var(--sidebar-btn-bg);
+        border: 1px solid var(--sidebar-btn-border);
+        border-radius: var(--radius-sm);
+        transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      }
+
+      .mobile-menu-btn:hover {
+        background: var(--sidebar-btn-hover-bg);
+        border-color: var(--sidebar-btn-hover-border);
+      }
+
+      .mobile-header-title {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--sidebar-text);
+        letter-spacing: -0.02em;
+      }
+
+      .mobile-theme-toggle {
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+        font-size: 1.1rem !important;
+      }
+
+      .app-main {
+        padding-top: 56px;
+      }
+
+      .app-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 280px;
+        height: 100vh;
+        z-index: 1000;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        padding: 1.5rem 1.25rem;
+        gap: 1.25rem;
+        background: var(--sidebar-bg);
+        border-right: 1px solid var(--sidebar-border);
+        border-bottom: none;
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex !important;
+      }
+
+      .app-sidebar.is-nav-open {
+        transform: translateX(0);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+      }
     }
 
     /* Soft red/teal blobs + cream base — fixed so scrolling doesn’t “move” the background */
@@ -2518,77 +2906,60 @@
 <body>
   <!-- Everything visible sits inside .page so the background layers stay behind it -->
   <div class="page">
-    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">&#9790;</button>
-
-    <!-- Favorites shortlist bar -->
-    <section class="shortlist-section" id="shortlist-section" aria-label="Your shortlisted dorms">
-      <div class="shortlist-head">
-        <p class="panel-head">My shortlist</p>
-        <button type="button" id="share-shortlist-btn" class="share-shortlist-btn" aria-label="Copy a shareable link to my shortlist">
-          <span class="share-shortlist-icon" aria-hidden="true">&#128279;</span>
-          <span class="share-shortlist-text">Share my shortlist</span>
-        </button>
-      </div>
-      <div class="shortlist-chips" id="shortlist-chips"></div>
-    </section>
-
-    <!-- Top of the site: TreeView logo asset + short explanation for visitors -->
-    <header class="hero">
-      <div class="hero-inner">
-        <div class="hero-logo-wrap">
-          <img class="hero-logo" src="treeview-logo.png" alt="TreeView" width="240" height="240" />
-        </div>
-        <div class="hero-copy">
-          <h1 id="welcome-heading" class="welcome-title">Welcome to TreeView</h1>
-          <p class="welcome-text">
-            Compare undergraduate residences and room configurations as you get ready for your first year.
-            Choose a dorm and room category below to preview your selection and plan your space.
-          </p>
-        </div>
-      </div>
+    <!-- Mobile Top Header (centered title) -->
+    <header class="mobile-header">
+      <button type="button" class="mobile-menu-btn" id="sidebar-menu-btn" aria-label="Open menu">&#9776;</button>
+      <span class="mobile-header-title">TreeView</span>
+      <button class="theme-toggle mobile-theme-toggle" aria-label="Toggle dark mode">&#9790;</button>
     </header>
 
-    <!-- Interactive campus map — click a dorm pin to fly in and explore -->
-    <section class="campus-map-section" aria-label="Stanford campus map">
-      <div class="campus-map-card">
-        <div class="campus-map-header">
-          <div class="campus-map-header-left">
-            <p class="campus-map-label">Campus map</p>
-            <h2 class="campus-map-title">Explore residences</h2>
-          </div>
-          <span class="campus-map-hint">Click a pin to explore</span>
+    <div class="app-shell">
+      <aside class="app-sidebar" id="app-sidebar" aria-label="TreeView navigation">
+        <div class="sidebar-brand">
+          <img class="sidebar-logo" src="treeview-logo.png" alt="" width="72" height="72" />
+          <h1 id="welcome-heading" class="sidebar-title">TreeView</h1>
+          <p class="sidebar-tagline">Compare residences and plan your first-year space.</p>
         </div>
-        <div class="campus-map-container">
-          <div id="campus-map"></div>
-          <button type="button" class="campus-map-back-btn" id="map-back-btn" aria-label="Back to campus overview">
-            &#8592; Back to campus
-          </button>
-          <div class="campus-map-overlay" id="map-overlay">
-            <div class="campus-map-overlay-inner">
-              <p class="campus-map-overlay-title" id="map-overlay-title"></p>
-              <div class="campus-map-overlay-pano">
-                <div id="map-panorama" class="pannellum-host"></div>
-              </div>
-              <div class="campus-map-overlay-actions">
-                <button type="button" class="campus-map-overlay-btn campus-map-overlay-btn--primary" id="map-overlay-select">
-                  &#9733; Select this dorm
-                </button>
-                <button type="button" class="campus-map-overlay-btn campus-map-overlay-btn--secondary" id="map-overlay-close">
-                  &#8592; Back to map
-                </button>
-              </div>
+        <!-- Global Dorm Selector (Moved from Residences tab) -->
+        <div class="sidebar-selector-wrap">
+          <div class="field">
+            <label class="label" for="dorm-select">Dorm</label>
+            <div class="select-row">
+              <select id="dorm-select" class="select" aria-describedby="dorm-hint"></select>
+              <button type="button" class="fav-btn" id="fav-btn" aria-label="Add to shortlist">&#9734;</button>
             </div>
+            <p id="dorm-hint" class="hint"></p>
           </div>
         </div>
-      </div>
-    </section>
+        <nav class="sidebar-nav" id="sidebar-nav" aria-label="Main">
+          <button type="button" class="sidebar-nav-btn" data-view="residences">Residences</button>
+          <button type="button" class="sidebar-nav-btn is-active" data-view="map" aria-current="page">Explore Map</button>
+          <button type="button" class="sidebar-nav-btn" data-view="walk">Distance Calculator</button>
+          <button type="button" class="sidebar-nav-btn" data-view="rankings">Dorm Rankings</button>
+          <button type="button" class="sidebar-nav-btn" data-view="designer">Design Room</button>
+        </nav>
+        <section class="shortlist-section" id="shortlist-section" aria-label="Your shortlisted dorms">
+          <div class="shortlist-head">
+            <p class="panel-head">My shortlist</p>
+            <button type="button" id="share-shortlist-btn" class="share-shortlist-btn" aria-label="Copy a shareable link to my shortlist">
+              <span class="share-shortlist-icon" aria-hidden="true">&#128279;</span>
+              <span class="share-shortlist-text">Share</span>
+            </button>
+          </div>
+          <div class="shortlist-chips" id="shortlist-chips"></div>
+        </section>
+        <div class="sidebar-footer">
+          <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">&#9790;</button>
+        </div>
+      </aside>
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-    <main class="shell">
-      <!--
-        Two cards on desktop:
-        Left = controls (filled by JS). Right = text summary + Pannellum mount point.
-      -->
-      <div class="layout">
+      <div class="app-main">
+        <div class="app-workspace" id="app-workspace">
+          <!-- view-residences: dorm explorer + 360° preview (default) -->
+          <section class="dashboard-view" id="view-residences" data-view="residences" hidden aria-label="Explore residences">
+            <div class="dashboard-view-inner">
+              <div class="layout">
         <!-- Left card: dorm <select> is empty here on purpose — fillDormDropdown() injects options -->
         <div class="glass">
           <p class="panel-head">Explore residences</p>
@@ -2603,15 +2974,7 @@
             <span class="quiz-cta-arrow" aria-hidden="true">&rarr;</span>
           </button>
 
-          <div class="field">
-            <label class="label" for="dorm-select">Dorm</label>
-            <div class="select-row">
-              <select id="dorm-select" class="select" aria-describedby="dorm-hint"></select>
-              <button type="button" class="fav-btn" id="fav-btn" aria-label="Add to shortlist">&#9734;</button>
-            </div>
-            <!-- Short explainer line under the dropdown (frosh vs four-class) -->
-            <p id="dorm-hint" class="hint"></p>
-          </div>
+          <!-- Dorm selector is global and lives in the sidebar (or mobile header) -->
           <div class="field">
             <!-- room-label gets updated in JS to “Room categories, <current dorm>” -->
             <span class="label" id="room-label">Room category</span>
@@ -2668,10 +3031,50 @@
             </div>
           </div>
         </aside>
-      </div>
+              </div>
+            </div>
+          </section>
 
-      <!-- Walking distances from current dorm to key campus landmarks -->
-      <section class="walk-section glass" aria-labelledby="walk-heading">
+          <!-- view-map: interactive campus map -->
+          <section class="dashboard-view is-active" id="view-map" data-view="map" aria-label="Stanford campus map">
+            <section class="campus-map-section">
+              <div class="campus-map-card">
+                <div class="campus-map-header">
+                  <div class="campus-map-header-left">
+                    <p class="campus-map-label">Campus map</p>
+                    <h2 class="campus-map-title">Explore residences</h2>
+                  </div>
+                  <span class="campus-map-hint">Click a pin to explore</span>
+                </div>
+                <div class="campus-map-container">
+                  <div id="campus-map"></div>
+                  <button type="button" class="campus-map-back-btn" id="map-back-btn" aria-label="Back to campus overview">
+                    &#8592; Back to campus
+                  </button>
+                  <div class="campus-map-overlay" id="map-overlay">
+                    <div class="campus-map-overlay-inner">
+                      <p class="campus-map-overlay-title" id="map-overlay-title"></p>
+                      <div class="campus-map-overlay-pano">
+                        <div id="map-panorama" class="pannellum-host"></div>
+                      </div>
+                      <div class="campus-map-overlay-actions">
+                        <button type="button" class="campus-map-overlay-btn campus-map-overlay-btn--primary" id="map-overlay-select">
+                          &#9733; Select this dorm
+                        </button>
+                        <button type="button" class="campus-map-overlay-btn campus-map-overlay-btn--secondary" id="map-overlay-close">
+                          &#8592; Back to map
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <!-- view-walk: walking distance calculator -->
+          <section class="dashboard-view" id="view-walk" data-view="walk" hidden aria-labelledby="walk-heading">
+            <section class="walk-section glass" aria-labelledby="walk-heading">
         <div class="walk-head">
           <div class="walk-head-left">
             <p class="panel-head">Walking distances</p>
@@ -2681,10 +3084,12 @@
           <span class="walk-dorm-chip" id="walk-dorm-chip"></span>
         </div>
         <div class="walk-list" id="walk-list" aria-live="polite"></div>
-      </section>
+            </section>
+          </section>
 
-      <!-- Dorm Rankings Dashboard -->
-      <section class="rankings-section glass" aria-labelledby="rankings-heading">
+          <!-- view-rankings: dorm leaderboard -->
+          <section class="dashboard-view" id="view-rankings" data-view="rankings" hidden aria-labelledby="rankings-heading">
+            <section class="rankings-section glass" aria-labelledby="rankings-heading">
         <div class="rankings-head">
           <p class="panel-head">Dorm rankings</p>
           <h2 id="rankings-heading" class="rankings-title">Compare every dorm at a glance</h2>
@@ -2703,10 +3108,12 @@
           </div>
         </div>
         <div class="rankings-table" id="rankings-table" role="table" aria-label="Dorm rankings"></div>
-      </section>
+            </section>
+          </section>
 
-      <!-- Reserved UI for a future feature; designer-context still tracks selection for consistency -->
-      <section class="designer glass" aria-labelledby="designer-heading">
+          <!-- view-designer: photo upload / 3D room -->
+          <section class="dashboard-view" id="view-designer" data-view="designer" hidden aria-labelledby="designer-heading">
+            <section class="designer glass" aria-labelledby="designer-heading">
         <div class="designer-head">
           <p class="panel-head">Design your own room</p>
           <h2 id="designer-heading" class="designer-title">Lay out your space</h2>
@@ -2766,9 +3173,11 @@
             </div>
           </form>
         </div>
-      </section>
-
-    </main>
+            </section>
+          </section>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Dorm match quiz modal (Noah) — sits before the script so its IDs
@@ -3577,27 +3986,97 @@
     let resizePanoramaTimer;
     window.addEventListener("resize", () => {
       clearTimeout(resizePanoramaTimer);
-      resizePanoramaTimer = setTimeout(() => panoramaViewer.resize(), 120);
+      resizePanoramaTimer = setTimeout(() => {
+        if (panoramaViewer && activeDashboardView === "residences") panoramaViewer.resize();
+        if (campusMap && activeDashboardView === "map") campusMap.resize();
+      }, 120);
     });
 
     // ===== FEATURE 1: Dark Mode Toggle =====
-    const themeToggle = document.getElementById("theme-toggle");
+    const themeToggles = document.querySelectorAll(".theme-toggle");
 
     function applyTheme(theme) {
       document.documentElement.setAttribute("data-theme", theme);
-      themeToggle.innerHTML = theme === "dark" ? "&#9788;" : "&#9790;";
-      themeToggle.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
+      themeToggles.forEach((btn) => {
+        btn.innerHTML = theme === "dark" ? "&#9788;" : "&#9790;";
+        btn.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
+      });
       localStorage.setItem("tv-theme", theme);
     }
 
-    themeToggle.addEventListener("click", () => {
-      const current = document.documentElement.getAttribute("data-theme") || "light";
-      applyTheme(current === "dark" ? "light" : "dark");
+    themeToggles.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const current = document.documentElement.getAttribute("data-theme") || "light";
+        applyTheme(current === "dark" ? "light" : "dark");
+      });
     });
 
     const savedTheme = localStorage.getItem("tv-theme") ||
       (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     applyTheme(savedTheme);
+
+    // ===== Dashboard view switching =====
+    const DASHBOARD_VIEWS = ["residences", "map", "walk", "rankings", "designer"];
+    let activeDashboardView = "map";
+    const sidebarNavButtons = document.querySelectorAll(".sidebar-nav-btn");
+    const appSidebarEl = document.getElementById("app-sidebar");
+    const sidebarMenuBtnEl = document.getElementById("sidebar-menu-btn");
+
+    function resizeMainPanorama() {
+      clearTimeout(resizePanoramaTimer);
+      resizePanoramaTimer = setTimeout(() => {
+        if (panoramaViewer) panoramaViewer.resize();
+      }, 120);
+    }
+
+    function setActiveView(viewId) {
+      if (!DASHBOARD_VIEWS.includes(viewId)) return;
+      activeDashboardView = viewId;
+      document.querySelectorAll(".dashboard-view").forEach((el) => {
+        const on = el.dataset.view === viewId;
+        el.classList.toggle("is-active", on);
+        el.hidden = !on;
+      });
+      sidebarNavButtons.forEach((btn) => {
+        const on = btn.dataset.view === viewId;
+        btn.classList.toggle("is-active", on);
+        btn.setAttribute("aria-current", on ? "page" : "false");
+      });
+      if (viewId === "map" && typeof campusMap !== "undefined" && campusMap) {
+        requestAnimationFrame(() => campusMap.resize());
+      }
+      if (viewId === "residences") {
+        resizeMainPanorama();
+      }
+      if (window.innerWidth <= 768 && appSidebarEl) {
+        appSidebarEl.classList.remove("is-nav-open");
+        if (sidebarMenuBtnEl) sidebarMenuBtnEl.setAttribute("aria-expanded", "false");
+        const backdrop = document.getElementById("sidebar-backdrop");
+        if (backdrop) backdrop.classList.remove("is-visible");
+      }
+    }
+
+    sidebarNavButtons.forEach((btn) => {
+      btn.addEventListener("click", () => setActiveView(btn.dataset.view));
+    });
+
+    if (sidebarMenuBtnEl && appSidebarEl) {
+      sidebarMenuBtnEl.addEventListener("click", () => {
+        const open = appSidebarEl.classList.toggle("is-nav-open");
+        sidebarMenuBtnEl.setAttribute("aria-expanded", open ? "true" : "false");
+        const backdrop = document.getElementById("sidebar-backdrop");
+        if (backdrop) backdrop.classList.toggle("is-visible", open);
+      });
+    }
+
+    const sidebarBackdropEl = document.getElementById("sidebar-backdrop");
+    if (sidebarBackdropEl && appSidebarEl && sidebarMenuBtnEl) {
+      sidebarBackdropEl.addEventListener("click", () => {
+        appSidebarEl.classList.remove("is-nav-open");
+        sidebarBackdropEl.classList.remove("is-visible");
+        sidebarMenuBtnEl.setAttribute("aria-expanded", "false");
+      });
+    }
 
     // ===== FEATURE 2: Favorites / Shortlist =====
     const favBtn = document.getElementById("fav-btn");
@@ -3659,6 +4138,7 @@
           renderPills();
           updatePreview();
           renderFavUI();
+          setActiveView("residences");
         });
         shortlistChips.appendChild(chip);
       });
@@ -3873,6 +4353,9 @@
 
           mapMarkers.push({ marker, dorm, house });
         });
+        if (activeDashboardView === "map") {
+          requestAnimationFrame(() => campusMap.resize());
+        }
       });
     }
 
@@ -3978,7 +4461,7 @@
         renderFavUI();
         closeMapPanorama();
         resetMapView();
-        document.querySelector(".shell").scrollIntoView({ behavior: "smooth", block: "start" });
+        setActiveView("residences");
       }
     });
 
@@ -4300,7 +4783,7 @@
           renderWalkDistances();
           renderRankingsTable();
           if (typeof loadNotesForCurrentDorm === "function") loadNotesForCurrentDorm();
-          document.querySelector(".shell .layout").scrollIntoView({ behavior: "smooth", block: "start" });
+          setActiveView("residences");
         });
 
         rankingsTable.appendChild(row);
@@ -4779,6 +5262,7 @@
       renderFavUI();
       if (typeof loadNotesForCurrentDorm === "function") loadNotesForCurrentDorm();
       closeQuiz();
+      setActiveView("residences");
     });
 
     quizBackBtn.addEventListener("click", () => {
