@@ -127,37 +127,38 @@
 
     body {
       margin: 0;
+      padding: 0;
+      height: 100vh;
       min-height: 100vh;
       font-family: var(--font-ui);
       line-height: 1.55;
-      color: var(--charcoal-soft);
       background: var(--cream);
+      color: var(--charcoal);
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Modern, thin, theme-aware scrollbar */
     ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
     }
     ::-webkit-scrollbar-track {
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: var(--muted);
-      border-radius: 99px;
-      border: 2px solid transparent;
+      background: rgba(140, 148, 156, 0.3);
+      border-radius: 10px;
+      border: 3px solid transparent;
       background-clip: padding-box;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: var(--charcoal-soft);
-      border: 2px solid transparent;
+      background: rgba(140, 148, 156, 0.6);
+      border: 3px solid transparent;
       background-clip: padding-box;
     }
     /* Firefox support */
     * {
       scrollbar-width: thin;
-      scrollbar-color: var(--muted) transparent;
+      scrollbar-color: rgba(140, 148, 156, 0.3) transparent;
     }
 
     /* Keyboard users get a visible ring; I matched it to the teal accent */
@@ -965,19 +966,6 @@
       color: var(--muted);
     }
 
-    /* Little pill under the heading — JS writes “Dorm name, room type” here to match the picker */
-    .designer-context {
-      margin: 0;
-      display: inline-block;
-      padding: 0.35rem 0.85rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--cardinal);
-      background: rgba(140, 21, 21, 0.08);
-      border: 1px solid rgba(140, 21, 21, 0.15);
-      border-radius: 999px;
-    }
-
     .designer-placeholder {
       position: relative;
       min-height: 200px;
@@ -1013,6 +1001,52 @@
       display: flex;
       flex-direction: column;
       gap: 1rem;
+    }
+
+    /* Room name field — sits at the top of the upload form */
+    .room-name-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .room-name-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .room-name-input {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      font-family: var(--font-ui);
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: var(--radius-sm);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .room-name-input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+      font-weight: 500;
+    }
+
+    .room-name-input:hover {
+      border-color: rgba(61, 154, 140, 0.5);
+    }
+
+    .room-name-input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(61, 154, 140, 0.25);
     }
 
     .upload-input-hidden {
@@ -1212,15 +1246,115 @@
     }
 
     .upload-thumb-size {
-      margin-top: 0.15rem;
       color: rgba(255, 255, 255, 0.55);
+      white-space: nowrap;
+    }
+
+    /* --- Reorderable thumbs --- */
+    .upload-thumb {
+      cursor: grab;
+    }
+    .upload-thumb:active {
+      cursor: grabbing;
+    }
+
+    /* The tile being dragged fades; the tile under the pointer gets a teal ring */
+    .upload-thumb.is-dragging {
+      opacity: 0.4;
+    }
+    .upload-thumb.is-drop-target {
+      outline: 2px solid var(--teal);
+      outline-offset: -2px;
+      box-shadow: 0 0 0 3px rgba(61, 154, 140, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Wall assignment dropdown (top-left) — which face this slot maps to */
+    .upload-thumb-slot-select {
+      position: absolute;
+      top: 0.35rem;
+      left: 0.35rem;
+      z-index: 2;
+      max-width: calc(100% - 2.5rem);
+      padding: 0.2rem 1.4rem 0.2rem 0.5rem;
+      font-family: var(--font-ui);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: #fff;
+      background: linear-gradient(135deg, var(--cardinal) 0%, var(--cardinal-deep) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 999px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image:
+        linear-gradient(135deg, var(--cardinal) 0%, var(--cardinal-deep) 100%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23fff' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat, no-repeat;
+      background-position: 0 0, right 0.4rem center;
+      background-size: auto, 0.55rem;
+    }
+
+    .upload-thumb-slot-select:hover,
+    .upload-thumb-slot-select:focus {
+      outline: none;
+      border-color: rgba(61, 154, 140, 0.65);
+      box-shadow: 0 0 0 2px rgba(61, 154, 140, 0.35), 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+
+    .upload-thumb-slot-select option {
+      color: var(--charcoal);
+      background: #fff;
+      font-weight: 600;
+    }
+
+    /* Footer row: arrows on the left, file size on the right */
+    .upload-thumb-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .upload-thumb-reorder {
+      display: inline-flex;
+      gap: 0.25rem;
+    }
+
+    .upload-thumb-move {
+      width: 1.6rem;
+      height: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 7px;
+      transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .upload-thumb-move:hover:not(:disabled) {
+      background: rgba(61, 154, 140, 0.35);
+      color: #fff;
+    }
+
+    .upload-thumb-move:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
     }
 
     .upload-actions {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.65rem;
       align-items: stretch;
+      width: 100%;
+      max-width: 28rem;
+      margin: 0.25rem auto 0;
     }
 
     .upload-ready {
@@ -1228,9 +1362,11 @@
       align-items: center;
       justify-content: center;
       gap: 0.45rem;
+      width: 100%;
       min-height: 1.5rem;
       font-size: 0.82rem;
       font-weight: 600;
+      text-align: center;
       color: rgba(255, 255, 255, 0.45);
       transition: color 0.25s ease;
     }
@@ -1260,6 +1396,10 @@
     }
 
     .upload-submit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
       padding: 0.75rem 1.25rem;
       font-size: 0.95rem;
       font-weight: 600;
@@ -1311,6 +1451,11 @@
 
     /* Banner under the submit button — flips between success/error variants */
     .upload-result {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+      width: 100%;
       margin: 0;
       padding: 0.75rem 0.95rem;
       font-size: 0.86rem;
@@ -1318,6 +1463,7 @@
       border-radius: 12px;
       border: 1px solid transparent;
       line-height: 1.5;
+      text-align: center;
       animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
@@ -1351,9 +1497,10 @@
     }
 
     .upload-copy-link-btn {
-      display: inline-block;
-      margin-top: 0.5rem;
-      margin-left: 0;
+      display: block;
+      width: 100%;
+      margin: 0;
+      text-align: center;
     }
 
     /* Panel shown when someone opens ?upload=<uuid> */
@@ -1446,6 +1593,68 @@
       text-align: center;
       max-width: 36rem;
       margin-inline: auto;
+    }
+
+    /* --- Inline 3D room stage (designer view) --- */
+    .room3d-stage {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .room3d-stage[hidden] {
+      display: none;
+    }
+
+    .room3d-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .room3d-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(1.1rem, 2.4vw, 1.35rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--charcoal);
+      word-break: break-word;
+    }
+
+    .room3d-edit-btn {
+      padding: 0.45rem 0.95rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--teal);
+      background: rgba(61, 154, 140, 0.12);
+      border: 1px solid rgba(61, 154, 140, 0.32);
+      border-radius: 999px;
+      transition: background 0.2s ease, transform 0.15s ease;
+    }
+
+    .room3d-edit-btn:hover {
+      background: rgba(61, 154, 140, 0.22);
+      transform: translateY(-1px);
+    }
+
+    .room3d-viewport {
+      height: clamp(280px, 48vh, 520px);
+    }
+
+    .room3d-viewport .design-canvas {
+      height: 100%;
+    }
+
+    .room3d-hint {
+      margin: 0;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
     }
 
     /* --- Keyframes (referenced above in .hero-logo / .hero-copy / .designer-placeholder) --- */
@@ -2936,7 +3145,7 @@
           <button type="button" class="sidebar-nav-btn is-active" data-view="map" aria-current="page">Explore Map</button>
           <button type="button" class="sidebar-nav-btn" data-view="walk">Distance Calculator</button>
           <button type="button" class="sidebar-nav-btn" data-view="rankings">Dorm Rankings</button>
-          <button type="button" class="sidebar-nav-btn" data-view="designer">Design Room</button>
+          <button type="button" class="sidebar-nav-btn" data-view="designer">Create 3D Room</button>
         </nav>
         <section class="shortlist-section" id="shortlist-section" aria-label="Your shortlisted dorms">
           <div class="shortlist-head">
@@ -3089,7 +3298,7 @@
 
           <!-- view-rankings: dorm leaderboard -->
           <section class="dashboard-view" id="view-rankings" data-view="rankings" hidden aria-labelledby="rankings-heading">
-            <section class="rankings-section glass" aria-labelledby="rankings-heading">
+            <section class="rankings-section" aria-labelledby="rankings-heading">
         <div class="rankings-head">
           <p class="panel-head">Dorm rankings</p>
           <h2 id="rankings-heading" class="rankings-title">Compare every dorm at a glance</h2>
@@ -3115,20 +3324,32 @@
           <section class="dashboard-view" id="view-designer" data-view="designer" hidden aria-labelledby="designer-heading">
             <section class="designer glass" aria-labelledby="designer-heading">
         <div class="designer-head">
-          <p class="panel-head">Design your own room</p>
-          <h2 id="designer-heading" class="designer-title">Lay out your space</h2>
+          <p class="panel-head">Create 3D Room</p>
+          <h2 id="designer-heading" class="designer-title">Generate a 3D model of your space</h2>
           <p class="designer-lede">
-            Customize how your room could look for the dorm and room category you select.
+            Upload wide-angle photos of your current room to generate a draggable, immersive 3D space.
           </p>
-          <p id="designer-context" class="designer-context" aria-live="polite"></p>
         </div>
         <div id="designer-upload" class="designer-placeholder" aria-labelledby="upload-heading">
           <div id="shared-upload-panel" class="shared-upload-panel" hidden aria-live="polite"></div>
           <form id="room-upload-form" class="designer-upload-form" novalidate>
-            <h3 id="upload-heading" class="upload-intro-title">Upload 6 photos of your space</h3>
+            <h3 id="upload-heading" class="upload-intro-title">Name your room &amp; upload 6 photos</h3>
             <p id="upload-instructions" class="upload-intro-detail upload-dropzone-sub">
-              North, south, east, west walls, then ceiling and floor — in that order (JPG, PNG, or WebP, max 10&nbsp;MB each).
+              Drop in six wide-angle photos, then drag the tiles so each one lands on the right wall, ceiling, or floor (JPG, PNG, or WebP, max 10&nbsp;MB each).
             </p>
+            <div class="room-name-field">
+              <label class="room-name-label" for="room-name-input">Room name</label>
+              <input
+                id="room-name-input"
+                class="room-name-input"
+                type="text"
+                value="My Room"
+                maxlength="60"
+                autocomplete="off"
+                placeholder="e.g. My Branner single"
+                aria-describedby="upload-instructions"
+              />
+            </div>
             <input
               id="room-photos-input"
               class="upload-input-hidden"
@@ -3172,6 +3393,24 @@
               <p id="upload-result" class="upload-result" role="status" aria-live="polite" hidden></p>
             </div>
           </form>
+        </div>
+
+        <!-- Inline 3D room — revealed after "Create 3D room". The skybox is an
+             inside-out cube built from the six photos (TreeView room builder). -->
+        <div id="room3d-stage" class="room3d-stage" hidden>
+          <div class="room3d-head">
+            <h3 id="room3d-title" class="room3d-title">Your 3D room</h3>
+            <button type="button" id="room3d-edit-btn" class="room3d-edit-btn">↺ Edit photos</button>
+          </div>
+          <div class="preview-viewport room3d-viewport" aria-label="Your 3D room, drag to look around">
+            <canvas id="room3d-canvas" class="design-canvas" aria-label="3D room view"></canvas>
+            <div class="design-controls" aria-label="3D room controls">
+              <button type="button" class="design-ctrl-btn" id="room3d-zoom-in" aria-label="Zoom in">+</button>
+              <button type="button" class="design-ctrl-btn" id="room3d-zoom-out" aria-label="Zoom out">&minus;</button>
+              <button type="button" class="design-ctrl-btn" id="room3d-fullscreen" aria-label="Toggle full screen">&#x26F6;</button>
+            </div>
+          </div>
+          <p class="room3d-hint">Drag to look around · scroll to zoom</p>
         </div>
             </section>
           </section>
@@ -3422,10 +3661,10 @@
     const roomLabel = document.getElementById("room-label");
     const pillsEl = document.getElementById("pills");
     const previewTitle = document.getElementById("preview-title");
-    const designerContext = document.getElementById("designer-context");
 
     const designerUploadRoot = document.getElementById("designer-upload");
     const roomUploadForm = document.getElementById("room-upload-form");
+    const roomNameInput = document.getElementById("room-name-input");
     const roomPhotosInput = document.getElementById("room-photos-input");
     const uploadDropzoneEl = document.getElementById("upload-dropzone");
     const uploadThumbsEl = document.getElementById("upload-thumbs");
@@ -3452,6 +3691,14 @@
       "4. West wall",
       "5. Ceiling",
       "6. Floor",
+    ];
+    const WALL_SLOT_OPTIONS = [
+      { value: 0, label: "North wall" },
+      { value: 1, label: "South wall" },
+      { value: 2, label: "East wall" },
+      { value: 3, label: "West wall" },
+      { value: 4, label: "Ceiling" },
+      { value: 5, label: "Floor" },
     ];
     const MAX_ROOM_PHOTOS = ROOM_PHOTO_LABELS.length;
     const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
@@ -3545,7 +3792,11 @@
       roomPhotoEntries.forEach((entry, idx) => {
         const thumb = document.createElement("article");
         thumb.className = "upload-thumb";
-        thumb.setAttribute("aria-label", `${ROOM_PHOTO_LABELS[idx]}: ${entry.file.name}`);
+        // Draggable so users can rearrange which photo is which wall/ceiling/floor.
+        // The slot the photo lands in (idx) decides its face \u2014 labels follow position.
+        thumb.draggable = true;
+        thumb.dataset.index = String(idx);
+        thumb.setAttribute("aria-label", `${ROOM_PHOTO_LABELS[idx]}: ${entry.file.name}. Drag to reorder.`);
         const preview = document.createElement("div");
         preview.className = "upload-thumb-preview";
         const img = document.createElement("img");
@@ -3553,10 +3804,28 @@
         img.width = 480;
         img.height = 360;
         img.decoding = "async";
+        img.draggable = false; // let the whole tile own the drag, not the <img>
         img.src = entry.url;
+        // Wall assignment dropdown (top-left) — pick which face this photo maps to
+        const slotSelect = document.createElement("select");
+        slotSelect.className = "upload-thumb-slot-select";
+        slotSelect.setAttribute("aria-label", `Assign ${entry.file.name} to wall`);
+        WALL_SLOT_OPTIONS.forEach((opt) => {
+          const option = document.createElement("option");
+          option.value = String(opt.value);
+          option.textContent = opt.label;
+          if (opt.value === idx) option.selected = true;
+          slotSelect.appendChild(option);
+        });
+        slotSelect.addEventListener("mousedown", (ev) => ev.stopPropagation());
+        slotSelect.addEventListener("click", (ev) => ev.stopPropagation());
+        slotSelect.addEventListener("change", () => {
+          const newSlot = Number.parseInt(slotSelect.value, 10);
+          if (!Number.isNaN(newSlot) && newSlot !== idx) moveRoomPhoto(idx, newSlot);
+        });
         const lbl = document.createElement("p");
         lbl.className = "upload-thumb-label";
-        lbl.textContent = ROOM_PHOTO_LABELS[idx];
+        lbl.textContent = entry.file.name;
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
         removeBtn.className = "upload-thumb-remove";
@@ -3566,16 +3835,33 @@
           `Remove photo ${ROOM_PHOTO_LABELS[idx]}, ${entry.file.name}`,
         );
         removeBtn.appendChild(document.createTextNode("\u00d7"));
-        preview.append(img, lbl, removeBtn);
+        preview.append(img, slotSelect, lbl, removeBtn);
         const meta = document.createElement("div");
         meta.className = "upload-thumb-meta";
-        const nameEl = document.createElement("div");
-        nameEl.className = "upload-thumb-name";
-        nameEl.textContent = entry.file.name;
+        // Reorder controls \u2014 drag works on desktop; these arrows are the touch/keyboard path
+        const reorder = document.createElement("div");
+        reorder.className = "upload-thumb-reorder";
+        const movePrev = document.createElement("button");
+        movePrev.type = "button";
+        movePrev.className = "upload-thumb-move";
+        movePrev.dataset.moveIndex = String(idx);
+        movePrev.dataset.moveDir = "-1";
+        movePrev.disabled = idx === 0;
+        movePrev.setAttribute("aria-label", `Move ${entry.file.name} to previous slot`);
+        movePrev.appendChild(document.createTextNode("\u25c0"));
+        const moveNext = document.createElement("button");
+        moveNext.type = "button";
+        moveNext.className = "upload-thumb-move";
+        moveNext.dataset.moveIndex = String(idx);
+        moveNext.dataset.moveDir = "1";
+        moveNext.disabled = idx === roomPhotoEntries.length - 1;
+        moveNext.setAttribute("aria-label", `Move ${entry.file.name} to next slot`);
+        moveNext.appendChild(document.createTextNode("\u25b6"));
+        reorder.append(movePrev, moveNext);
         const sizeEl = document.createElement("div");
         sizeEl.className = "upload-thumb-size";
         sizeEl.textContent = formatPhotoSize(entry.file.size);
-        meta.append(nameEl, sizeEl);
+        meta.append(reorder, sizeEl);
         thumb.append(preview, meta);
         uploadThumbsEl.appendChild(thumb);
       });
@@ -3594,7 +3880,7 @@
       const copyBtn = e.target.closest("[data-action='copy-share-link']");
       if (copyBtn) {
         const id = copyBtn.getAttribute("data-upload-id");
-        if (id) copyShareLink(id, copyBtn);
+        if (id) copyUploadShareLink(id, copyBtn);
         return;
       }
       if (e.target.closest("[data-action='pick-photos']")) {
@@ -3611,7 +3897,81 @@
         }
         return;
       }
+      // Touch/keyboard reorder via the ◀ ▶ arrows on each thumb
+      const moveBtn = e.target.closest("[data-move-index]");
+      if (moveBtn && designerUploadRoot.contains(moveBtn)) {
+        const from = Number.parseInt(moveBtn.getAttribute("data-move-index"), 10);
+        const dir = Number.parseInt(moveBtn.getAttribute("data-move-dir"), 10);
+        moveRoomPhoto(from, from + dir);
+        return;
+      }
       if (e.target.closest("[data-action='open-dropzone']")) roomPhotosInput.click();
+    });
+
+    // Move a photo from one slot to another, re-rendering so the face labels follow.
+    function moveRoomPhoto(from, to) {
+      if (
+        Number.isNaN(from) || Number.isNaN(to) ||
+        from < 0 || to < 0 ||
+        from >= roomPhotoEntries.length || to >= roomPhotoEntries.length ||
+        from === to
+      ) {
+        return;
+      }
+      const [moved] = roomPhotoEntries.splice(from, 1);
+      roomPhotoEntries.splice(to, 0, moved);
+      renderRoomUploadUI();
+    }
+
+    // === Drag-and-drop reordering of the thumbnails (desktop) ===
+    // We track the index of the tile being dragged; on drop we splice it into the
+    // target slot. The dropzone's file-drop handlers live on a separate element,
+    // so these never collide.
+    let dragFromIndex = null;
+
+    function thumbIndexFromEvent(e) {
+      const thumb = e.target.closest(".upload-thumb");
+      if (!thumb || !uploadThumbsEl.contains(thumb)) return null;
+      const idx = Number.parseInt(thumb.dataset.index, 10);
+      return Number.isNaN(idx) ? null : idx;
+    }
+
+    uploadThumbsEl.addEventListener("dragstart", (e) => {
+      const idx = thumbIndexFromEvent(e);
+      if (idx === null) return;
+      dragFromIndex = idx;
+      e.dataTransfer.effectAllowed = "move";
+      // Firefox requires data to be set for the drag to start
+      try { e.dataTransfer.setData("text/plain", String(idx)); } catch { /* empty */ }
+      e.target.closest(".upload-thumb").classList.add("is-dragging");
+    });
+
+    uploadThumbsEl.addEventListener("dragover", (e) => {
+      if (dragFromIndex === null) return;
+      e.preventDefault(); // allow drop
+      e.dataTransfer.dropEffect = "move";
+      const thumb = e.target.closest(".upload-thumb");
+      uploadThumbsEl.querySelectorAll(".upload-thumb.is-drop-target").forEach((el) => {
+        if (el !== thumb) el.classList.remove("is-drop-target");
+      });
+      if (thumb && uploadThumbsEl.contains(thumb)) thumb.classList.add("is-drop-target");
+    });
+
+    uploadThumbsEl.addEventListener("drop", (e) => {
+      if (dragFromIndex === null) return;
+      e.preventDefault();
+      const to = thumbIndexFromEvent(e);
+      const from = dragFromIndex;
+      dragFromIndex = null;
+      if (to !== null) moveRoomPhoto(from, to);
+      else renderRoomUploadUI();
+    });
+
+    uploadThumbsEl.addEventListener("dragend", () => {
+      dragFromIndex = null;
+      uploadThumbsEl.querySelectorAll(".is-dragging, .is-drop-target").forEach((el) =>
+        el.classList.remove("is-dragging", "is-drop-target"),
+      );
     });
 
     ["dragenter", "dragover"].forEach((type) =>
@@ -3742,7 +4102,7 @@
         `<div class="shared-share-thumbs">${thumbsHtml}</div>`;
     }
 
-    async function copyShareLink(uploadId, btn) {
+    async function copyUploadShareLink(uploadId, btn) {
       const url = buildShareUrl(uploadId);
       try {
         await navigator.clipboard.writeText(url);
@@ -3752,7 +4112,7 @@
           btn.textContent = prev;
         }, 2000);
       } catch {
-        alert(url);
+        window.prompt("Copy this link to share your 3D room upload:", url);
       }
     }
 
@@ -3812,6 +4172,21 @@
       setUploadSubmitting(true); // Show spinner, disable button, change text to "Uploading..."
       uploadReadyTextEl.textContent = "Uploading photos to server...";
 
+      // User-chosen display name for this room (falls back to a sensible default)
+      const roomName = (roomNameInput.value || "").trim() || "My Room";
+
+      // Snapshot the ordered photo URLs now, while roomPhotoEntries is still full.
+      // Order is the on-screen slot order: North, South, East, West, Ceiling, Floor.
+      // The renderer maps these to cube faces itself.
+      const orderedUrls = roomPhotoEntries.map((entry) => entry.url);
+
+      // Render the 3D room immediately from the local photos — no need to wait
+      // for the upload round-trip. (We never revoke these object URLs; Three.js
+      // keeps referencing them for the skybox textures.)
+      if (window.renderRoomBuilderSkybox) {
+        window.renderRoomBuilderSkybox(orderedUrls, roomName);
+      }
+
       try {
         // === Build the request ===
         // FormData is a special object that can hold both files and text fields
@@ -3824,8 +4199,9 @@
           formData.append("photos", entry.file, entry.file.name);
         });
 
-        // Add metadata: which dorm and room type the user selected
-        // Server needs this to know context (e.g., "Branner, single")
+        // Add metadata: the room's display name plus dorm/room context (the latter
+        // still flows through for storage; the designer screen is name-driven now)
+        formData.append("roomName", roomName);
         formData.append("dormId", houseId);
         formData.append("roomType", roomType);
 
@@ -3859,13 +4235,14 @@
         // Show the upload ID so user can reference this upload
         showUploadResult(
           "success",
-          `<strong>Upload received!</strong> Your 3D room will be ready soon. ` +
+          `<strong>Upload received!</strong> Your 3D room is ready to preview. ` +
             `<span class="upload-result-id">ID: ${escapeUploadHtml(data.uploadId)}</span> ` +
             `<button type="button" class="upload-pick-btn upload-copy-link-btn" data-action="copy-share-link" data-upload-id="${escapeUploadHtml(data.uploadId)}">Copy share link</button>`,
         );
 
-        // Clear the selected photos and reset the UI
-        roomPhotoEntries.forEach(revokeRoomPhoto); // Free up object URLs from memory
+        // The 3D room was already rendered above from the local photos. Clear the
+        // selected photos and reset the form. We skip revoking the object URLs here
+        // because Three.js still needs them for the skybox textures!
         roomPhotoEntries = []; // Empty the array
         renderRoomUploadUI(); // Redraw the form (thumbnails disappear, button disables again)
       } catch (err) {
@@ -3938,13 +4315,7 @@
       });
     }
 
-    /* Keeps the bottom designer chip in sync with the dorm + room type picker */
-    function updateDesignerContext() {
-      const house = getHouse(houseId);
-      designerContext.textContent = house.name + ", " + ROOM_LABELS[roomType];
-    }
-
-    /* Runs whenever dorm or room type changes: refresh hint, preview title, designer chip */
+    /* Runs whenever dorm or room type changes: refresh hint + preview title */
     function updatePreview() {
       const house = getHouse(houseId);
       dormHint.textContent =
@@ -3952,7 +4323,6 @@
           ? "Undergraduate residence designated for first-year students."
           : "Four-class undergraduate residence; first-year students may be assigned here.";
       previewTitle.textContent = house.name + ", " + ROOM_LABELS[roomType];
-      updateDesignerContext();
     }
 
     // Event delegation: one listener on the container instead of per-pill listeners after each re-render
@@ -3977,8 +4347,13 @@
     renderPills();
     updatePreview();
 
-    // Boot the 360 viewer — string arg must match id="treeview-panorama" in the HTML
-    const panoramaViewer = pannellum.viewer("treeview-panorama", getDemoTourConfig());
+    // Boot the 360 viewer — initialized lazily when the residences tab becomes active
+    let panoramaViewer = null;
+    function initPanoramaViewer() {
+      if (!panoramaViewer) {
+        panoramaViewer = pannellum.viewer("treeview-panorama", getDemoTourConfig());
+      }
+    }
     /*
      * Pannellum doesn’t always reflow on its own when the window resizes.
      * Debouncing with setTimeout avoids calling resize() dozens of times while someone drags the edge.
@@ -4046,6 +4421,7 @@
         requestAnimationFrame(() => campusMap.resize());
       }
       if (viewId === "residences") {
+        initPanoramaViewer();
         resizeMainPanorama();
       }
       if (window.innerWidth <= 768 && appSidebarEl) {
@@ -4899,13 +5275,13 @@
       }
     }
 
-    async function copyShareLink() {
+    async function copyShortlistShareLink() {
       const favs = getFavorites();
       if (favs.length === 0) {
         // Friendly nudge instead of copying an empty link
         shareBtnText.textContent = "Star a dorm first";
-        clearTimeout(copyShareLink._t);
-        copyShareLink._t = setTimeout(() => {
+        clearTimeout(copyShortlistShareLink._t);
+        copyShortlistShareLink._t = setTimeout(() => {
           shareBtnText.textContent = "Share my shortlist";
         }, 1800);
         return;
@@ -4926,14 +5302,14 @@
         shareBtnText.textContent = "Share my shortlist";
         return;
       }
-      clearTimeout(copyShareLink._t);
-      copyShareLink._t = setTimeout(() => {
+      clearTimeout(copyShortlistShareLink._t);
+      copyShortlistShareLink._t = setTimeout(() => {
         shareBtn.classList.remove("is-copied");
         shareBtnText.textContent = "Share my shortlist";
       }, 1800);
     }
 
-    shareBtn.addEventListener("click", copyShareLink);
+    shareBtn.addEventListener("click", copyShortlistShareLink);
 
     // Apply any URL-encoded shortlist now that all helpers are defined.
     loadShortlistFromURL();
@@ -5493,7 +5869,7 @@
         } else {
           stop();
           // Pannellum needs a nudge after its host returns from display:none
-          if (typeof panoramaViewer !== "undefined") panoramaViewer.resize();
+          if (typeof panoramaViewer !== "undefined" && panoramaViewer) panoramaViewer.resize();
         }
       }
 
@@ -5506,6 +5882,243 @@
         resizeTimer = setTimeout(sizeRendererToCanvas, 120);
       });
     })();
+
+    /* ===== Room builder — inline inverted-cube skybox (Create 3D Room tab) =====
+     * Builds a real 6-sided room from the user's photos: an inside-out cube the
+     * camera sits inside, one photo per face. Exposes window.renderRoomBuilderSkybox
+     * which the upload submit handler calls with the six photo URLs (in slot order:
+     * North, South, East, West, Ceiling, Floor) plus the room name.
+     */
+    (function initRoomBuilder3D() {
+      const stage        = document.getElementById("room3d-stage");
+      const titleEl      = document.getElementById("room3d-title");
+      const canvas       = document.getElementById("room3d-canvas");
+      const editBtn      = document.getElementById("room3d-edit-btn");
+      const zoomInBtn    = document.getElementById("room3d-zoom-in");
+      const zoomOutBtn   = document.getElementById("room3d-zoom-out");
+      const fullscreenBtn = document.getElementById("room3d-fullscreen");
+      const designerForm = document.getElementById("designer-upload");
+
+      // No-op if Three.js failed to load — the upload still works, just no 3D.
+      if (typeof THREE === "undefined") {
+        window.renderRoomBuilderSkybox = function () {
+          console.warn("[room3d] THREE.js unavailable — skipping 3D render.");
+        };
+        return;
+      }
+
+      // Look-around tuning (this is a room, so full 360° yaw is allowed)
+      const PITCH_LIMIT_RAD  = THREE.MathUtils.degToRad(85);
+      const DRAG_SENSITIVITY = 0.0025;
+      const INERTIA          = 0.88;
+      const MIN_FOV = 40, MAX_FOV = 100, DEFAULT_FOV = 78, ZOOM_STEP = 4;
+
+      // BoxGeometry material order is [+X, -X, +Y, -Y, +Z, -Z]. We face -Z first,
+      // so North sits on -Z (the wall you see on open). src = index into the
+      // slot-ordered url array [North, South, East, West, Ceiling, Floor].
+      const FACE_ORDER = [
+        { key: "East",    src: 2, rotation: 0 },          // +X
+        { key: "West",    src: 3, rotation: 0 },          // -X
+        { key: "Ceiling", src: 4, rotation: 0 },          // +Y
+        { key: "Floor",   src: 5, rotation: 0 },          // -Y
+        { key: "South",   src: 1, rotation: 0 },          // +Z
+        { key: "North",   src: 0, rotation: 0 },          // -Z
+      ];
+
+      let renderer, scene, camera, cubeMesh, texLoader;
+      let yaw = 0, pitch = 0, velYaw = 0, velPitch = 0;
+      const lookTarget = new THREE.Vector3();
+      let initialized = false, animFrame = null, resizeTimer = null;
+      let dragging = false, lastX = 0, lastY = 0;
+
+      function updateCamera() {
+        lookTarget.set(
+          Math.sin(yaw) * Math.cos(pitch),
+          Math.sin(pitch),
+          -Math.cos(yaw) * Math.cos(pitch)
+        );
+        camera.lookAt(lookTarget);
+      }
+
+      function clampPitch() {
+        if (pitch < -PITCH_LIMIT_RAD)     { pitch = -PITCH_LIMIT_RAD; velPitch = 0; }
+        else if (pitch > PITCH_LIMIT_RAD) { pitch =  PITCH_LIMIT_RAD; velPitch = 0; }
+      }
+
+      function setFov(fov) {
+        camera.fov = Math.min(MAX_FOV, Math.max(MIN_FOV, fov));
+        camera.updateProjectionMatrix();
+      }
+
+      function sizeRendererToCanvas() {
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        if (!w || !h) return; // hidden — skip to avoid a 0×0 framebuffer
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+
+      // One face: load the texture, un-mirror it for the inside view, return material.
+      function loadFace(url, rotation) {
+        const tex = texLoader.load(url);
+        tex.encoding = THREE.sRGBEncoding;
+        // Camera sees the BackSide of the cube, which mirrors the texture
+        // horizontally — flip it back so any text/orientation reads correctly.
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.repeat.x = -1;
+        tex.center.set(0.5, 0.5);
+        tex.rotation = rotation;
+        return new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide });
+      }
+
+      function disposeCube() {
+        if (!cubeMesh) return;
+        scene.remove(cubeMesh);
+        cubeMesh.geometry.dispose();
+        cubeMesh.material.forEach((m) => {
+          if (m.map) m.map.dispose();
+          m.dispose();
+        });
+        cubeMesh = null;
+      }
+
+      function buildCube(urls) {
+        disposeCube();
+        const geom = new THREE.BoxGeometry(10, 10, 10);
+        const materials = FACE_ORDER.map((f) => loadFace(urls[f.src], f.rotation));
+        cubeMesh = new THREE.Mesh(geom, materials);
+        scene.add(cubeMesh);
+      }
+
+      function init() {
+        if (initialized) return;
+        initialized = true;
+
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.outputEncoding = THREE.sRGBEncoding;
+
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(DEFAULT_FOV, 1, 0.1, 100);
+        camera.position.set(0, 0, 0); // dead center of the room
+
+        texLoader = new THREE.TextureLoader();
+        texLoader.setCrossOrigin("anonymous");
+
+        bindEvents();
+        updateCamera();
+      }
+
+      function bindEvents() {
+        canvas.addEventListener("pointerdown", (e) => {
+          dragging = true;
+          velYaw = velPitch = 0;
+          lastX = e.clientX; lastY = e.clientY;
+          canvas.setPointerCapture(e.pointerId);
+        });
+
+        canvas.addEventListener("pointermove", (e) => {
+          if (!dragging) return;
+          const dx = e.clientX - lastX, dy = e.clientY - lastY;
+          lastX = e.clientX; lastY = e.clientY;
+          velYaw   = dx * DRAG_SENSITIVITY;
+          velPitch = dy * DRAG_SENSITIVITY;
+          yaw   += velYaw;
+          pitch -= velPitch; // drag down = look down
+          clampPitch();
+          updateCamera();
+        });
+
+        const endDrag = (e) => {
+          dragging = false;
+          if (e && e.pointerId !== undefined && canvas.hasPointerCapture(e.pointerId)) {
+            canvas.releasePointerCapture(e.pointerId);
+          }
+        };
+        canvas.addEventListener("pointerup", endDrag);
+        canvas.addEventListener("pointercancel", endDrag);
+
+        canvas.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          setFov(camera.fov + (e.deltaY > 0 ? ZOOM_STEP : -ZOOM_STEP));
+        }, { passive: false });
+
+        zoomInBtn.addEventListener("click",  () => setFov(camera.fov - ZOOM_STEP));
+        zoomOutBtn.addEventListener("click", () => setFov(camera.fov + ZOOM_STEP));
+
+        fullscreenBtn.addEventListener("click", () => {
+          const target = canvas.closest(".room3d-viewport") || canvas;
+          if (!document.fullscreenElement) {
+            target.requestFullscreen().catch((err) => console.warn("[room3d] fullscreen:", err));
+          } else {
+            document.exitFullscreen();
+          }
+        });
+        document.addEventListener("fullscreenchange", () => setTimeout(sizeRendererToCanvas, 50));
+
+        editBtn.addEventListener("click", () => {
+          stage.hidden = true;
+          stop();
+          if (designerForm) designerForm.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+
+      function tick() {
+        animFrame = requestAnimationFrame(tick);
+        if (!dragging && (Math.abs(velYaw) > 0.00005 || Math.abs(velPitch) > 0.00005)) {
+          yaw   += velYaw;
+          pitch -= velPitch;
+          clampPitch();
+          velYaw   *= INERTIA;
+          velPitch *= INERTIA;
+          updateCamera();
+        }
+        renderer.render(scene, camera);
+      }
+
+      function start() {
+        if (animFrame === null) tick();
+      }
+
+      function stop() {
+        if (animFrame !== null) {
+          cancelAnimationFrame(animFrame);
+          animFrame = null;
+        }
+      }
+
+      window.renderRoomBuilderSkybox = function (urls, roomName) {
+        if (!Array.isArray(urls) || urls.length < 6) {
+          console.warn("[room3d] need 6 photo URLs, got", urls);
+          return;
+        }
+        init();
+        titleEl.textContent = roomName || "Your 3D room";
+        buildCube(urls);
+
+        // Reset the view to face the front (North) wall at the default zoom.
+        yaw = 0; pitch = 0; velYaw = 0; velPitch = 0;
+        setFov(DEFAULT_FOV);
+        updateCamera();
+
+        stage.hidden = false;
+        // Canvas had no size while hidden — size it once layout settles, then run.
+        requestAnimationFrame(() => {
+          sizeRendererToCanvas();
+          start();
+          stage.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      };
+
+      window.addEventListener("resize", () => {
+        if (!initialized || stage.hidden) return;
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(sizeRendererToCanvas, 120);
+      });
+    })();
+
+    // Set initial view on load
+    setActiveView(activeDashboardView);
   </script>
 </body>
 </html>
