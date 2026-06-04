@@ -20,143 +20,153 @@
   <div id="panorama"></div>
 
   <script>
-    pannellum.viewer('panorama', {
+    const HOTSPOT_DEBUG = false;
+    const PANORAMA_BASE = "otherPhotos/";
+
+    function pano(file) {
+      return PANORAMA_BASE + file;
+    }
+
+    const baseScene = {
+      type: "equirectangular",
+      autoLoad: true,
+      hfov: 70,
+      minHfov: 50,
+      maxHfov: 90,
+      haov: 110,
+      vaov: 45,
+      vOffset: 0,
+      yaw: 0,
+      pitch: 0,
+      minYaw: -55,
+      maxYaw: 55,
+      minPitch: -22,
+      maxPitch: 22,
+      avoidShowingBackground: true
+    };
+
+    pannellum.viewer("panorama", {
       default: {
-        firstScene: 'spotOne',
+        firstScene: "zapOne",
         autoLoad: true,
-        sceneFadeDuration: 800
+        sceneFadeDuration: 800,
+        showControls: true,
+        showFullscreenCtrl: true,
+        hotSpotDebug: HOTSPOT_DEBUG
       },
       scenes: {
-        spotOne: {
-          type: 'equirectangular',
-          panorama: 'photos/spotOne.jpeg',
+        zapOne: {
+          ...baseScene,
+          title: "ZAP One",
+          panorama: pano("ZAP_One.jpeg"),
           hotSpots: [
             {
-              pitch: -2,
-              yaw: 35,
-              type: 'scene',
-              text: 'Go to hallway',
-              sceneId: 'hallwayIndoor'
-            },
-            {
-              pitch: -3,
-              yaw: -65,
-              type: 'scene',
-              text: 'Spot One (angle 2)',
-              sceneId: 'spotOneTwo'
+              pitch: 3.5,
+              yaw: -18,
+              type: "scene",
+              text: "Go to ZAP Two",
+              sceneId: "zapTwo",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             }
           ]
         },
-        spotOneTwo: {
-          type: 'equirectangular',
-          panorama: 'photos/spotOneTwo.jpeg',
+        zapTwo: {
+          ...baseScene,
+          title: "ZAP Two",
+          panorama: pano("ZAP_Two.jpeg"),
           hotSpots: [
             {
-              pitch: -1,
-              yaw: 165,
-              type: 'scene',
-              text: 'Back to Spot One',
-              sceneId: 'spotOne'
+              pitch: 2,
+              yaw: 45,
+              type: "scene",
+              text: "Back to ZAP One",
+              sceneId: "zapOne",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             },
             {
-              pitch: -4,
-              yaw: 10,
-              type: 'scene',
-              text: 'Spot One (angle 3)',
-              sceneId: 'spotOneThree'
+              pitch: 3,
+              yaw: -42,
+              type: "scene",
+              text: "Go to ZAP Three",
+              sceneId: "zapThree",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             }
           ]
         },
-        spotOneThree: {
-          type: 'equirectangular',
-          panorama: 'photos/spotOneThree.jpeg',
+        zapThree: {
+          ...baseScene,
+          title: "ZAP Three",
+          panorama: pano("ZAP_Three.jpeg"),
           hotSpots: [
             {
-              pitch: -1,
-              yaw: 180,
-              type: 'scene',
-              text: 'Back to Spot One (angle 2)',
-              sceneId: 'spotOneTwo'
+              pitch: 2,
+              yaw: 45,
+              type: "scene",
+              text: "Back to ZAP Two",
+              sceneId: "zapTwo",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             },
             {
-              pitch: -3,
-              yaw: 20,
-              type: 'scene',
-              text: 'Spot One (angle 4)',
-              sceneId: 'spotOneFour'
+              pitch: 2,
+              yaw: 24,
+              type: "scene",
+              text: "Go to ZAP Four",
+              sceneId: "zapFour",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             }
           ]
         },
-        spotOneFour: {
-          type: 'equirectangular',
-          panorama: 'photos/spotOneFour.jpeg',
+        zapFour: {
+          ...baseScene,
+          title: "ZAP Four",
+          panorama: pano("ZAP_Four.jpeg"),
           hotSpots: [
             {
-              pitch: -2,
-              yaw: 170,
-              type: 'scene',
-              text: 'Back to Spot One (angle 3)',
-              sceneId: 'spotOneThree'
+              pitch: 3,
+              yaw: -31,
+              type: "scene",
+              text: "Back to ZAP Three",
+              sceneId: "zapThree",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             },
             {
-              pitch: -2,
-              yaw: 35,
-              type: 'scene',
-              text: 'Go to hallway',
-              sceneId: 'hallwayIndoor'
+              pitch: 3,
+              yaw: 4,
+              type: "scene",
+              text: "Go to ZAP Five",
+              sceneId: "zapFive",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             }
           ]
         },
-        hallwayIndoor: {
-          type: 'equirectangular',
-          panorama: 'photos/hallwayIndoor.jpeg',
+        zapFive: {
+          ...baseScene,
+          title: "ZAP Five",
+          panorama: pano("ZAP_Five.jpeg"),
           hotSpots: [
             {
-              pitch: -2,
-              yaw: -145,
-              type: 'scene',
-              text: 'Go to Spot One',
-              sceneId: 'spotOne'
-            },
-            {
-              pitch: -1,
-              yaw: 30,
-              type: 'scene',
-              text: 'Go to Spot Two',
-              sceneId: 'spotTwo'
-            }
-          ]
-        },
-        spotTwo: {
-          type: 'equirectangular',
-          panorama: 'photos/spotTwo.jpeg',
-          hotSpots: [
-            {
-              pitch: -2,
-              yaw: 150,
-              type: 'scene',
-              text: 'Go to hallway',
-              sceneId: 'hallwayIndoor'
-            },
-            {
-              pitch: -3,
-              yaw: -25,
-              type: 'scene',
-              text: 'Spot Two (angle 2)',
-              sceneId: 'spotTwoTwo'
-            }
-          ]
-        },
-        spotTwoTwo: {
-          type: 'equirectangular',
-          panorama: 'photos/spotTwoTwo.jpeg',
-          hotSpots: [
-            {
-              pitch: -2,
-              yaw: 170,
-              type: 'scene',
-              text: 'Back to Spot Two',
-              sceneId: 'spotTwo'
+              pitch: 3,
+              yaw: 50,
+              type: "scene",
+              text: "Back to ZAP Four",
+              sceneId: "zapFour",
+              targetYaw: 0,
+              targetPitch: 0,
+              targetHfov: 70
             }
           ]
         }
