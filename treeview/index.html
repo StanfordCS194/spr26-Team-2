@@ -1823,6 +1823,110 @@
       color: var(--muted);
     }
 
+    /* --- Design mode panel (Tier 1 scale + Tier 2 floor mapping) --- */
+    .room3d-design-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(61, 154, 140, 0.28);
+      background: rgba(61, 154, 140, 0.06);
+      animation: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .room3d-design-panel[hidden] { display: none; }
+
+    .rdp-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .rdp-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--charcoal);
+    }
+
+    .rdp-range {
+      flex: 1 1 140px;
+      min-width: 110px;
+      accent-color: var(--teal);
+    }
+
+    .rdp-height-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .rdp-num {
+      width: 4.2rem;
+      padding: 0.3rem 0.45rem;
+      font-size: 0.85rem;
+      border: 1px solid rgba(61, 154, 140, 0.32);
+      border-radius: 0.5rem;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--charcoal);
+    }
+
+    .rdp-unit { font-size: 0.8rem; color: var(--muted); }
+
+    .rdp-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .rdp-help {
+      margin: 0;
+      font-size: 0.78rem;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    .rdp-dims {
+      margin-left: auto;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--teal);
+    }
+
+    .room3d-action-btn.is-active {
+      background: rgba(61, 154, 140, 0.3);
+      box-shadow: inset 0 0 0 1px rgba(61, 154, 140, 0.5);
+    }
+
+    .rdp-catalog {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .rdp-cat-btn {
+      padding: 0.35rem 0.7rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--charcoal);
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(61, 154, 140, 0.3);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .rdp-cat-btn:hover { background: rgba(61, 154, 140, 0.15); }
+    .rdp-cat-btn:disabled { opacity: 0.5; cursor: progress; }
+
+    .rdp-hint-inline {
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
     /* --- Keyframes (referenced above in .hero-logo / .hero-copy / .designer-placeholder) --- */
 
     /* --- Dark mode toggle --- */
@@ -3567,6 +3671,7 @@
           <div class="room3d-head">
             <h3 id="room3d-title" class="room3d-title">Your 3D room</h3>
             <div class="room3d-actions" aria-label="3D room actions">
+              <button type="button" id="room3d-design-btn" class="room3d-action-btn">✦ Design this room</button>
               <button type="button" id="room3d-edit-btn" class="room3d-action-btn">↺ Edit photos</button>
               <button type="button" id="room3d-new-upload-btn" class="room3d-action-btn">＋ New upload</button>
               <button type="button" id="room3d-copy-link-btn" class="room3d-action-btn" disabled>Copy share link</button>
@@ -3578,6 +3683,46 @@
               <button type="button" class="design-ctrl-btn" id="room3d-zoom-in" aria-label="Zoom in">+</button>
               <button type="button" class="design-ctrl-btn" id="room3d-zoom-out" aria-label="Zoom out">&minus;</button>
               <button type="button" class="design-ctrl-btn" id="room3d-fullscreen" aria-label="Toggle full screen">&#x26F6;</button>
+            </div>
+          </div>
+          <!-- Design mode: Tier 1 metric scale calibration + Tier 2 floor
+               mapping. Hidden until the user clicks "Design this room". -->
+          <div id="room3d-design-panel" class="room3d-design-panel" hidden>
+            <div class="rdp-row">
+              <label class="rdp-label" for="rdp-height">Camera height</label>
+              <input type="range" id="rdp-height-range" class="rdp-range"
+                     min="0.6" max="2.4" step="0.05" value="1.4"
+                     aria-label="Camera height in meters">
+              <span class="rdp-height-box">
+                <input type="number" id="rdp-height" class="rdp-num"
+                       min="0.3" max="3" step="0.05" value="1.40"
+                       aria-label="Camera height in meters">
+                <span class="rdp-unit">m</span>
+              </span>
+              <label class="rdp-check">
+                <input type="checkbox" id="rdp-show-ref" checked> 1 m reference
+              </label>
+            </div>
+            <p class="rdp-help">
+              Adjust the height until the green 1&nbsp;m square matches a known
+              1&nbsp;m feature in your room (a floor tile, desk width). That sets
+              the true scale for everything you place.
+            </p>
+            <div class="rdp-row">
+              <button type="button" id="rdp-trace-btn" class="room3d-action-btn">▢ Trace floor</button>
+              <button type="button" id="rdp-undo-btn" class="room3d-action-btn" disabled>↶ Undo point</button>
+              <button type="button" id="rdp-clear-btn" class="room3d-action-btn" disabled>✕ Clear</button>
+              <span id="rdp-dims" class="rdp-dims">Tap each floor corner to map the room.</span>
+            </div>
+            <div class="rdp-row">
+              <span class="rdp-label">Furniture</span>
+              <div id="rdp-catalog" class="rdp-catalog"></div>
+            </div>
+            <div class="rdp-row" id="rdp-selected-row" hidden>
+              <span class="rdp-label">Selected</span>
+              <button type="button" id="rdp-rotate-btn" class="room3d-action-btn">⟳ Rotate</button>
+              <button type="button" id="rdp-delete-btn" class="room3d-action-btn">🗑 Delete</button>
+              <span class="rdp-hint-inline">Drag to move · R rotates · Del removes</span>
             </div>
           </div>
           <p class="room3d-hint">Drag to look around · scroll to zoom</p>
@@ -3621,6 +3766,23 @@
   <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.js"></script>
   <!-- Three.js — substrate for Design mode (TreeViewDesigner IIFE near the end of the inline script) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+  <!-- GLTFLoader for furniture models, as an ES module pinned to the SAME
+       three@0.149.0 as the global build above. Same version => identical
+       constants and duck-typed .isXxx flags, so loaded furniture renders in
+       the viewer's global-THREE scene. Exposes window.GLTFLoader when ready. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    window.GLTFLoader = GLTFLoader;
+    window.dispatchEvent(new Event('treeview-gltfloader-ready'));
+  </script>
   <script>
     /*
      * Maps internal keys (what we store in data / HOUSES) to human-readable labels on buttons.
@@ -6213,6 +6375,21 @@
       const fullscreenBtn = document.getElementById("room3d-fullscreen");
       const designerForm = document.getElementById("designer-upload");
 
+      // Design-mode controls (Tier 1 scale + Tier 2 floor mapping)
+      const designBtn   = document.getElementById("room3d-design-btn");
+      const designPanel = document.getElementById("room3d-design-panel");
+      const heightRange = document.getElementById("rdp-height-range");
+      const heightNum   = document.getElementById("rdp-height");
+      const showRefChk  = document.getElementById("rdp-show-ref");
+      const traceBtn    = document.getElementById("rdp-trace-btn");
+      const undoBtn     = document.getElementById("rdp-undo-btn");
+      const clearBtn    = document.getElementById("rdp-clear-btn");
+      const dimsEl      = document.getElementById("rdp-dims");
+      const catalogEl   = document.getElementById("rdp-catalog");
+      const selectedRow = document.getElementById("rdp-selected-row");
+      const rotateBtn   = document.getElementById("rdp-rotate-btn");
+      const deleteBtn   = document.getElementById("rdp-delete-btn");
+
       // No-op if Three.js failed to load — the upload still works, just no 3D.
       if (typeof THREE === "undefined") {
         window.renderRoomBuilderSkybox = function () {
@@ -6243,7 +6420,40 @@
       let yaw = 0, pitch = 0, velYaw = 0, velPitch = 0;
       const lookTarget = new THREE.Vector3();
       let initialized = false, animFrame = null, resizeTimer = null;
-      let dragging = false, lastX = 0, lastY = 0;
+      let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0;
+
+      // Design-mode state. The scene is reinterpreted in METERS: the camera
+      // sits at the origin and the real floor is a horizontal plane at
+      // y = -cameraHeightM. floorVerts holds the normalized look directions of
+      // each tapped corner (y < 0); their metric (x,z) is reprojected whenever
+      // the height changes, so corners stay locked to photo features while the
+      // scale updates. See the room designer discussion for the derivation.
+      let designMode = false, tracing = false, cameraHeightM = 1.4;
+      let floorVerts = [];
+      let designGroup = null, markerGroup = null, refSquare = null, traceLine = null;
+      const designRaycaster = new THREE.Raycaster();
+      const designNdc = new THREE.Vector2();
+      const CLICK_SLOP = 6;       // px of movement under which a press is a tap, not a drag
+      const MAX_FLOOR_DIST = 30;  // ignore taps that project absurdly far (near the horizon)
+
+      // Furniture (Kenney CC0 GLB models, loaded via window.GLTFLoader). The
+      // models carry global-THREE-incompatible nothing — same 0.149 version, so
+      // they drop straight into this scene. Each is scaled to a real-world
+      // target dimension so it lands at true scale on the calibrated floor.
+      let furnitureGroup = null, selectedItem = null, draggingItem = null, selBox = null;
+      let furnitureGesture = false;        // current gesture grabbed a model (not look-around)
+      const gltfCache = {};                // file -> Promise<gltf.scene template>
+      const furnRaycaster = new THREE.Raycaster();
+      const ROTATE_STEP = Math.PI / 12;    // 15° per rotate press
+      const FURNITURE_CATALOG = [
+        { id: "bed",      label: "Bed",      file: "bedSingle.glb",       target: 1.90, axis: "xz" },
+        { id: "desk",     label: "Desk",     file: "desk.glb",            target: 1.10, axis: "xz" },
+        { id: "chair",    label: "Chair",    file: "chairDesk.glb",       target: 0.55, axis: "xz" },
+        { id: "lamp",     label: "Lamp",     file: "lampSquareFloor.glb", target: 1.50, axis: "y"  },
+        { id: "bookcase", label: "Bookcase", file: "bookcaseOpen.glb",    target: 1.60, axis: "y"  },
+        { id: "plant",    label: "Plant",    file: "pottedPlant.glb",     target: 0.60, axis: "y"  },
+        { id: "rug",      label: "Rug",      file: "rugRectangle.glb",    target: 1.60, axis: "xz" },
+      ];
 
       function updateCamera() {
         lookTarget.set(
@@ -6316,15 +6526,32 @@
         camera = new THREE.PerspectiveCamera(DEFAULT_FOV, 1, 0.1, 100);
         camera.position.set(0, 0, 0); // dead center of the room
 
+        // Lights for furniture only — the skybox is MeshBasicMaterial (unlit),
+        // so these leave the photo untouched and just shade the placed models.
+        scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.55);
+        dirLight.position.set(3, 8, 4);
+        scene.add(dirLight);
+
         texLoader = new THREE.TextureLoader();
         texLoader.setCrossOrigin("anonymous");
 
         bindEvents();
+        bindDesignEvents();
         updateCamera();
       }
 
       function bindEvents() {
         canvas.addEventListener("pointerdown", (e) => {
+          downX = e.clientX; downY = e.clientY;
+          // In design mode, a press on a furniture model grabs it for dragging
+          // instead of starting a look-around. tryGrabFurniture also handles
+          // tap-to-deselect on empty space.
+          furnitureGesture = designMode && tryGrabFurniture(e);
+          if (furnitureGesture) {
+            canvas.setPointerCapture(e.pointerId);
+            return;
+          }
           dragging = true;
           velYaw = velPitch = 0;
           lastX = e.clientX; lastY = e.clientY;
@@ -6405,6 +6632,420 @@
         });
       }
 
+      /* ===== Design mode: metric scale (Tier 1) + floor mapping (Tier 2) =====
+       * Gated entirely behind the "Design this room" button — the plain viewer
+       * is untouched until the user opts in.
+       */
+
+      // Convert a normalized look direction into a metric floor point, or null
+      // if it doesn't point at the floor (above the horizon) or lands too far.
+      function projectToFloor(dir, h) {
+        if (dir.y >= -1e-4) return null;
+        const t = -h / dir.y;
+        const x = dir.x * t, z = dir.z * t;
+        if (Math.hypot(x, z) > MAX_FLOOR_DIST) return null;
+        return new THREE.Vector3(x, -h, z);
+      }
+
+      // Look direction (from the camera at the origin) under a pointer event.
+      function dirFromEvent(e) {
+        const rect = canvas.getBoundingClientRect();
+        designNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        designNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        designRaycaster.setFromCamera(designNdc, camera);
+        return designRaycaster.ray.direction.clone().normalize();
+      }
+
+      function ensureDesignGroup() {
+        if (designGroup) return;
+        designGroup = new THREE.Group();
+        markerGroup = new THREE.Group();
+        designGroup.add(markerGroup);
+        scene.add(designGroup);
+      }
+
+      function disposeObj(o) {
+        if (!o) return;
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) o.material.dispose();
+      }
+
+      function metricPoints() {
+        return floorVerts.map((d) => projectToFloor(d, cameraHeightM)).filter(Boolean);
+      }
+
+      // Green 1 m square on the floor ~1.8 m ahead — a true-scale yardstick the
+      // user matches against a known feature to dial in the camera height.
+      function rebuildRefSquare() {
+        ensureDesignGroup();
+        if (refSquare) { designGroup.remove(refSquare); disposeObj(refSquare); refSquare = null; }
+        if (!showRefChk.checked) return;
+        const y = -cameraHeightM + 0.01, cz = -1.8, half = 0.5;
+        const corners = [
+          new THREE.Vector3(-half, y, cz - half),
+          new THREE.Vector3( half, y, cz - half),
+          new THREE.Vector3( half, y, cz + half),
+          new THREE.Vector3(-half, y, cz + half),
+        ];
+        const g = new THREE.BufferGeometry().setFromPoints(corners);
+        const m = new THREE.LineBasicMaterial({ color: 0x3dd68c, depthTest: false });
+        refSquare = new THREE.LineLoop(g, m);
+        refSquare.renderOrder = 998;
+        designGroup.add(refSquare);
+      }
+
+      // Redraw the traced outline + corner markers and refresh the readout.
+      function rebuildTrace() {
+        ensureDesignGroup();
+        const pts = metricPoints();
+
+        if (traceLine) { designGroup.remove(traceLine); disposeObj(traceLine); traceLine = null; }
+        if (pts.length >= 2) {
+          const lifted = pts.map((p) => new THREE.Vector3(p.x, p.y + 0.01, p.z));
+          const g = new THREE.BufferGeometry().setFromPoints(lifted);
+          const m = new THREE.LineBasicMaterial({ color: 0xffb000, depthTest: false });
+          traceLine = pts.length >= 3 ? new THREE.LineLoop(g, m) : new THREE.Line(g, m);
+          traceLine.renderOrder = 999;
+          designGroup.add(traceLine);
+        }
+
+        while (markerGroup.children.length) {
+          const c = markerGroup.children.pop();
+          disposeObj(c);
+        }
+        pts.forEach((p) => {
+          const s = new THREE.Mesh(
+            new THREE.SphereGeometry(0.05, 12, 12),
+            new THREE.MeshBasicMaterial({ color: 0xffb000, depthTest: false })
+          );
+          s.position.set(p.x, p.y + 0.01, p.z);
+          s.renderOrder = 1000;
+          markerGroup.add(s);
+        });
+
+        updateDims(pts);
+        undoBtn.disabled = floorVerts.length === 0;
+        clearBtn.disabled = floorVerts.length === 0;
+      }
+
+      function updateDims(pts) {
+        if (pts.length < 3) {
+          dimsEl.textContent = floorVerts.length === 0
+            ? "Tap each floor corner to map the room."
+            : floorVerts.length + " point" + (floorVerts.length > 1 ? "s" : "") + " · keep tapping the corners";
+          return;
+        }
+        let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, area2 = 0;
+        for (let i = 0; i < pts.length; i++) {
+          const p = pts[i], q = pts[(i + 1) % pts.length];
+          minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+          minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
+          area2 += p.x * q.z - q.x * p.z;
+        }
+        const w = maxX - minX, d = maxZ - minZ, area = Math.abs(area2) / 2;
+        dimsEl.textContent = "≈ " + w.toFixed(1) + " m × " + d.toFixed(1) + " m · " + area.toFixed(1) + " m²";
+      }
+
+      function placeVertex(e) {
+        const dir = dirFromEvent(e);
+        if (!projectToFloor(dir, cameraHeightM)) return; // tapped above the floor
+        floorVerts.push(dir);
+        rebuildTrace();
+        saveDesign();
+      }
+
+      function syncHeightInputs() {
+        heightRange.value = String(cameraHeightM);
+        heightNum.value = cameraHeightM.toFixed(2);
+      }
+
+      function onHeightChange() {
+        rebuildRefSquare();
+        rebuildTrace();
+        reseatFurniture();
+        saveDesign();
+      }
+
+      function setTracing(on) {
+        tracing = on;
+        traceBtn.classList.toggle("is-active", on);
+        traceBtn.textContent = on ? "■ Stop tracing" : "▢ Trace floor";
+        canvas.style.cursor = on ? "crosshair" : "";
+      }
+
+      function setDesignMode(on) {
+        designMode = on;
+        designPanel.hidden = !on;
+        designBtn.classList.toggle("is-active", on);
+        designBtn.textContent = on ? "✓ Done designing" : "✦ Design this room";
+        if (on) {
+          ensureDesignGroup();
+          loadDesign();
+        } else {
+          setTracing(false);
+          selectFurniture(null);
+        }
+        if (designGroup) designGroup.visible = on; // overlays only while designing
+      }
+
+      // Per-room persistence (local only for now — cross-device sharing would
+      // need this state added to the upload payload).
+      function designKey() {
+        return "treeview:roomdesign:" + (currentRoomUploadId || "local");
+      }
+
+      function saveDesign() {
+        try {
+          localStorage.setItem(designKey(), JSON.stringify({
+            h: cameraHeightM,
+            verts: floorVerts.map((d) => [+d.x.toFixed(5), +d.y.toFixed(5), +d.z.toFixed(5)]),
+            items: serializeFurniture(),
+          }));
+        } catch (_) { /* storage unavailable — design just won't persist */ }
+      }
+
+      function loadDesign() {
+        clearFurniture();
+        floorVerts = [];
+        cameraHeightM = 1.4;
+        let items = [];
+        try {
+          const raw = localStorage.getItem(designKey());
+          if (raw) {
+            const data = JSON.parse(raw);
+            if (typeof data.h === "number" && isFinite(data.h)) cameraHeightM = data.h;
+            if (Array.isArray(data.verts)) {
+              floorVerts = data.verts.map((a) => new THREE.Vector3(a[0], a[1], a[2]));
+            }
+            if (Array.isArray(data.items)) items = data.items;
+          }
+        } catch (_) { /* ignore malformed state */ }
+        syncHeightInputs();
+        rebuildRefSquare();
+        rebuildTrace();
+        items.forEach((it) => {
+          const cat = FURNITURE_CATALOG.find((c) => c.id === it.id);
+          if (cat) addFurniture(cat, { x: it.x, z: it.z, rotY: it.rotY, silent: true });
+        });
+      }
+
+      // Called when a new room is rendered: drop back to the plain viewer but
+      // restore any saved design (height/outline/furniture) so the room shows
+      // its furniture even before the user re-enters design mode.
+      function resetDesignForNewRoom() {
+        setTracing(false);
+        selectFurniture(null);
+        designMode = false;
+        designPanel.hidden = true;
+        designBtn.classList.remove("is-active");
+        designBtn.textContent = "✦ Design this room";
+        loadDesign();
+        if (designGroup) designGroup.visible = false; // overlays hidden until design mode
+      }
+
+      /* ----- Furniture: load, scale to true size, place, drag, persist ----- */
+
+      function ensureFurnitureGroup() {
+        if (furnitureGroup) return;
+        furnitureGroup = new THREE.Group();
+        scene.add(furnitureGroup);
+      }
+
+      // Load (and cache) a GLB's scene. Waits for the module loader if the user
+      // clicks before the import has resolved.
+      function loadGLTFScene(file) {
+        if (gltfCache[file]) return gltfCache[file];
+        const p = new Promise((resolve, reject) => {
+          const start = () => new window.GLTFLoader().load(
+            "models/" + file, (g) => resolve(g.scene), undefined, reject
+          );
+          if (window.GLTFLoader) start();
+          else window.addEventListener("treeview-gltfloader-ready", start, { once: true });
+        });
+        gltfCache[file] = p;
+        return p;
+      }
+
+      function boxOf(obj) { return new THREE.Box3().setFromObject(obj); }
+
+      async function addFurniture(cat, opts) {
+        opts = opts || {};
+        ensureFurnitureGroup();
+        let template;
+        try { template = await loadGLTFScene(cat.file); }
+        catch (err) { console.warn("[furniture] failed to load", cat.file, err); return null; }
+
+        const obj = template.clone(true);
+
+        // Uniform-scale to the real-world target (preserves the stylized look).
+        const size = new THREE.Vector3();
+        boxOf(obj).getSize(size);
+        const ref = cat.axis === "y" ? size.y : Math.max(size.x, size.z);
+        obj.scale.setScalar(ref > 1e-4 ? cat.target / ref : 1);
+
+        // Center on (cx,cz) and seat the base on the floor plane y = -h.
+        const cx = (opts.x !== undefined) ? opts.x : 0;
+        const cz = (opts.z !== undefined) ? opts.z : -2;
+        const box = boxOf(obj);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        obj.position.x += cx - center.x;
+        obj.position.z += cz - center.z;
+        obj.position.y += (-cameraHeightM) - box.min.y;
+        obj.rotation.y = opts.rotY || 0;
+        obj.userData = { catId: cat.id, file: cat.file, cx: cx, cz: cz };
+        furnitureGroup.add(obj);
+
+        if (!opts.silent) { selectFurniture(obj); saveDesign(); }
+        return obj;
+      }
+
+      function selectFurniture(obj) {
+        selectedItem = obj;
+        selectedRow.hidden = !obj;
+        if (selBox && furnitureGroup) { furnitureGroup.remove(selBox); disposeObj(selBox); }
+        selBox = null;
+        if (obj && furnitureGroup) {
+          try {
+            selBox = new THREE.BoxHelper(obj, 0x3d9a8c);
+            if (selBox.material) selBox.material.depthTest = false;
+            selBox.renderOrder = 1001;
+            furnitureGroup.add(selBox);
+          } catch (err) { selBox = null; }
+        }
+      }
+
+      // Ray from the camera (origin) through the pointer; select the first
+      // furniture hit and grab it, or deselect on empty space.
+      function tryGrabFurniture(e) {
+        if (!furnitureGroup || !furnitureGroup.children.length) return false;
+        furnRaycaster.set(camera.position, dirFromEvent(e));
+        const targets = furnitureGroup.children.filter((o) => o.userData && o.userData.catId);
+        const hits = furnRaycaster.intersectObjects(targets, true);
+        if (!hits.length) { selectFurniture(null); return false; }
+        let root = hits[0].object;
+        while (root.parent && root.parent !== furnitureGroup) root = root.parent;
+        selectFurniture(root);
+        draggingItem = root;
+        return true;
+      }
+
+      function moveFurniture(e) {
+        if (!draggingItem) return;
+        const p = projectToFloor(dirFromEvent(e), cameraHeightM);
+        if (!p) return;
+        const box = boxOf(draggingItem);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        draggingItem.position.x += p.x - center.x;
+        draggingItem.position.z += p.z - center.z;
+        draggingItem.userData.cx = p.x;
+        draggingItem.userData.cz = p.z;
+        if (selBox) selBox.update();
+      }
+
+      function rotateSelected() {
+        if (!selectedItem) return;
+        selectedItem.rotation.y += ROTATE_STEP;
+        if (selBox) selBox.update();
+        saveDesign();
+      }
+
+      function deleteSelected() {
+        if (!selectedItem) return;
+        furnitureGroup.remove(selectedItem);
+        selectFurniture(null);
+        saveDesign();
+      }
+
+      // When the camera height changes the floor moves, so re-seat every model.
+      function reseatFurniture() {
+        if (!furnitureGroup) return;
+        furnitureGroup.children.forEach((o) => {
+          if (!o.userData || !o.userData.catId) return;
+          o.position.y += (-cameraHeightM) - boxOf(o).min.y;
+        });
+        if (selBox) selBox.update();
+      }
+
+      function clearFurniture() {
+        selectFurniture(null);
+        if (!furnitureGroup) return;
+        furnitureGroup.children
+          .filter((o) => o.userData && o.userData.catId)
+          .forEach((o) => furnitureGroup.remove(o));
+      }
+
+      function serializeFurniture() {
+        if (!furnitureGroup) return [];
+        return furnitureGroup.children
+          .filter((o) => o.userData && o.userData.catId)
+          .map((o) => ({
+            id: o.userData.catId,
+            x: +o.userData.cx.toFixed(3),
+            z: +o.userData.cz.toFixed(3),
+            rotY: +o.rotation.y.toFixed(3),
+          }));
+      }
+
+      function bindDesignEvents() {
+        designBtn.addEventListener("click", () => setDesignMode(!designMode));
+        traceBtn.addEventListener("click", () => setTracing(!tracing));
+        undoBtn.addEventListener("click", () => { floorVerts.pop(); rebuildTrace(); saveDesign(); });
+        clearBtn.addEventListener("click", () => { floorVerts = []; rebuildTrace(); saveDesign(); });
+        showRefChk.addEventListener("change", rebuildRefSquare);
+        rotateBtn.addEventListener("click", rotateSelected);
+        deleteBtn.addEventListener("click", deleteSelected);
+
+        heightRange.addEventListener("input", () => {
+          const v = parseFloat(heightRange.value);
+          cameraHeightM = isFinite(v) ? v : 1.4;
+          heightNum.value = cameraHeightM.toFixed(2);
+          onHeightChange();
+        });
+        heightNum.addEventListener("change", () => {
+          let v = parseFloat(heightNum.value);
+          if (!isFinite(v)) v = 1.4;
+          cameraHeightM = Math.min(3, Math.max(0.3, v));
+          syncHeightInputs();
+          onHeightChange();
+        });
+
+        // Furniture catalog buttons.
+        FURNITURE_CATALOG.forEach((cat) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "rdp-cat-btn";
+          b.textContent = cat.label;
+          b.addEventListener("click", async () => {
+            b.disabled = true;
+            await addFurniture(cat, { x: 0, z: -2 });
+            b.disabled = false;
+          });
+          catalogEl.appendChild(b);
+        });
+
+        // Furniture drag: a grabbed model follows the floor; release saves.
+        canvas.addEventListener("pointermove", (e) => { if (draggingItem) moveFurniture(e); });
+        canvas.addEventListener("pointerup", () => { if (draggingItem) { draggingItem = null; saveDesign(); } });
+
+        // Keyboard: rotate / delete the selection (ignored while typing height).
+        window.addEventListener("keydown", (e) => {
+          if (!designMode || !selectedItem) return;
+          const tag = e.target && e.target.tagName;
+          if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+          if (e.key === "r" || e.key === "R") rotateSelected();
+          else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); deleteSelected(); }
+        });
+
+        // A near-stationary press while tracing drops a corner; a real drag
+        // still looks around. Skip if this gesture grabbed furniture.
+        canvas.addEventListener("pointerup", (e) => {
+          if (furnitureGesture || !designMode || !tracing) return;
+          if (Math.hypot(e.clientX - downX, e.clientY - downY) <= CLICK_SLOP) placeVertex(e);
+        });
+      }
+
       function tick() {
         animFrame = requestAnimationFrame(tick);
         if (!dragging && (Math.abs(velYaw) > 0.00005 || Math.abs(velPitch) > 0.00005)) {
@@ -6437,6 +7078,7 @@
         init();
         titleEl.textContent = roomName || "Your 3D room";
         buildCube(urls);
+        resetDesignForNewRoom();
 
         // Reset the view to face the front (North) wall at the default zoom.
         yaw = 0; pitch = 0; velYaw = 0; velPitch = 0;
