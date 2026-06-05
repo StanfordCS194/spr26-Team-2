@@ -3673,19 +3673,21 @@
     const fourClass = HOUSES.filter((h) => h.category === "four_class");
 
     /*
-     * Display section panorama source:
-     * CDN fallback avoids 404s if deployed host has not picked up new photos yet.
+     * Panorama sources:
+     * - ZAP uses treeview/photos (main website assets)
+     * - Other dorm test tours use dorm-tour-pannellum/otherPhotos
      */
-    const PANORAMA_BASE = "https://raw.githubusercontent.com/StanfordCS194/spr26-Team-2/main/treeview/photos/";
-    function pano(file) {
-      return PANORAMA_BASE + file;
+    const ZAP_PANORAMA_BASE = "https://raw.githubusercontent.com/StanfordCS194/spr26-Team-2/main/treeview/photos/";
+    const OTHER_DORM_PANORAMA_BASE = "https://raw.githubusercontent.com/StanfordCS194/spr26-Team-2/main/dormPhotos/";
+    function pano(base, file) {
+      return base + file;
     }
 
     /*
      * Pannellum “tour” config — mirrored from dorm-tour-pannellum/index.html.
      * Each scene is one equirectangular photo; hotSpots jump between scene ids.
      */
-    function getDemoTourConfig() {
+    function getDemoTourConfig(dormId) {
       const HOTSPOT_DEBUG = false;
       const baseScene = {
         type: "equirectangular",
@@ -3705,133 +3707,59 @@
         avoidShowingBackground: true,
       };
 
-      return {
+      const withDefaults = (firstScene, scenes) => ({
         default: {
-          firstScene: "zapOne",
+          firstScene,
           autoLoad: true,
           sceneFadeDuration: 800,
           showControls: true,
           showFullscreenCtrl: true,
           hotSpotDebug: HOTSPOT_DEBUG,
         },
-        scenes: {
-          zapOne: {
-            ...baseScene,
-            title: "ZAP One",
-            panorama: pano("ZAP_One.jpeg"),
-            hotSpots: [
-              {
-                pitch: +3.5, // edit this line for up down (positive = up, negative = down)
-                yaw: -18, // edit this line for left right (positive = right, negative = left)
-                type: "scene",
-                text: "Go to ZAP Two",
-                sceneId: "zapTwo",
-                targetYaw: 0,
-                targetPitch: 0,
-                targetHfov: 70,
-              },
-            ],
-          },
-          zapTwo: {
-            ...baseScene,
-            title: "ZAP Two",
-            panorama: pano("ZAP_Two.jpeg"),
-            hotSpots: [
-              {
-                pitch: 2, // edit this line for up down (positive = up, negative = down)
-                yaw: +45, // edit this line for left right (positive = right, negative = left)
-                type: "scene",
-                text: "Back to ZAP One",
-                sceneId: "zapOne",
-                targetYaw: 0,
-                targetPitch: 0,
-                targetHfov: 70,
-              },
-              {
-                pitch: 3, // edit this line for up down (positive = up, negative = down)
-                yaw: -42, // edit this line for left right (positive = right, negative = left)
-                type: "scene",
-                text: "Go to ZAP Three",
-                sceneId: "zapThree",
-                targetYaw: 0,
-                targetPitch: 0,
-                targetHfov: 70,
-              },
-            ],
-          },
-          zapThree: {
-            ...baseScene,
-            title: "ZAP Three",
-            panorama: pano("ZAP_Three.jpeg"),
-            hotSpots: [
-              {
-                pitch: 2, // edit this line for up down (positive = up, negative = down)
-                yaw: 45, // edit this line for left right (positive = right, negative = left)
-                type: "scene",
-                text: "Back to ZAP Two",
-                sceneId: "zapTwo",
-                targetYaw: 0,
-                targetPitch: 0,
-                targetHfov: 70,
-              },
-              {
-                pitch: 2, // edit this line for up down (positive = up, negative = down)
-                yaw: 24, // edit this line for left right (positive = right, negative = left)
-                type: "scene",
-                text: "Go to ZAP Four",
-                sceneId: "zapFour",
-                targetYaw: 0,
-                targetPitch: 0,
-                targetHfov: 70,
-              },
-            ],
-          },
-          zapFour: {
-            ...baseScene,
-            title: "ZAP Four",
-            panorama: pano("ZAP_Four.jpeg"),
-            hotSpots: [
-              {
-                pitch: 3, // edit this line for up down (positive = up, negative = down)
-                yaw: -31, // edit this line for left right (positive = right, negative = left)
-                type: "scene",
-                text: "Back to ZAP Three",
-                sceneId: "zapThree",
-                targetYaw: 0,
-                targetPitch: 0,
-                targetHfov: 70,
-              },
-              {
-                pitch: 3, // edit this line for up down (positive = up, negative = down)
-                yaw: 4, // edit this line for left right (positive = right, negative = left)
-                type: "scene",
-                text: "Go to ZAP Five",
-                sceneId: "zapFive",
-                targetYaw: 0,
-                targetPitch: 0,
-                targetHfov: 70,
-              },
-            ],
-          },
-          zapFive: {
-            ...baseScene,
-            title: "ZAP Five",
-            panorama: pano("ZAP_Five.jpeg"),
-            hotSpots: [
-              {
-                pitch: 3, // edit this line for up down (positive = up, negative = down)
-                yaw: 50, // edit this line for left right (positive = right, negative = left)
-                type: "scene",
-                text: "Back to ZAP Four",
-                sceneId: "zapFour",
-                targetYaw: 0,
-                targetPitch: 0,
-                targetHfov: 70,
-              },
-            ],
-          },
-        },
+        scenes,
+      });
+
+      const dormTours = {
+        zap: withDefaults("zapOne", {
+          zapOne: { ...baseScene, title: "ZAP One", panorama: pano(ZAP_PANORAMA_BASE, "ZAP_One.jpeg"), hotSpots: [{ pitch: 3.5, yaw: -18, type: "scene", text: "Go to ZAP Two", sceneId: "zapTwo" }] },
+          zapTwo: { ...baseScene, title: "ZAP Two", panorama: pano(ZAP_PANORAMA_BASE, "ZAP_Two.jpeg"), hotSpots: [{ pitch: 2, yaw: 45, type: "scene", text: "Back to ZAP One", sceneId: "zapOne" }, { pitch: 3, yaw: -42, type: "scene", text: "Go to ZAP Three", sceneId: "zapThree" }] },
+          zapThree: { ...baseScene, title: "ZAP Three", panorama: pano(ZAP_PANORAMA_BASE, "ZAP_Three.jpeg"), hotSpots: [{ pitch: 2, yaw: 45, type: "scene", text: "Back to ZAP Two", sceneId: "zapTwo" }, { pitch: 2, yaw: 24, type: "scene", text: "Go to ZAP Four", sceneId: "zapFour" }] },
+          zapFour: { ...baseScene, title: "ZAP Four", panorama: pano(ZAP_PANORAMA_BASE, "ZAP_Four.jpeg"), hotSpots: [{ pitch: 3, yaw: -31, type: "scene", text: "Back to ZAP Three", sceneId: "zapThree" }, { pitch: 3, yaw: 4, type: "scene", text: "Go to ZAP Five", sceneId: "zapFive" }] },
+          zapFive: { ...baseScene, title: "ZAP Five", panorama: pano(ZAP_PANORAMA_BASE, "ZAP_Five.jpeg"), hotSpots: [{ pitch: 3, yaw: 50, type: "scene", text: "Back to ZAP Four", sceneId: "zapFour" }] },
+        }),
+
+        okada: withDefaults("okadaOne", {
+          okadaOne: { ...baseScene, title: "Okada One", panorama: pano(OTHER_DORM_PANORAMA_BASE, "okada_one.jpeg"), hotSpots: [{ pitch: 1.85, yaw: -1.13, type: "scene", text: "Go to Okada Two", sceneId: "okadaTwo" }] },
+          okadaTwo: { ...baseScene, title: "Okada Two", panorama: pano(OTHER_DORM_PANORAMA_BASE, "okada_two.jpeg"), hotSpots: [{ pitch: -2.42, yaw: 44.58, type: "scene", text: "Back to Okada One", sceneId: "okadaOne" }, { pitch: 1.21, yaw: -11.68, type: "scene", text: "Go to Okada Three", sceneId: "okadaThree" }] },
+          okadaThree: { ...baseScene, title: "Okada Three", panorama: pano(OTHER_DORM_PANORAMA_BASE, "okada_three.jpeg"), hotSpots: [{ pitch: 4.5, yaw: 26.95, type: "scene", text: "Back to Okada Two", sceneId: "okadaTwo" }] },
+        }),
+
+        rinconada: withDefaults("rinconadaOne", {
+          rinconadaOne: { ...baseScene, title: "Rinconada One", panorama: pano(OTHER_DORM_PANORAMA_BASE, "rinconada_one.jpeg"), hotSpots: [{ pitch: 0.16, yaw: -9.22, type: "scene", text: "Go to Rinconada Two", sceneId: "rinconadaTwo" }] },
+          rinconadaTwo: { ...baseScene, title: "Rinconada Two", panorama: pano(OTHER_DORM_PANORAMA_BASE, "rinconada_two.jpeg"), hotSpots: [{ pitch: 2.31, yaw: 54.01, type: "scene", text: "Back to Rinconada One", sceneId: "rinconadaOne" }, { pitch: 0.4, yaw: -4.92, type: "scene", text: "Go to Rinconada Three", sceneId: "rinconadaThree" }] },
+          rinconadaThree: { ...baseScene, title: "Rinconada Three", panorama: pano(OTHER_DORM_PANORAMA_BASE, "rinconada_three.jpeg"), hotSpots: [{ pitch: 1.37, yaw: -19.98, type: "scene", text: "Back to Rinconada Two", sceneId: "rinconadaTwo" }] },
+        }),
+
+        soto: withDefaults("sotoOne", {
+          sotoOne: { ...baseScene, title: "Soto One", panorama: pano(OTHER_DORM_PANORAMA_BASE, "soto_one.jpeg"), hotSpots: [{ pitch: 3.22, yaw: -10.97, type: "scene", text: "Go to Soto Two", sceneId: "sotoTwo" }] },
+          sotoTwo: { ...baseScene, title: "Soto Two", panorama: pano(OTHER_DORM_PANORAMA_BASE, "soto_two.jpeg"), hotSpots: [{ pitch: 0.75, yaw: 45.2, type: "scene", text: "Back to Soto One", sceneId: "sotoOne" }, { pitch: 2.54, yaw: -11.48, type: "scene", text: "Go to Soto Three", sceneId: "sotoThree" }] },
+          sotoThree: { ...baseScene, title: "Soto Three", panorama: pano(OTHER_DORM_PANORAMA_BASE, "soto_three.jpeg"), hotSpots: [{ pitch: 2.1, yaw: 9.12, type: "scene", text: "Back to Soto Two", sceneId: "sotoTwo" }] },
+        }),
+
+        "sally-ride": withDefaults("sallyRideOne", {
+          sallyRideOne: { ...baseScene, title: "Sally Ride One", panorama: pano(OTHER_DORM_PANORAMA_BASE, "sallyride_one.jpeg"), hotSpots: [{ pitch: 1.02, yaw: -24.9, type: "scene", text: "Go to Sally Ride Two", sceneId: "sallyRideTwo" }] },
+          sallyRideTwo: { ...baseScene, title: "Sally Ride Two", panorama: pano(OTHER_DORM_PANORAMA_BASE, "sallyride_two.jpeg"), hotSpots: [{ pitch: 1.33, yaw: 43.56, type: "scene", text: "Back to Sally Ride One", sceneId: "sallyRideOne" }, { pitch: 5.12, yaw: -35.15, type: "scene", text: "Go to Sally Ride Three", sceneId: "sallyRideThree" }] },
+          sallyRideThree: { ...baseScene, title: "Sally Ride Three", panorama: pano(OTHER_DORM_PANORAMA_BASE, " sallyride_three.jpeg"), hotSpots: [{ pitch: 8.74, yaw: 28.08, type: "scene", text: "Back to Sally Ride Two", sceneId: "sallyRideTwo" }] },
+        }),
+
+        lantana: withDefaults("lantanaOne", {
+          lantanaOne: { ...baseScene, title: "Lantana One", panorama: pano(OTHER_DORM_PANORAMA_BASE, "launtana_one.jpeg"), hotSpots: [{ pitch: -0.78, yaw: -33.2, type: "scene", text: "Go to Lantana Two", sceneId: "lantanaTwo" }] },
+          lantanaTwo: { ...baseScene, title: "Lantana Two", panorama: pano(OTHER_DORM_PANORAMA_BASE, "launtana_two.jpeg"), hotSpots: [{ pitch: 3.97, yaw: 49.7, type: "scene", text: "Back to Lantana One", sceneId: "lantanaOne" }, { pitch: 1.71, yaw: 22.96, type: "scene", text: "Go to Lantana Three", sceneId: "lantanaThree" }] },
+          lantanaThree: { ...baseScene, title: "Lantana Three", panorama: pano(OTHER_DORM_PANORAMA_BASE, "launtana_three.jpeg"), hotSpots: [{ pitch: 0.13, yaw: -43.86, type: "scene", text: "Back to Lantana Two", sceneId: "lantanaTwo" }] },
+        }),
       };
+
+      return dormTours[dormId] || null;
     }
 
     // Cached DOM nodes we touch on every interaction (avoids repeating getElementById everywhere)
@@ -4649,6 +4577,9 @@
       roomType = getHouse(houseId).roomTypes[0];
       renderPills();
       updatePreview();
+      if (panoramaViewerDormId || activeDashboardView === "residences") {
+        loadMainPanoramaForDorm(houseId);
+      }
     });
 
     // First paint: populate controls from defaults (first house + its first room type)
@@ -4656,12 +4587,45 @@
     renderPills();
     updatePreview();
 
+    function buildNoTourMarkup(dormName) {
+      return (
+        '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:20px;text-align:center;color:rgba(255,255,255,0.78);font-family:var(--font-ui);font-size:0.95rem;background:linear-gradient(145deg, rgba(25,33,44,0.92) 0%, rgba(18,24,34,0.95) 100%);">' +
+        "No 360 photos yet for " + dormName + "." +
+        "</div>"
+      );
+    }
+
+    function hasDormTour(dormId) {
+      return Boolean(getDemoTourConfig(dormId));
+    }
+
     // Boot the 360 viewer — initialized lazily when the residences tab becomes active
     let panoramaViewer = null;
-    function initPanoramaViewer() {
-      if (!panoramaViewer) {
-        panoramaViewer = pannellum.viewer("treeview-panorama", getDemoTourConfig());
+    let panoramaViewerDormId = null;
+    function loadMainPanoramaForDorm(dormId) {
+      const panoHost = document.getElementById("treeview-panorama");
+      const house = getHouse(dormId);
+      const config = getDemoTourConfig(dormId);
+
+      if (panoramaViewerDormId === dormId && panoramaViewer) return;
+
+      if (panoramaViewer) {
+        panoramaViewer.destroy();
+        panoramaViewer = null;
       }
+
+      panoramaViewerDormId = dormId;
+      panoHost.innerHTML = "";
+
+      if (!config) {
+        panoHost.innerHTML = buildNoTourMarkup(house.name);
+        return;
+      }
+
+      panoramaViewer = pannellum.viewer("treeview-panorama", config);
+    }
+    function initPanoramaViewer() {
+      loadMainPanoramaForDorm(houseId);
     }
     /*
      * Pannellum doesn’t always reflow on its own when the window resizes.
@@ -5091,12 +5055,17 @@
           ? "First-year designated"
           : "Four-class residence";
 
-        const popupHTML = `
+        const popupHTML = hasDormTour(house.id)
+          ? `
           <p class="map-popup-name">${house.name}</p>
           <p class="map-popup-category">${categoryLabel}</p>
           <button class="map-popup-explore" data-dorm-id="${house.id}">
             Explore 360° &#8594;
-          </button>`;
+          </button>`
+          : `
+          <p class="map-popup-name">${house.name}</p>
+          <p class="map-popup-category">${categoryLabel}</p>
+          <p class="map-popup-category" style="margin-top:6px;">No 360 photos yet for this dorm.</p>`;
 
         const popup = new mapboxgl.Popup({
           offset: [0, -42],
@@ -5128,7 +5097,14 @@
         mapPanoViewer = null;
       }
 
-      mapPanoViewer = pannellum.viewer("map-panorama", getDemoTourConfig());
+      const mapPanoHost = document.getElementById("map-panorama");
+      mapPanoHost.innerHTML = "";
+      const config = getDemoTourConfig(house.id);
+      if (!config) {
+        mapPanoHost.innerHTML = buildNoTourMarkup(house.name);
+      } else {
+        mapPanoViewer = pannellum.viewer("map-panorama", config);
+      }
       mapOverlaySelect.dataset.dormId = house.id;
     }
 
@@ -6026,7 +6002,7 @@
         return;
       }
 
-      const FIRST_SCENE_URL = pano("ZAP_One.jpeg");
+      const FIRST_SCENE_URL = pano(ZAP_PANORAMA_BASE, "ZAP_One.jpeg");
       // Match Pannellum baseScene (haov: 110, vaov: 45) — half-angles for yaw/pitch clamps.
       const YAW_LIMIT_RAD   = THREE.MathUtils.degToRad(55);
       const PITCH_LIMIT_RAD = THREE.MathUtils.degToRad(22.5);

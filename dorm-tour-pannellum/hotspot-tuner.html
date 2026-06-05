@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pannellum Hotspot Tuner</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #10131a;
+      color: #eef2f7;
+    }
+    .wrap {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 12px;
+      height: 100vh;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+    .panel {
+      background: #1a2130;
+      border: 1px solid #2f3a52;
+      border-radius: 10px;
+      padding: 12px;
+      overflow: auto;
+    }
+    .field {
+      margin-bottom: 10px;
+    }
+    .field label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: #b7c3da;
+    }
+    .field input, .field select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #3a4764;
+      background: #0f1522;
+      color: #eef2f7;
+    }
+    .hint {
+      font-size: 12px;
+      color: #9fb0cf;
+      margin-top: 6px;
+    }
+    .result {
+      margin-top: 8px;
+      background: #0f1522;
+      border: 1px solid #3a4764;
+      border-radius: 8px;
+      padding: 10px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .actions button {
+      border: 1px solid #3a4764;
+      background: #111a2a;
+      color: #eef2f7;
+      border-radius: 6px;
+      padding: 6px 9px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .saved-list {
+      margin-top: 10px;
+      border: 1px solid #3a4764;
+      border-radius: 8px;
+      background: #0f1522;
+      max-height: 260px;
+      overflow: auto;
+      padding: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .saved-item {
+      border-bottom: 1px solid #2e3a53;
+      padding: 6px 0;
+    }
+    .saved-item:last-child {
+      border-bottom: 0;
+    }
+    .img-card {
+      background: #0b111d;
+      border: 1px solid #2f3a52;
+      border-radius: 10px;
+      overflow: auto;
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+    .img-card img {
+      max-width: 100%;
+      max-height: calc(100vh - 24px);
+      cursor: crosshair;
+      user-select: none;
+    }
+    .cross {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #ff4f4f;
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      display: none;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel">
+      <h2 style="margin-top:0;">Hotspot Tuner</h2>
+      <p class="hint">
+        Click a point on the image. Tool returns pixel + estimated Pannellum
+        <code>pitch</code>/<code>yaw</code>.
+      </p>
+
+      <div class="field">
+        <label for="imageSelect">Image</label>
+        <select id="imageSelect"></select>
+      </div>
+
+      <div class="field">
+        <label for="haov">haov (degrees)</label>
+        <input id="haov" type="number" value="110" step="0.1" />
+      </div>
+
+      <div class="field">
+        <label for="vaov">vaov (degrees)</label>
+        <input id="vaov" type="number" value="45" step="0.1" />
+      </div>
+
+      <div class="field">
+        <label for="vOffset">vOffset (degrees)</label>
+        <input id="vOffset" type="number" value="0" step="0.1" />
+      </div>
+
+      <div class="field">
+        <label for="sceneId">sceneId (optional snippet helper)</label>
+        <input id="sceneId" type="text" placeholder="zapTwo" />
+      </div>
+
+      <div class="field">
+        <label for="text">text (optional snippet helper)</label>
+        <input id="text" type="text" placeholder="Go to ZAP Two" />
+      </div>
+
+      <div id="result" class="result">Click image to generate values...</div>
+      <div class="actions">
+        <button id="savePointBtn" type="button">Save This Point</button>
+        <button id="exportJsonBtn" type="button">Export JSON</button>
+        <button id="copyJsonBtn" type="button">Copy JSON</button>
+        <button id="clearBtn" type="button">Clear Saved</button>
+      </div>
+      <div id="savedList" class="saved-list">No saved points yet.</div>
+    </aside>
+
+    <main class="img-card" id="imgCard">
+      <img id="photo" alt="panorama source" />
+      <div id="cross" class="cross"></div>
+    </main>
+  </div>
+
+  <script>
+    const files = [
+      "ZAP_One.jpeg",
+      "ZAP_Two.jpeg",
+      "ZAP_Three.jpeg",
+      "ZAP_Four.jpeg",
+      "ZAP_Five.jpeg",
+      "okada_one.jpeg",
+      "okada_two.jpeg",
+      "okada_three.jpeg",
+      "rinconada_one.jpeg",
+      "rinconada_two.jpeg",
+      "rinconada_three.jpeg",
+      "soto_one.jpeg",
+      "soto_two.jpeg",
+      "soto_three.jpeg",
+      "sallyride_one.jpeg",
+      "sallyride_two.jpeg",
+      " sallyride_three.jpeg",
+      "launtana_one.jpeg",
+      "launtana_two.jpeg",
+      "launtana_three.jpeg"
+    ];
+
+    const imageSelect = document.getElementById("imageSelect");
+    const photo = document.getElementById("photo");
+    const result = document.getElementById("result");
+    const cross = document.getElementById("cross");
+    const haovInput = document.getElementById("haov");
+    const vaovInput = document.getElementById("vaov");
+    const vOffsetInput = document.getElementById("vOffset");
+    const sceneIdInput = document.getElementById("sceneId");
+    const textInput = document.getElementById("text");
+    const savePointBtn = document.getElementById("savePointBtn");
+    const exportJsonBtn = document.getElementById("exportJsonBtn");
+    const copyJsonBtn = document.getElementById("copyJsonBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const savedList = document.getElementById("savedList");
+    const STORAGE_KEY = "pannellum-hotspot-tuner-points-v1";
+
+    let lastPoint = null;
+    let savedPoints = [];
+
+    files.forEach((file) => {
+      const opt = document.createElement("option");
+      opt.value = file;
+      opt.textContent = file;
+      imageSelect.appendChild(opt);
+    });
+
+    function loadImage() {
+      photo.src = "otherPhotos/" + imageSelect.value;
+      cross.style.display = "none";
+      result.textContent = "Click image to generate values...";
+    }
+
+    imageSelect.addEventListener("change", loadImage);
+    loadImage();
+
+    function round(n) {
+      return Math.round(n * 100) / 100;
+    }
+
+    function renderSavedList() {
+      if (!savedPoints.length) {
+        savedList.textContent = "No saved points yet.";
+        return;
+      }
+      savedList.innerHTML = "";
+      savedPoints.forEach((p, i) => {
+        const row = document.createElement("div");
+        row.className = "saved-item";
+        row.textContent =
+          `${i + 1}. ${p.image} | x=${p.pixelX}, y=${p.pixelY} | pitch=${p.pitch}, yaw=${p.yaw} | sceneId=${p.sceneId || "targetSceneId"}`;
+        savedList.appendChild(row);
+      });
+    }
+
+    function persistSavedPoints() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedPoints));
+      renderSavedList();
+    }
+
+    function loadSavedPoints() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) savedPoints = JSON.parse(raw);
+      } catch (_) {
+        savedPoints = [];
+      }
+      renderSavedList();
+    }
+
+    function pointsAsJson() {
+      return JSON.stringify(savedPoints, null, 2);
+    }
+
+    loadSavedPoints();
+
+    photo.addEventListener("click", (event) => {
+      const rect = photo.getBoundingClientRect();
+      const displayX = event.clientX - rect.left;
+      const displayY = event.clientY - rect.top;
+
+      const scaleX = photo.naturalWidth / rect.width;
+      const scaleY = photo.naturalHeight / rect.height;
+      const pixelX = displayX * scaleX;
+      const pixelY = displayY * scaleY;
+
+      const haov = parseFloat(haovInput.value) || 110;
+      const vaov = parseFloat(vaovInput.value) || 45;
+      const vOffset = parseFloat(vOffsetInput.value) || 0;
+
+      // Approx mapping for partial equirectangular setup centered at yaw=0.
+      const yaw = ((pixelX / photo.naturalWidth) - 0.5) * haov;
+      const pitch = (0.5 - (pixelY / photo.naturalHeight)) * vaov + vOffset;
+
+      cross.style.left = event.clientX - rect.left + "px";
+      cross.style.top = event.clientY - rect.top + "px";
+      cross.style.display = "block";
+
+      const sceneId = sceneIdInput.value.trim();
+      const text = textInput.value.trim();
+      const roundedPitch = round(pitch);
+      const roundedYaw = round(yaw);
+      const roundedX = round(pixelX);
+      const roundedY = round(pixelY);
+      const snippet = [
+        "{",
+        `  pitch: ${roundedPitch},`,
+        `  yaw: ${roundedYaw},`,
+        '  type: "scene",',
+        text ? `  text: "${text}",` : '  text: "Go to next scene",',
+        sceneId ? `  sceneId: "${sceneId}"` : '  sceneId: "targetSceneId"',
+        "}"
+      ].join("\n");
+
+      result.textContent =
+        `image: ${imageSelect.value}\n` +
+        `pixel: x=${roundedX}, y=${roundedY}\n` +
+        `size: ${photo.naturalWidth} x ${photo.naturalHeight}\n` +
+        `pitch: ${roundedPitch}\n` +
+        `yaw: ${roundedYaw}\n\n` +
+        `hotSpot snippet:\n${snippet}`;
+
+      lastPoint = {
+        image: imageSelect.value,
+        pixelX: roundedX,
+        pixelY: roundedY,
+        width: photo.naturalWidth,
+        height: photo.naturalHeight,
+        haov: parseFloat(haovInput.value) || 110,
+        vaov: parseFloat(vaovInput.value) || 45,
+        vOffset: parseFloat(vOffsetInput.value) || 0,
+        pitch: roundedPitch,
+        yaw: roundedYaw,
+        text: text || "Go to next scene",
+        sceneId: sceneId || "targetSceneId"
+      };
+    });
+
+    savePointBtn.addEventListener("click", () => {
+      if (!lastPoint) {
+        result.textContent = "Click image first, then save.";
+        return;
+      }
+      savedPoints.push(lastPoint);
+      persistSavedPoints();
+    });
+
+    exportJsonBtn.addEventListener("click", () => {
+      const blob = new Blob([pointsAsJson()], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "hotspot-points.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    copyJsonBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(pointsAsJson());
+        result.textContent = "Saved points JSON copied to clipboard.";
+      } catch (_) {
+        result.textContent = "Clipboard copy failed. Use Export JSON instead.";
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      savedPoints = [];
+      persistSavedPoints();
+    });
+  </script>
+</body>
+</html>

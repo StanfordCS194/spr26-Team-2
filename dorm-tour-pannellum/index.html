@@ -9,14 +9,45 @@
     html, body {
       margin: 0;
       height: 100%;
+      font-family: Arial, sans-serif;
     }
     #panorama {
       width: 100%;
       height: 100vh;
     }
+    .dorm-switcher {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: min(760px, calc(100vw - 20px));
+    }
+    .dorm-switcher button {
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
+  <div class="dorm-switcher">
+    <button type="button" data-scene="zapOne">ZAP</button>
+    <button type="button" data-scene="okadaOne">Okada</button>
+    <button type="button" data-scene="rinconadaOne">Rinconada</button>
+    <button type="button" data-scene="sotoOne">Soto</button>
+    <button type="button" data-scene="sallyRideOne">Sally Ride</button>
+    <button type="button" data-scene="lantanaOne">Lantana</button>
+  </div>
   <div id="panorama"></div>
 
   <script>
@@ -45,7 +76,7 @@
       avoidShowingBackground: true
     };
 
-    pannellum.viewer("panorama", {
+    const viewer = pannellum.viewer("panorama", {
       default: {
         firstScene: "zapOne",
         autoLoad: true,
@@ -169,8 +200,264 @@
               targetHfov: 70
             }
           ]
+        },
+
+        okadaOne: {
+          ...baseScene,
+          title: "Okada One",
+          panorama: pano("okada_one.jpeg"),
+          hotSpots: [
+            {
+              pitch: 1.85,
+              yaw: -1.13,
+              type: "scene",
+              text: "Go to Okada Two",
+              sceneId: "okadaTwo"
+            }
+          ]
+        },
+        okadaTwo: {
+          ...baseScene,
+          title: "Okada Two",
+          panorama: pano("okada_two.jpeg"),
+          hotSpots: [
+            {
+              pitch: -2.42,
+              yaw: 44.58,
+              type: "scene",
+              text: "Back to Okada One",
+              sceneId: "okadaOne"
+            },
+            {
+              pitch: 1.21,
+              yaw: -11.68,
+              type: "scene",
+              text: "Go to Okada Three",
+              sceneId: "okadaThree"
+            }
+          ]
+        },
+        okadaThree: {
+          ...baseScene,
+          title: "Okada Three",
+          panorama: pano("okada_three.jpeg"),
+          hotSpots: [
+            {
+              pitch: 4.5,
+              yaw: 26.95,
+              type: "scene",
+              text: "Back to Okada Two",
+              sceneId: "okadaTwo"
+            }
+          ]
+        },
+
+        rinconadaOne: {
+          ...baseScene,
+          title: "Rinconada One",
+          panorama: pano("rinconada_one.jpeg"),
+          hotSpots: [
+            {
+              pitch: 0.16,
+              yaw: -9.22,
+              type: "scene",
+              text: "Go to Rinconada Two",
+              sceneId: "rinconadaTwo"
+            }
+          ]
+        },
+        rinconadaTwo: {
+          ...baseScene,
+          title: "Rinconada Two",
+          panorama: pano("rinconada_two.jpeg"),
+          hotSpots: [
+            {
+              pitch: 2.31,
+              yaw: 54.01,
+              type: "scene",
+              text: "Back to Rinconada One",
+              sceneId: "rinconadaOne"
+            },
+            {
+              pitch: 0.4,
+              yaw: -4.92,
+              type: "scene",
+              text: "Go to Rinconada Three",
+              sceneId: "rinconadaThree"
+            }
+          ]
+        },
+        rinconadaThree: {
+          ...baseScene,
+          title: "Rinconada Three",
+          panorama: pano("rinconada_three.jpeg"),
+          hotSpots: [
+            {
+              pitch: 1.37,
+              yaw: -19.98,
+              type: "scene",
+              text: "Back to Rinconada Two",
+              sceneId: "rinconadaTwo"
+            }
+          ]
+        },
+
+        sotoOne: {
+          ...baseScene,
+          title: "Soto One",
+          panorama: pano("soto_one.jpeg"),
+          hotSpots: [
+            {
+              pitch: 3.22,
+              yaw: -10.97,
+              type: "scene",
+              text: "Go to Soto Two",
+              sceneId: "sotoTwo"
+            }
+          ]
+        },
+        sotoTwo: {
+          ...baseScene,
+          title: "Soto Two",
+          panorama: pano("soto_two.jpeg"),
+          hotSpots: [
+            {
+              pitch: 0.75,
+              yaw: 45.2,
+              type: "scene",
+              text: "Back to Soto One",
+              sceneId: "sotoOne"
+            },
+            {
+              pitch: 2.54,
+              yaw: -11.48,
+              type: "scene",
+              text: "Go to Soto Three",
+              sceneId: "sotoThree"
+            }
+          ]
+        },
+        sotoThree: {
+          ...baseScene,
+          title: "Soto Three",
+          panorama: pano("soto_three.jpeg"),
+          hotSpots: [
+            {
+              pitch: 2.1,
+              yaw: 9.12,
+              type: "scene",
+              text: "Back to Soto Two",
+              sceneId: "sotoTwo"
+            }
+          ]
+        },
+
+        sallyRideOne: {
+          ...baseScene,
+          title: "Sally Ride One",
+          panorama: pano("sallyride_one.jpeg"),
+          hotSpots: [
+            {
+              pitch: 1.02,
+              yaw: -24.9,
+              type: "scene",
+              text: "Go to Sally Ride Two",
+              sceneId: "sallyRideTwo"
+            }
+          ]
+        },
+        sallyRideTwo: {
+          ...baseScene,
+          title: "Sally Ride Two",
+          panorama: pano("sallyride_two.jpeg"),
+          hotSpots: [
+            {
+              pitch: 1.33,
+              yaw: 43.56,
+              type: "scene",
+              text: "Back to Sally Ride One",
+              sceneId: "sallyRideOne"
+            },
+            {
+              pitch: 5.12,
+              yaw: -35.15,
+              type: "scene",
+              text: "Go to Sally Ride Three",
+              sceneId: "sallyRideThree"
+            }
+          ]
+        },
+        sallyRideThree: {
+          ...baseScene,
+          title: "Sally Ride Three",
+          panorama: pano(" sallyride_three.jpeg"),
+          hotSpots: [
+            {
+              pitch: 8.74,
+              yaw: 28.08,
+              type: "scene",
+              text: "Back to Sally Ride Two",
+              sceneId: "sallyRideTwo"
+            }
+          ]
+        },
+
+        lantanaOne: {
+          ...baseScene,
+          title: "Lantana One",
+          panorama: pano("launtana_one.jpeg"),
+          hotSpots: [
+            {
+              pitch: -0.78,
+              yaw: -33.2,
+              type: "scene",
+              text: "Go to Lantana Two",
+              sceneId: "lantanaTwo"
+            }
+          ]
+        },
+        lantanaTwo: {
+          ...baseScene,
+          title: "Lantana Two",
+          panorama: pano("launtana_two.jpeg"),
+          hotSpots: [
+            {
+              pitch: 3.97,
+              yaw: 49.7,
+              type: "scene",
+              text: "Back to Lantana One",
+              sceneId: "lantanaOne"
+            },
+            {
+              pitch: 1.71,
+              yaw: 22.96,
+              type: "scene",
+              text: "Go to Lantana Three",
+              sceneId: "lantanaThree"
+            }
+          ]
+        },
+        lantanaThree: {
+          ...baseScene,
+          title: "Lantana Three",
+          panorama: pano("launtana_three.jpeg"),
+          hotSpots: [
+            {
+              pitch: 0.13,
+              yaw: -43.86,
+              type: "scene",
+              text: "Back to Lantana Two",
+              sceneId: "lantanaTwo"
+            }
+          ]
         }
       }
+    });
+
+    document.querySelectorAll("[data-scene]").forEach((button) => {
+      button.addEventListener("click", () => {
+        viewer.loadScene(button.dataset.scene);
+      });
     });
   </script>
 </body>
