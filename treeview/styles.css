@@ -956,6 +956,78 @@
     }
     .design-ctrl-btn:hover { background: rgba(26, 34, 40, 0.95); color: #fff; }
 
+    /* Fullscreen design toolbar — overlaid top-left of the room viewport, only
+       visible while fullscreen (toggled from JS on fullscreenchange). Uses the
+       same dark glass as the other in-viewport controls so it reads in any theme. */
+    .room3d-fs-tools {
+      position: absolute;
+      top: 0.5rem;
+      left: 0.5rem;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.55rem;
+      border-radius: 8px;
+      background: rgba(26, 34, 40, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .room3d-fs-tools[hidden] { display: none; }
+    .room3d-fs-dropdown { position: relative; }
+    .room3d-fs-add-btn {
+      appearance: none;
+      padding: 0.35rem 0.7rem;
+      border-radius: 6px;
+      background: var(--teal);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #fff;
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .room3d-fs-add-btn:hover { filter: brightness(1.08); }
+    /* Custom menu (not a native <select>): readable in both themes and reliable
+       inside the Fullscreen API, where native popups get clipped or ignored. */
+    .room3d-fs-menu {
+      position: absolute;
+      top: calc(100% + 0.35rem);
+      left: 0;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.2rem;
+      max-height: 60vh;
+      overflow-y: auto;
+      padding: 0.35rem;
+      border-radius: 8px;
+      background: rgba(26, 34, 40, 0.97);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .room3d-fs-menu[hidden] { display: none; }
+    .room3d-fs-menu-item {
+      appearance: none;
+      white-space: nowrap;
+      padding: 0.4rem 0.7rem;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f1efe9;
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+    .room3d-fs-menu-item:hover { background: var(--teal); color: #fff; }
+    .room3d-fs-menu-item:disabled { opacity: 0.5; cursor: progress; }
+    .room3d-fs-btn { width: 1.9rem; height: 1.9rem; font-size: 0.95rem; }
+
     /* --- Bottom section: future “design your room” tool (static placeholder for now) --- */
     .designer {
       margin-top: 1.75rem;
@@ -1161,6 +1233,85 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(26, 34, 40, 0.12);
     }
+
+    /* --- Panorama (single equirectangular image) alternative input --- */
+    .pano-alt {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.85rem;
+    }
+    .pano-alt-divider {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      gap: 0.6rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .pano-alt-divider::before,
+    .pano-alt-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(61, 154, 140, 0.25);
+    }
+    .pano-pick-btn {
+      border-color: rgba(61, 154, 140, 0.45);
+    }
+    .pano-alt-hint {
+      margin: 0;
+      font-size: 0.78rem;
+      line-height: 1.4;
+      color: var(--muted);
+      text-align: center;
+    }
+    .pano-preview {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(61, 154, 140, 0.3);
+      background: rgba(61, 154, 140, 0.06);
+    }
+    .pano-preview[hidden] { display: none; }
+    .pano-preview-img {
+      width: 100%;
+      max-height: 180px;
+      object-fit: cover;
+      border-radius: 0.5rem;
+      display: block;
+    }
+    .pano-preview-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+    }
+    .pano-preview-name {
+      font-size: 0.8rem;
+      color: var(--charcoal);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pano-remove {
+      flex: none;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--charcoal-soft);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(61, 154, 140, 0.32);
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .pano-remove:hover { background: rgba(61, 154, 140, 0.12); }
 
     .upload-req-list {
       margin: 0;
@@ -1847,6 +1998,22 @@
     }
 
     .rdp-unit { font-size: 0.8rem; color: var(--muted); }
+
+    /* Dark mode: the near-white input background left the (now light) charcoal
+       text almost invisible. Give the number box a dark fill so it stays legible. */
+    [data-theme="dark"] .rdp-num {
+      background: rgba(20, 26, 31, 0.85);
+      border-color: rgba(61, 154, 140, 0.5);
+      color: var(--charcoal);
+    }
+
+    /* Same dark-mode legibility fix for the panorama "Remove" button. */
+    [data-theme="dark"] .pano-remove {
+      background: rgba(20, 26, 31, 0.85);
+      border-color: rgba(61, 154, 140, 0.5);
+      color: var(--charcoal);
+    }
+    [data-theme="dark"] .pano-remove:hover { background: rgba(61, 154, 140, 0.22); }
 
     .rdp-check {
       display: inline-flex;

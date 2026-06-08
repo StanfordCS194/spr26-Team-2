@@ -156,6 +156,13 @@
     const uploadReqSizeEl = document.getElementById("upload-req-size");
     const uploadReadyRowEl = document.getElementById("upload-ready-row");
     const uploadReadyTextEl = document.getElementById("upload-ready-text");
+    const uploadReqAnnounceEl = document.getElementById("upload-req-announce");
+    // === Panorama (single equirectangular image) alternative input ===
+    const roomPanoInput = document.getElementById("room-pano-input");
+    const panoPreviewEl = document.getElementById("pano-preview");
+    const panoPreviewImg = document.getElementById("pano-preview-img");
+    const panoPreviewNameEl = document.getElementById("pano-preview-name");
+    const panoRemoveBtn = document.getElementById("pano-remove");
     // === Upload Result Elements ===
     // These elements show the outcome (success or error) after the user clicks "Create 3D room"
     const uploadSubmitEl = document.getElementById("upload-submit");
@@ -188,9 +195,13 @@
     ];
     const MAX_ROOM_PHOTOS = ROOM_PHOTO_LABELS.length;
     const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+    const MAX_PANO_BYTES = 20 * 1024 * 1024; // panos run large; matches server's PANO_MAX_SIZE
     const ALLOWED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 
     let roomPhotoEntries = [];
+    // When set ({ file, url }), the user is in panorama mode instead of 6-photo
+    // mode. The two are mutually exclusive — choosing one clears the other.
+    let panoEntry = null;
     let activeSharedUploadMeta = null;
     let sharedUploadHydrated = false;
     let currentRoomUploadId = null;
@@ -214,6 +225,51 @@
     function resetRoomPhotoEntries(entries = []) {
       roomPhotoEntries.forEach(revokeRoomPhoto);
       roomPhotoEntries = entries;
+    }
+
+    // --- Panorama mode ---------------------------------------------------------
+
+    // Reflect pano vs 6-photo mode in the form: show the pano preview and hide
+    // the six-photo machinery (thumbs + the "0 of 6" checklist) while in pano mode.
+    function syncPanoUI() {
+      const inPano = !!panoEntry;
+      if (panoPreviewEl) panoPreviewEl.hidden = !inPano;
+      if (inPano && panoEntry) {
+        if (panoPreviewImg) panoPreviewImg.src = panoEntry.url;
+        if (panoPreviewNameEl) panoPreviewNameEl.textContent = panoEntry.file.name;
+      }
+      if (uploadThumbsEl) uploadThumbsEl.hidden = inPano;
+      if (uploadReqAnnounceEl) uploadReqAnnounceEl.hidden = inPano;
+    }
+
+    // Accept a single equirectangular image. Clears any 6-photo selection (the
+    // two inputs are mutually exclusive), then refreshes the form.
+    function setPanoFile(file) {
+      if (!file) return;
+      if (!isValidImageFile(file)) {
+        lastFormatRejectNames = [file.name];
+        renderRoomUploadUI();
+        return;
+      }
+      if (file.size > MAX_PANO_BYTES) {
+        lastSizeRejectNames = [file.name];
+        renderRoomUploadUI();
+        return;
+      }
+      lastFormatRejectNames = [];
+      lastSizeRejectNames = [];
+      lastCapSkip = false;
+      resetRoomPhotoEntries([]); // leave 6-photo mode
+      if (panoEntry) revokeRoomPhoto(panoEntry);
+      panoEntry = { file, url: URL.createObjectURL(file) };
+      renderRoomUploadUI();
+    }
+
+    function clearPano() {
+      if (panoEntry) revokeRoomPhoto(panoEntry);
+      panoEntry = null;
+      if (roomPanoInput) roomPanoInput.value = "";
+      renderRoomUploadUI();
     }
 
     function setCurrentRoomUploadId(uploadId) {
@@ -250,6 +306,8 @@
       sharedUploadHydrated = false;
       setCurrentRoomUploadId(null);
       resetRoomPhotoEntries([]);
+      if (panoEntry) { revokeRoomPhoto(panoEntry); panoEntry = null; }
+      if (roomPanoInput) roomPanoInput.value = "";
       roomNameInput.value = "My Room";
       clearUploadResult();
       hideSharedUploadPanel();
@@ -274,6 +332,7 @@
     }
 
     function ingestRoomPhotos(fileList) {
+      if (panoEntry) clearPano(); // adding wall photos leaves panorama mode
       const incoming = Array.from(fileList);
       lastFormatRejectNames = [];
       lastSizeRejectNames = [];
@@ -438,11 +497,13 @@
         uploadThumbsEl.appendChild(thumb);
       });
 
-      const ready = n === MAX_ROOM_PHOTOS;
+      syncPanoUI();
+      const ready = panoEntry ? true : n === MAX_ROOM_PHOTOS;
       uploadSubmitEl.disabled = !ready;
       uploadSubmitEl.setAttribute("aria-disabled", ready ? "false" : "true");
       uploadReadyRowEl.classList.toggle("is-ready", ready);
-      if (ready) uploadReadyTextEl.textContent = "Ready to upload";
+      if (panoEntry) uploadReadyTextEl.textContent = "360° panorama ready";
+      else if (ready) uploadReadyTextEl.textContent = "Ready to upload";
       else if (n === 0) uploadReadyTextEl.textContent = "Add photos to continue";
       else uploadReadyTextEl.textContent = "Select more photos";
     }
@@ -465,6 +526,10 @@
       }
       if (e.target.closest("[data-action='pick-photos']")) {
         roomPhotosInput.click();
+        return;
+      }
+      if (e.target.closest("[data-action='pick-pano']")) {
+        roomPanoInput.click();
         return;
       }
       const removeBtn = e.target.closest("[data-remove-index]");
@@ -511,6 +576,24 @@
       renderRoomUploadUI();
     }
 
+    // Swap two photos directly — used by drag-and-drop so dropping A onto B
+    // exchanges just those two slots, instead of shoving everything between them
+    // down by one (which moveRoomPhoto's splice-reinsert would do).
+    function swapRoomPhoto(from, to) {
+      if (
+        Number.isNaN(from) || Number.isNaN(to) ||
+        from < 0 || to < 0 ||
+        from >= roomPhotoEntries.length || to >= roomPhotoEntries.length ||
+        from === to
+      ) {
+        return;
+      }
+      const tmp = roomPhotoEntries[from];
+      roomPhotoEntries[from] = roomPhotoEntries[to];
+      roomPhotoEntries[to] = tmp;
+      renderRoomUploadUI();
+    }
+
     // === Drag-and-drop reordering of the thumbnails (desktop) ===
     // We track the index of the tile being dragged; on drop we splice it into the
     // target slot. The dropzone's file-drop handlers live on a separate element,
@@ -551,7 +634,7 @@
       const to = thumbIndexFromEvent(e);
       const from = dragFromIndex;
       dragFromIndex = null;
-      if (to !== null) moveRoomPhoto(from, to);
+      if (to !== null) swapRoomPhoto(from, to);
       else renderRoomUploadUI();
     });
 
@@ -590,6 +673,14 @@
       if (roomPhotosInput.files?.length) ingestRoomPhotos(roomPhotosInput.files);
       roomPhotosInput.value = "";
     });
+
+    if (roomPanoInput) {
+      roomPanoInput.addEventListener("change", () => {
+        if (roomPanoInput.files?.length) setPanoFile(roomPanoInput.files[0]);
+        roomPanoInput.value = "";
+      });
+    }
+    if (panoRemoveBtn) panoRemoveBtn.addEventListener("click", clearPano);
 
     // === Helper Functions for Upload ===
 
@@ -680,16 +771,45 @@
     }
 
     function renderSharedUploadSkybox(meta) {
-      const photoUrls = photoUrlsForSharedUpload(meta);
-      if (photoUrls.length < MAX_ROOM_PHOTOS || typeof window.renderRoomBuilderSkybox !== "function") return;
       const roomName = (meta.roomName || "").trim() || "Shared 3D room";
-      window.renderRoomBuilderSkybox(photoUrls, roomName);
+      const urls = photoUrlsForSharedUpload(meta);
+
+      if (meta.kind === "pano") {
+        if (!urls.length || typeof window.renderRoomBuilderPano !== "function") return;
+        window.renderRoomBuilderPano(urls[0], roomName);
+        setActiveView("designer");
+        return;
+      }
+
+      if (urls.length < MAX_ROOM_PHOTOS || typeof window.renderRoomBuilderSkybox !== "function") return;
+      window.renderRoomBuilderSkybox(urls, roomName);
       setActiveView("designer");
     }
 
     async function hydrateSharedUploadForEditing(meta) {
       const photoUrls = photoUrlsForSharedUpload(meta);
       const savedFiles = meta.savedFiles || [];
+
+      // Panorama: pull the single image back into pano mode for re-editing.
+      if (meta.kind === "pano") {
+        if (!photoUrls.length) throw new Error("This shared panorama is missing its image.");
+        const res = await fetch(photoUrls[0]);
+        if (!res.ok) throw new Error("Could not load the shared panorama.");
+        const blob = await res.blob();
+        const fileName = savedFiles[0] || "shared-pano.jpg";
+        const file = new File([blob], fileName, { type: blob.type || "image/jpeg" });
+        resetRoomPhotoEntries([]);
+        if (panoEntry) revokeRoomPhoto(panoEntry);
+        panoEntry = { file, url: URL.createObjectURL(file) };
+        roomNameInput.value = (meta.roomName || "").trim() || "Shared 3D room";
+        lastFormatRejectNames = [];
+        lastSizeRejectNames = [];
+        lastCapSkip = false;
+        renderRoomUploadUI();
+        sharedUploadHydrated = true;
+        return;
+      }
+
       if (photoUrls.length < MAX_ROOM_PHOTOS) {
         throw new Error("This shared upload does not have all six room photos.");
       }
@@ -768,8 +888,9 @@
     // This ensures the button state stays consistent throughout the upload process
     function setUploadSubmitting(isSubmitting) {
       uploadSubmitEl.classList.toggle("is-loading", isSubmitting); // Show spinner
-      uploadSubmitEl.disabled =
-        isSubmitting || roomPhotoEntries.length !== MAX_ROOM_PHOTOS; // Disable if uploading OR missing photos
+      // Enabled when a panorama is selected OR all six photos are present.
+      const haveInput = panoEntry ? true : roomPhotoEntries.length === MAX_ROOM_PHOTOS;
+      uploadSubmitEl.disabled = isSubmitting || !haveInput;
       uploadSubmitEl.setAttribute(
         "aria-disabled",
         uploadSubmitEl.disabled ? "true" : "false",
@@ -785,11 +906,47 @@
     roomUploadForm.addEventListener("submit", async (e) => {
       e.preventDefault(); // Don't actually submit the form (we handle it with fetch)
 
-      // Safety check: ensure exactly 6 photos are selected and button is enabled
-      if (roomPhotoEntries.length !== MAX_ROOM_PHOTOS || uploadSubmitEl.disabled) return;
+      // Safety check: need either a panorama or all six photos, and an enabled button.
+      if (uploadSubmitEl.disabled) return;
+      if (!panoEntry && roomPhotoEntries.length !== MAX_ROOM_PHOTOS) return;
 
       clearUploadResult(); // Hide any previous success/error message
       setUploadSubmitting(true); // Show spinner, disable button, change text to "Uploading..."
+
+      // === Panorama path: one equirectangular image → /api/upload-pano ===
+      if (panoEntry) {
+        const panoRoomName = (roomNameInput.value || "").trim() || "My Room";
+        uploadReadyTextEl.textContent = "Uploading panorama to server...";
+        // Render locally right away from the in-memory image (no round-trip wait).
+        if (window.renderRoomBuilderPano) window.renderRoomBuilderPano(panoEntry.url, panoRoomName);
+        try {
+          const panoForm = new FormData();
+          panoForm.append("panorama", panoEntry.file, panoEntry.file.name);
+          panoForm.append("roomName", panoRoomName);
+          panoForm.append("dormId", houseId);
+          panoForm.append("roomType", roomType);
+          const res = await fetch("/api/upload-pano", { method: "POST", body: panoForm });
+          let data = null;
+          try { data = await res.json(); } catch { /* non-JSON error body */ }
+          if (!res.ok || !data || !data.success) {
+            throw new Error((data && data.error) || `Server returned ${res.status}`);
+          }
+          setCurrentRoomUploadId(data.uploadId);
+          activeSharedUploadMeta = null;
+          sharedUploadHydrated = false;
+          hideUploadNotFoundScreen();
+          clearUploadResult();
+          designerUploadRoot.hidden = true;
+          roomUploadForm.hidden = true;
+        } catch (err) {
+          showUploadResult("error", `Upload failed: ${escapeUploadHtml(err.message)}. Please try again.`);
+          uploadReadyTextEl.textContent = "360° panorama ready";
+        } finally {
+          setUploadSubmitting(false);
+        }
+        return;
+      }
+
       uploadReadyTextEl.textContent = "Uploading photos to server...";
 
       // User-chosen display name for this room (falls back to a sensible default)
@@ -2606,9 +2763,11 @@
 
       // No-op if Three.js failed to load — the upload still works, just no 3D.
       if (typeof THREE === "undefined") {
-        window.renderRoomBuilderSkybox = function () {
+        const warn = function () {
           console.warn("[room3d] THREE.js unavailable — skipping 3D render.");
         };
+        window.renderRoomBuilderSkybox = warn;
+        window.renderRoomBuilderPano = warn;
         return;
       }
 
@@ -2630,7 +2789,7 @@
         { key: "North",   src: 0, rotation: 0 },          // -Z
       ];
 
-      let renderer, scene, camera, cubeMesh, texLoader;
+      let renderer, scene, camera, skyMesh, texLoader;
       let yaw = 0, pitch = 0, velYaw = 0, velPitch = 0;
       const lookTarget = new THREE.Vector3();
       let initialized = false, animFrame = null, resizeTimer = null;
@@ -2660,13 +2819,28 @@
       const furnRaycaster = new THREE.Raycaster();
       const ROTATE_STEP = Math.PI / 12;    // 15° per rotate press
       const FURNITURE_CATALOG = [
-        { id: "bed",      label: "Bed",      file: "bedSingle.glb",       target: 1.90, axis: "xz" },
-        { id: "desk",     label: "Desk",     file: "desk.glb",            target: 1.10, axis: "xz" },
-        { id: "chair",    label: "Chair",    file: "chairDesk.glb",       target: 0.55, axis: "xz" },
-        { id: "lamp",     label: "Lamp",     file: "lampSquareFloor.glb", target: 1.50, axis: "y"  },
-        { id: "bookcase", label: "Bookcase", file: "bookcaseOpen.glb",    target: 1.60, axis: "y"  },
-        { id: "plant",    label: "Plant",    file: "pottedPlant.glb",     target: 0.60, axis: "y"  },
-        { id: "rug",      label: "Rug",      file: "rugRectangle.glb",    target: 1.60, axis: "xz" },
+        { id: "bed",       label: "Bed",         file: "bedSingle.glb",         target: 1.90, axis: "xz" },
+        { id: "bedDouble", label: "Double bed",  file: "bedDouble.glb",         target: 2.00, axis: "xz" },
+        { id: "desk",      label: "Desk",        file: "desk.glb",              target: 1.10, axis: "xz" },
+        { id: "chair",     label: "Desk chair",  file: "chairDesk.glb",         target: 0.55, axis: "xz" },
+        { id: "armchair",  label: "Armchair",    file: "chairModernCushion.glb",target: 0.75, axis: "xz" },
+        { id: "stool",     label: "Stool",       file: "stoolBar.glb",          target: 0.75, axis: "y"  },
+        { id: "sofa",      label: "Sofa",        file: "loungeSofa.glb",        target: 2.00, axis: "xz" },
+        { id: "coffee",    label: "Coffee table",file: "tableCoffee.glb",       target: 1.10, axis: "xz" },
+        { id: "sideTable", label: "Side table",  file: "sideTable.glb",         target: 0.50, axis: "xz" },
+        { id: "bookcase",  label: "Bookcase",    file: "bookcaseOpen.glb",      target: 1.60, axis: "y"  },
+        { id: "books",     label: "Books",       file: "books.glb",             target: 0.30, axis: "xz" },
+        { id: "tvStand",   label: "TV stand",    file: "cabinetTelevision.glb", target: 1.40, axis: "xz" },
+        { id: "tv",        label: "TV",          file: "televisionModern.glb",  target: 1.20, axis: "xz" },
+        { id: "fridge",    label: "Mini fridge", file: "kitchenFridgeSmall.glb",target: 0.85, axis: "y"  },
+        { id: "lamp",      label: "Floor lamp",  file: "lampSquareFloor.glb",   target: 1.50, axis: "y"  },
+        { id: "tableLamp", label: "Table lamp",  file: "lampRoundTable.glb",    target: 0.50, axis: "y"  },
+        { id: "coatRack",  label: "Coat rack",   file: "coatRackStanding.glb",  target: 1.70, axis: "y"  },
+        { id: "plant",     label: "Potted plant",file: "pottedPlant.glb",       target: 0.60, axis: "y"  },
+        { id: "plantSmall",label: "Small plant", file: "plantSmall1.glb",       target: 0.35, axis: "y"  },
+        { id: "trashcan",  label: "Trash can",   file: "trashcan.glb",          target: 0.50, axis: "y"  },
+        { id: "rug",       label: "Rug",         file: "rugRectangle.glb",      target: 1.60, axis: "xz" },
+        { id: "rugRound",  label: "Round rug",   file: "rugRound.glb",          target: 1.60, axis: "xz" },
       ];
 
       function updateCamera() {
@@ -2709,23 +2883,41 @@
         return new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide });
       }
 
-      function disposeCube() {
-        if (!cubeMesh) return;
-        scene.remove(cubeMesh);
-        cubeMesh.geometry.dispose();
-        cubeMesh.material.forEach((m) => {
+      // Tear down whichever skybox is active (cube = material array, pano sphere
+      // = single material), disposing geometry + textures so we don't leak GPU
+      // memory across re-renders.
+      function disposeSky() {
+        if (!skyMesh) return;
+        scene.remove(skyMesh);
+        skyMesh.geometry.dispose();
+        const mats = Array.isArray(skyMesh.material) ? skyMesh.material : [skyMesh.material];
+        mats.forEach((m) => {
           if (m.map) m.map.dispose();
           m.dispose();
         });
-        cubeMesh = null;
+        skyMesh = null;
       }
 
       function buildCube(urls) {
-        disposeCube();
+        disposeSky();
         const geom = new THREE.BoxGeometry(10, 10, 10);
         const materials = FACE_ORDER.map((f) => loadFace(urls[f.src], f.rotation));
-        cubeMesh = new THREE.Mesh(geom, materials);
-        scene.add(cubeMesh);
+        skyMesh = new THREE.Mesh(geom, materials);
+        scene.add(skyMesh);
+      }
+
+      // Equirectangular panorama path: map the single 2:1 image onto an inverted
+      // sphere (the standard Three.js 360 viewer). geometry.scale(-1,1,1) turns it
+      // inside-out so the camera at the centre sees it un-mirrored — no per-face
+      // flip/rotation calibration needed (unlike a cubemap conversion).
+      function buildSphere(url) {
+        disposeSky();
+        const geom = new THREE.SphereGeometry(10, 60, 40);
+        geom.scale(-1, 1, 1);
+        const tex = texLoader.load(url);
+        tex.encoding = THREE.sRGBEncoding;
+        skyMesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ map: tex }));
+        scene.add(skyMesh);
       }
 
       function init() {
@@ -2752,6 +2944,7 @@
 
         bindEvents();
         bindDesignEvents();
+        bindFullscreenTools();
         updateCamera();
       }
 
@@ -2809,7 +3002,10 @@
             document.exitFullscreen();
           }
         });
-        document.addEventListener("fullscreenchange", () => setTimeout(sizeRendererToCanvas, 50));
+        document.addEventListener("fullscreenchange", () => {
+          setTimeout(sizeRendererToCanvas, 50);
+          syncFullscreenTools();
+        });
 
         editBtn.addEventListener("click", async () => {
           const prevText = editBtn.textContent;
@@ -2888,24 +3084,42 @@
         return floorVerts.map((d) => projectToFloor(d, cameraHeightM)).filter(Boolean);
       }
 
-      // Green 1 m square on the floor ~1.8 m ahead — a true-scale yardstick the
-      // user matches against a known feature to dial in the camera height.
+      // Green 1 m square that floats on the floor a short distance in front of
+      // the camera — a true-scale yardstick the user matches against a known
+      // feature to dial in the camera height. Built centred on the local origin
+      // so positionRefSquare() can slide + spin it to track the camera's yaw
+      // each frame (see tick), keeping it ahead of you as you look around.
+      const REF_SQUARE_DIST = 1.8; // metres ahead of the camera
       function rebuildRefSquare() {
         ensureDesignGroup();
         if (refSquare) { designGroup.remove(refSquare); disposeObj(refSquare); refSquare = null; }
         if (!showRefChk.checked) return;
-        const y = -cameraHeightM + 0.01, cz = -1.8, half = 0.5;
+        const half = 0.5;
         const corners = [
-          new THREE.Vector3(-half, y, cz - half),
-          new THREE.Vector3( half, y, cz - half),
-          new THREE.Vector3( half, y, cz + half),
-          new THREE.Vector3(-half, y, cz + half),
+          new THREE.Vector3(-half, 0, -half),
+          new THREE.Vector3( half, 0, -half),
+          new THREE.Vector3( half, 0,  half),
+          new THREE.Vector3(-half, 0,  half),
         ];
         const g = new THREE.BufferGeometry().setFromPoints(corners);
         const m = new THREE.LineBasicMaterial({ color: 0x3dd68c, depthTest: false });
         refSquare = new THREE.LineLoop(g, m);
         refSquare.renderOrder = 998;
+        positionRefSquare();
         designGroup.add(refSquare);
+      }
+
+      // Keep the reference square on the floor, centred REF_SQUARE_DIST ahead of
+      // wherever the camera is currently facing (horizontal yaw only). The y is
+      // pulled from cameraHeightM every frame, so height changes track for free.
+      function positionRefSquare() {
+        if (!refSquare) return;
+        refSquare.position.set(
+          Math.sin(yaw) * REF_SQUARE_DIST,
+          -cameraHeightM + 0.01,
+          -Math.cos(yaw) * REF_SQUARE_DIST
+        );
+        refSquare.rotation.y = yaw;
       }
 
       // Redraw the traced outline + corner markers and refresh the readout.
@@ -2974,7 +3188,8 @@
       }
 
       function onHeightChange() {
-        rebuildRefSquare();
+        // positionRefSquare (called every frame from tick) re-reads cameraHeightM,
+        // so the reference square follows height changes without a rebuild here.
         rebuildTrace();
         reseatFurniture();
         saveDesign();
@@ -3114,6 +3329,24 @@
         return obj;
       }
 
+      // Drop a catalog item ~2 m in front of wherever the camera is facing, so
+      // it lands in view (near the reference square) instead of at a fixed world
+      // spot that may be behind you once you've turned around.
+      const PLACE_DIST = 2.0;
+      function placeInView(cat) {
+        return addFurniture(cat, {
+          x: Math.sin(yaw) * PLACE_DIST,
+          z: -Math.cos(yaw) * PLACE_DIST,
+        });
+      }
+
+      // Show/hide the green 1 m reference square (the "Done" button and the
+      // fullscreen guide toggle both route through here).
+      function setReferenceVisible(on) {
+        showRefChk.checked = on;
+        rebuildRefSquare();
+      }
+
       function selectFurniture(obj) {
         selectedItem = obj;
         selectedRow.hidden = !obj;
@@ -3211,6 +3444,11 @@
         rotateBtn.addEventListener("click", rotateSelected);
         deleteBtn.addEventListener("click", deleteSelected);
 
+        // "Done" with height calibration — hide the 1 m reference square so it's
+        // out of the way while placing furniture.
+        const heightDoneBtn = document.getElementById("rdp-height-done");
+        if (heightDoneBtn) heightDoneBtn.addEventListener("click", () => setReferenceVisible(false));
+
         heightRange.addEventListener("input", () => {
           const v = parseFloat(heightRange.value);
           cameraHeightM = isFinite(v) ? v : 1.4;
@@ -3233,7 +3471,7 @@
           b.textContent = cat.label;
           b.addEventListener("click", async () => {
             b.disabled = true;
-            await addFurniture(cat, { x: 0, z: -2 });
+            await placeInView(cat);
             b.disabled = false;
           });
           catalogEl.appendChild(b);
@@ -3260,6 +3498,73 @@
         });
       }
 
+      // Fullscreen design toolbar: a top-left dropdown to add furniture plus
+      // rotate/delete for the current selection, so the room is fully designable
+      // in fullscreen (where the panel below the canvas isn't visible).
+      function bindFullscreenTools() {
+        const addBtn   = document.getElementById("room3d-fs-add-btn");
+        const menu     = document.getElementById("room3d-fs-menu");
+        const guideBtn = document.getElementById("room3d-fs-guide");
+        const rotBtn   = document.getElementById("room3d-fs-rotate");
+        const delBtn   = document.getElementById("room3d-fs-delete");
+        if (!addBtn || !menu) return;
+
+        // Build the menu from the same catalog as the side panel. Clicking an
+        // item enables design mode (so it can be moved/selected) and drops it in
+        // front of the current view.
+        FURNITURE_CATALOG.forEach((cat) => {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "room3d-fs-menu-item";
+          item.setAttribute("role", "menuitem");
+          item.textContent = cat.label;
+          item.addEventListener("click", async () => {
+            closeFsMenu();
+            if (!designMode) setDesignMode(true);
+            item.disabled = true;
+            await placeInView(cat);
+            item.disabled = false;
+          });
+          menu.appendChild(item);
+        });
+
+        addBtn.addEventListener("click", () => { menu.hidden ? openFsMenu() : closeFsMenu(); });
+        // Click anywhere outside the dropdown closes the menu.
+        document.addEventListener("pointerdown", (e) => {
+          if (!menu.hidden && !e.target.closest(".room3d-fs-dropdown")) closeFsMenu();
+        });
+
+        if (guideBtn) guideBtn.addEventListener("click", () => setReferenceVisible(!showRefChk.checked));
+        if (rotBtn) rotBtn.addEventListener("click", rotateSelected);
+        if (delBtn) delBtn.addEventListener("click", deleteSelected);
+      }
+
+      function openFsMenu() {
+        const addBtn = document.getElementById("room3d-fs-add-btn");
+        const menu   = document.getElementById("room3d-fs-menu");
+        if (!menu) return;
+        menu.hidden = false;
+        if (addBtn) addBtn.setAttribute("aria-expanded", "true");
+      }
+      function closeFsMenu() {
+        const addBtn = document.getElementById("room3d-fs-add-btn");
+        const menu   = document.getElementById("room3d-fs-menu");
+        if (!menu) return;
+        menu.hidden = true;
+        if (addBtn) addBtn.setAttribute("aria-expanded", "false");
+      }
+
+      // Show the fullscreen toolbar only while this room's viewport is the
+      // fullscreen element; hide it (and any open menu) otherwise.
+      function syncFullscreenTools() {
+        const fsTools = document.getElementById("room3d-fs-tools");
+        if (!fsTools) return;
+        const viewport = canvas.closest(".room3d-viewport");
+        const inFs = !!document.fullscreenElement && document.fullscreenElement === viewport;
+        fsTools.hidden = !inFs;
+        if (!inFs) closeFsMenu();
+      }
+
       function tick() {
         animFrame = requestAnimationFrame(tick);
         if (!dragging && (Math.abs(velYaw) > 0.00005 || Math.abs(velPitch) > 0.00005)) {
@@ -3270,6 +3575,9 @@
           velPitch *= INERTIA;
           updateCamera();
         }
+        // Reference square chases the camera's yaw so it stays on the floor ahead
+        // of you while designing (covers both inertial glide and active drag).
+        if (designMode && refSquare) positionRefSquare();
         renderer.render(scene, camera);
       }
 
@@ -3284,17 +3592,13 @@
         }
       }
 
-      window.renderRoomBuilderSkybox = function (urls, roomName) {
-        if (!Array.isArray(urls) || urls.length < 6) {
-          console.warn("[room3d] need 6 photo URLs, got", urls);
-          return;
-        }
-        init();
+      // Shared tail for both skybox kinds: reset the design overlays, recentre the
+      // view, reveal the stage, and start rendering once layout has settled.
+      function presentStage(roomName) {
         titleEl.textContent = roomName || "Your 3D room";
-        buildCube(urls);
         resetDesignForNewRoom();
 
-        // Reset the view to face the front (North) wall at the default zoom.
+        // Reset the view to face front at the default zoom.
         yaw = 0; pitch = 0; velYaw = 0; velPitch = 0;
         setFov(DEFAULT_FOV);
         updateCamera();
@@ -3306,6 +3610,27 @@
           start();
           stage.scrollIntoView({ behavior: "smooth", block: "start" });
         });
+      }
+
+      window.renderRoomBuilderSkybox = function (urls, roomName) {
+        if (!Array.isArray(urls) || urls.length < 6) {
+          console.warn("[room3d] need 6 photo URLs, got", urls);
+          return;
+        }
+        init();
+        buildCube(urls);
+        presentStage(roomName);
+      };
+
+      // Equirectangular-panorama entry point: one image → inverted-sphere skybox.
+      window.renderRoomBuilderPano = function (url, roomName) {
+        if (typeof url !== "string" || !url) {
+          console.warn("[room3d] renderRoomBuilderPano needs an image URL, got", url);
+          return;
+        }
+        init();
+        buildSphere(url);
+        presentStage(roomName);
       };
 
       window.addEventListener("resize", () => {

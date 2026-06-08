@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "defaultMode": "default",
+    "additionalDirectories": [],
+    "deny": [
+      "Edit(//D:/**)",
+      "Write(//D:/**)",
+      "Read(//D:/**)",
+      "Edit(//E:/**)",
+      "Write(//E:/**)",
+      "Read(//E:/**)",
+      "Edit(//C:/Windows/**)",
+      "Write(//C:/Windows/**)",
+      "Edit(//C:/Program Files/**)",
+      "Write(//C:/Program Files/**)",
+      "Edit(//C:/Program Files (x86)/**)",
+      "Write(//C:/Program Files (x86)/**)"
+    ]
+  }
+}

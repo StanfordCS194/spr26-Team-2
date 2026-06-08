@@ -19,6 +19,7 @@ const UPLOADS_DIR = path.join(__dirname, "uploads");
 // Upload constraints
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB per photo
 const MAX_FILES = 6; // Exactly 6 photos required
+const PANO_MAX_SIZE = 20 * 1024 * 1024; // 20 MB for a single equirectangular pano (they run large)
 const ACCEPTED_MIME = ["image/jpeg", "image/png", "image/webp"]; // Allowed formats
 
 // Photo labels — used as filenames so the backend knows which wall is which
@@ -67,6 +68,16 @@ const upload = multer({
     } else {
       cb(new Error("Only JPG, PNG, or WebP files are allowed")); // Reject file
     }
+  },
+});
+
+// Separate multer instance for the single-panorama path: one file, larger cap.
+const panoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: PANO_MAX_SIZE, files: 1 },
+  fileFilter: (req, file, cb) => {
+    if (ACCEPTED_MIME.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Only JPG, PNG, or WebP files are allowed"));
   },
 });
 
@@ -145,6 +156,7 @@ app.post("/api/upload", (req, res) => {
       // This helps Phase 3 (3D processing) understand what dorm/room this upload is for
       const metadata = {
         uploadId,
+        kind: "sixPhoto", // vs "pano" — tells the viewer to build a cube vs a sphere
         dormId,
         roomType,
         roomName, // User-chosen display name (may be empty)
@@ -188,6 +200,64 @@ app.post("/api/upload", (req, res) => {
   });
 });
 
+// === POST /api/upload-pano ===
+// Alternative to /api/upload: accepts ONE equirectangular panorama instead of
+// six wall photos. Stored the same way (UUID folder + metadata.json), but with
+// kind:"pano" so the viewer renders an inverted sphere instead of a cube.
+app.post("/api/upload-pano", (req, res) => {
+  panoUpload.single("panorama")(req, res, (err) => {
+    if (err) {
+      console.error("[pano upload error]", err.message);
+      return res.status(400).json({ success: false, error: err.message });
+    }
+
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ success: false, error: "No panorama image received" });
+    }
+
+    const dormId = sanitize(req.body.dormId);
+    const roomType = sanitize(req.body.roomType);
+    const userEmail = (req.body.userEmail || "").toString().slice(0, 200);
+    const roomName = (req.body.roomName || "").toString().trim().slice(0, 60);
+    if (!dormId || !roomType) {
+      return res.status(400).json({ success: false, error: "Missing required fields: dormId or roomType" });
+    }
+
+    const uploadId = randomUUID();
+    const uploadDir = path.join(UPLOADS_DIR, uploadId);
+
+    try {
+      fs.mkdirSync(uploadDir, { recursive: true });
+      const ext = EXT_BY_MIME[file.mimetype] || ".jpg";
+      const filename = "pano" + ext;
+      fs.writeFileSync(path.join(uploadDir, filename), file.buffer);
+
+      const metadata = {
+        uploadId,
+        kind: "pano",
+        dormId,
+        roomType,
+        roomName,
+        userEmail,
+        timestamp: new Date().toISOString(),
+        originalNames: [file.originalname],
+        savedFiles: [filename],
+        fileSizes: [file.size],
+      };
+      fs.writeFileSync(path.join(uploadDir, "metadata.json"), JSON.stringify(metadata, null, 2));
+
+      console.log(
+        `[${uploadId}] received panorama for ${dormId}/${roomType} (${(file.size / 1024 / 1024).toFixed(2)} MB)`
+      );
+      res.json({ success: true, uploadId, message: "Panorama received" });
+    } catch (writeErr) {
+      console.error("[write error]", writeErr);
+      res.status(500).json({ success: false, error: "Failed to save panorama" });
+    }
+  });
+});
+
 // Security: Only accept IDs that look like what randomUUID() actually produces.
 // This stops path traversal before we ever call path.join with user input.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -225,6 +295,7 @@ app.get("/api/uploads/:uploadId", (req, res) => {
   res.json({
     success: true,
     uploadId: meta.uploadId,
+    kind: meta.kind || "sixPhoto", // legacy uploads predate this field
     dormId: meta.dormId,
     roomType: meta.roomType,
     roomName: meta.roomName || "",

@@ -246,9 +246,9 @@
         <div id="designer-upload" class="designer-placeholder" aria-labelledby="upload-heading">
           <div id="shared-upload-panel" class="shared-upload-panel" hidden aria-live="polite"></div>
           <form id="room-upload-form" class="designer-upload-form" novalidate>
-            <h3 id="upload-heading" class="upload-intro-title">Name your room &amp; upload 6 photos</h3>
+            <h3 id="upload-heading" class="upload-intro-title">Name your room &amp; upload your space</h3>
             <p id="upload-instructions" class="upload-intro-detail upload-dropzone-sub">
-              Drop in six wide-angle photos, then drag the tiles so each one lands on the right wall, ceiling, or floor (JPG, PNG, or WebP, max 10&nbsp;MB each).
+              Drop in six wide-angle photos, then drag the tiles so each one lands on the right wall, ceiling, or floor (JPG, PNG, or WebP, max 10&nbsp;MB each) — or skip straight to a single 360° panorama below.
             </p>
             <div class="room-name-field">
               <label class="room-name-label" for="room-name-input">Room name</label>
@@ -285,6 +285,30 @@
               <button type="button" class="upload-pick-btn" data-action="pick-photos" aria-controls="room-photos-input">
                 Choose photos
               </button>
+            </div>
+            <!-- Alternative input: a single equirectangular 360° panorama builds
+                 the whole room (rendered as a sphere) instead of six wall photos.
+                 Mutually exclusive with the six-photo picker above. -->
+            <div class="pano-alt">
+              <span class="pano-alt-divider"><span>or</span></span>
+              <input
+                id="room-pano-input"
+                class="upload-input-hidden"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                aria-label="Choose a 360 degree panorama image"
+              />
+              <button type="button" class="upload-pick-btn pano-pick-btn" data-action="pick-pano" aria-controls="room-pano-input">
+                Upload a 360° panorama
+              </button>
+              <p class="pano-alt-hint">One equirectangular (2:1) image builds the whole room — no need for six photos.</p>
+              <div id="pano-preview" class="pano-preview" hidden>
+                <img id="pano-preview-img" class="pano-preview-img" alt="Panorama preview" />
+                <div class="pano-preview-meta">
+                  <span id="pano-preview-name" class="pano-preview-name"></span>
+                  <button type="button" id="pano-remove" class="pano-remove">Remove</button>
+                </div>
+              </div>
             </div>
             <ul id="upload-req-announce" class="upload-req-list" aria-live="polite">
               <li id="upload-req-count" class="upload-req-item" role="status">0 of 6 photos selected</li>
@@ -327,6 +351,19 @@
               <button type="button" class="design-ctrl-btn" id="room3d-zoom-out" aria-label="Zoom out">&minus;</button>
               <button type="button" class="design-ctrl-btn" id="room3d-fullscreen" aria-label="Toggle full screen">&#x26F6;</button>
             </div>
+            <!-- Fullscreen design toolbar: only shown while the viewport is
+                 fullscreen so the user can place + adjust furniture without
+                 leaving fullscreen (the panel below the canvas is out of view). -->
+            <div class="room3d-fs-tools" id="room3d-fs-tools" hidden aria-label="Fullscreen design tools">
+              <div class="room3d-fs-dropdown">
+                <button type="button" class="room3d-fs-add-btn" id="room3d-fs-add-btn"
+                        aria-haspopup="true" aria-expanded="false">＋ Add object</button>
+                <div class="room3d-fs-menu" id="room3d-fs-menu" role="menu" hidden></div>
+              </div>
+              <button type="button" class="design-ctrl-btn room3d-fs-btn" id="room3d-fs-guide" aria-label="Toggle 1 m guide square" title="Show/hide the 1 m guide">◻</button>
+              <button type="button" class="design-ctrl-btn room3d-fs-btn" id="room3d-fs-rotate" aria-label="Rotate selected object" title="Rotate selected">⟳</button>
+              <button type="button" class="design-ctrl-btn room3d-fs-btn" id="room3d-fs-delete" aria-label="Delete selected object" title="Delete selected">🗑</button>
+            </div>
           </div>
           <!-- Design mode: Tier 1 metric scale calibration + Tier 2 floor
                mapping. Hidden until the user clicks "Design this room". -->
@@ -345,6 +382,7 @@
               <label class="rdp-check">
                 <input type="checkbox" id="rdp-show-ref" checked> 1 m reference
               </label>
+              <button type="button" id="rdp-height-done" class="room3d-action-btn">✓ Done</button>
             </div>
             <p class="rdp-help">
               Adjust the height until the green 1&nbsp;m square matches a known
