@@ -1,142 +1,80 @@
-    /*
-     * Maps internal keys (what we store in data / HOUSES) to human-readable labels on buttons.
-     * Example: one_room_double -> “1-room doubles”
-     */
-    const ROOM_LABELS = {
-      single: "Singles",
-      one_room_double: "1-room doubles",
-      two_room_double: "2-room doubles",
-      one_room_triple: "1-room triples",
-      two_room_triple: "2-room triples",
-      three_room_triple: "3-room triples",
-    };
+    (async function treeviewApp() {
+    const bootRes = await fetch("/api/bootstrap");
+    if (!bootRes.ok) {
+      document.body.innerHTML =
+        '<div style="padding:2rem;font-family:sans-serif;color:#8c1515;">TreeView could not load dorm data. Run <code>npm run seed</code> and restart the server.</div>';
+      return;
+    }
+    const boot = await bootRes.json();
 
-    /*
-     * Master list of dorms for the class project.
-     * category: "frosh" = first-year designated halls; "four_class" = might mix class years.
-     * roomTypes is which pill buttons to show for that building (not every dorm has triples, etc.).
-     */
-    const HOUSES = [
-      { id: "branner", name: "Branner", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple", "two_room_triple"] },
-      { id: "crothers", name: "Crothers", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple"] },
-      { id: "alondra", name: "Alondra", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double"] },
-      { id: "mirlo", name: "Mirlo", category: "frosh", roomTypes: ["single", "one_room_double"] },
-      { id: "castano", name: "Castaño", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple", "two_room_triple", "three_room_triple"] },
-      { id: "lantana", name: "Lantana", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple"] },
-      { id: "robinson", name: "Robinson", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple", "three_room_triple"] },
-      { id: "schiff", name: "Schiff", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple", "two_room_triple", "three_room_triple"] },
-      { id: "west-lagunita", name: "West Lagunita", category: "frosh", roomTypes: ["single", "one_room_double", "two_room_double"] },
-      { id: "donner", name: "Donner", category: "frosh", roomTypes: ["single", "one_room_double"] },
-      { id: "larkin", name: "Larkin", category: "frosh", roomTypes: ["single", "one_room_double"] },
-      { id: "arroyo", name: "Arroyo", category: "frosh", roomTypes: ["single", "one_room_double"] },
-      { id: "cedro", name: "Cedro", category: "frosh", roomTypes: ["single", "one_room_double"] },
-      { id: "rinconada", name: "Rinconada", category: "frosh", roomTypes: ["single", "one_room_double"] },
-      { id: "soto", name: "Soto", category: "frosh", roomTypes: ["single", "one_room_double"] },
-      { id: "cardenal", name: "Cardenal", category: "four_class", roomTypes: ["single", "one_room_double", "two_room_double"] },
-      { id: "potter", name: "Potter", category: "four_class", roomTypes: ["single", "one_room_double", "two_room_double", "one_room_triple"] },
-      { id: "ujamaa", name: "Ujamaa", category: "four_class", roomTypes: ["single", "one_room_double", "two_room_double"] },
-      { id: "burbank", name: "Burbank", category: "four_class", roomTypes: ["single", "one_room_double"] },
-      { id: "zap", name: "ZAP", category: "four_class", roomTypes: ["single", "one_room_double"] },
-      { id: "casa-zapata", name: "Casa Zapata", category: "four_class", roomTypes: ["single", "one_room_double"] },
-      { id: "sally-ride", name: "Sally Ride", category: "four_class", roomTypes: ["single", "one_room_double"] },
-      { id: "junipero", name: "Junipero", category: "four_class", roomTypes: ["single", "one_room_double"] },
-      { id: "okada", name: "Okada", category: "four_class", roomTypes: ["single", "one_room_double"] },
-      { id: "otero", name: "Otero", category: "four_class", roomTypes: ["single", "one_room_double"] },
-    ];
+    const ROOM_LABELS = boot.roomLabels;
+    const HOUSES = boot.dorms;
+    const DORM_COORDS = boot.dorms.map((d) => ({ id: d.id, lat: d.lat, lng: d.lng }));
+    const QUIZ_QUESTIONS = boot.quizQuestions;
+    const REASON_LABELS = boot.reasonLabels;
+    const RANKINGS_SORT_OPTIONS = boot.rankingsSortOptions;
+    const RANKINGS_FILTERS = boot.rankingsFilters;
+    const MAIN_QUAD = boot.mainQuad;
+    const CAMPUS_LANDMARKS = boot.landmarks;
+    const WALK_SPEED_KMH = boot.walkSpeedKmh;
+    const DETOUR_FACTOR = boot.detourFactor;
 
-    /* Split for the two <optgroup>s in the dropdown — keeps the markup readable */
     const frosh = HOUSES.filter((h) => h.category === "frosh");
     const fourClass = HOUSES.filter((h) => h.category === "four_class");
 
-    /*
-     * Panorama sources:
-     * - ZAP uses treeview/photos (main website assets)
-     * - Other dorm test tours use dorm-tour-pannellum/otherPhotos
-     */
-    const ZAP_PANORAMA_BASE = "https://raw.githubusercontent.com/StanfordCS194/spr26-Team-2/main/treeview/photos/";
-    const OTHER_DORM_PANORAMA_BASE = "https://raw.githubusercontent.com/StanfordCS194/spr26-Team-2/main/dormPhotos/";
-    function pano(base, file) {
-      return base + file;
+    const tourCache = new Map();
+    async function fetchTourConfig(dormId) {
+      if (tourCache.has(dormId)) return tourCache.get(dormId);
+      const res = await fetch("/api/dorms/" + encodeURIComponent(dormId) + "/tour");
+      if (!res.ok) {
+        tourCache.set(dormId, null);
+        return null;
+      }
+      const data = await res.json();
+      tourCache.set(dormId, data.config);
+      return data.config;
     }
 
-    /*
-     * Pannellum “tour” config — mirrored from dorm-tour-pannellum/index.html.
-     * Each scene is one equirectangular photo; hotSpots jump between scene ids.
-     */
-    function getDemoTourConfig(dormId) {
-      const HOTSPOT_DEBUG = false;
-      const baseScene = {
-        type: "equirectangular",
-        autoLoad: true,
-        hfov: 70,
-        minHfov: 50,
-        maxHfov: 90,
-        haov: 110,
-        vaov: 45,
-        vOffset: 0,
-        yaw: 0,
-        pitch: 0,
-        minYaw: -55,
-        maxYaw: 55,
-        minPitch: -22,
-        maxPitch: 22,
-        avoidShowingBackground: true,
-      };
+    function getVisitorId() {
+      let id = localStorage.getItem("tv-visitor-id");
+      if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem("tv-visitor-id", id);
+      }
+      return id;
+    }
 
-      const withDefaults = (firstScene, scenes) => ({
-        default: {
-          firstScene,
-          autoLoad: true,
-          sceneFadeDuration: 800,
-          showControls: true,
-          showFullscreenCtrl: true,
-          hotSpotDebug: HOTSPOT_DEBUG,
-        },
-        scenes,
+    let userProfile = null;
+    async function loadUserProfile() {
+      const res = await fetch("/api/profile/" + encodeURIComponent(getVisitorId()));
+      if (!res.ok) return;
+      userProfile = await res.json();
+
+      const localFavs = JSON.parse(localStorage.getItem("tv-favorites") || "[]");
+      if (!userProfile.shortlist.length && localFavs.length) {
+        await saveUserProfile({ shortlist: localFavs });
+      } else if (userProfile.shortlist.length) {
+        localStorage.setItem("tv-favorites", JSON.stringify(userProfile.shortlist));
+      }
+
+      const localTheme = localStorage.getItem("tv-theme");
+      if (userProfile.theme && userProfile.theme !== "system") {
+        localStorage.setItem("tv-theme", userProfile.theme);
+      } else if (localTheme) {
+        await saveUserProfile({ theme: localTheme });
+      }
+    }
+
+    async function saveUserProfile(patch) {
+      const res = await fetch("/api/profile/" + encodeURIComponent(getVisitorId()), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
       });
-
-      const dormTours = {
-        zap: withDefaults("zapOne", {
-          zapOne: { ...baseScene, title: "ZAP One", panorama: pano(ZAP_PANORAMA_BASE, "ZAP_One.jpeg"), hotSpots: [{ pitch: 3.5, yaw: -18, type: "scene", text: "Go to ZAP Two", sceneId: "zapTwo" }] },
-          zapTwo: { ...baseScene, title: "ZAP Two", panorama: pano(ZAP_PANORAMA_BASE, "ZAP_Two.jpeg"), hotSpots: [{ pitch: 2, yaw: 45, type: "scene", text: "Back to ZAP One", sceneId: "zapOne" }, { pitch: 3, yaw: -42, type: "scene", text: "Go to ZAP Three", sceneId: "zapThree" }] },
-          zapThree: { ...baseScene, title: "ZAP Three", panorama: pano(ZAP_PANORAMA_BASE, "ZAP_Three.jpeg"), hotSpots: [{ pitch: 2, yaw: 45, type: "scene", text: "Back to ZAP Two", sceneId: "zapTwo" }, { pitch: 2, yaw: 24, type: "scene", text: "Go to ZAP Four", sceneId: "zapFour" }] },
-          zapFour: { ...baseScene, title: "ZAP Four", panorama: pano(ZAP_PANORAMA_BASE, "ZAP_Four.jpeg"), hotSpots: [{ pitch: 3, yaw: -31, type: "scene", text: "Back to ZAP Three", sceneId: "zapThree" }, { pitch: 3, yaw: 4, type: "scene", text: "Go to ZAP Five", sceneId: "zapFive" }] },
-          zapFive: { ...baseScene, title: "ZAP Five", panorama: pano(ZAP_PANORAMA_BASE, "ZAP_Five.jpeg"), hotSpots: [{ pitch: 3, yaw: 50, type: "scene", text: "Back to ZAP Four", sceneId: "zapFour" }] },
-        }),
-
-        okada: withDefaults("okadaOne", {
-          okadaOne: { ...baseScene, title: "Okada One", panorama: pano(OTHER_DORM_PANORAMA_BASE, "okada_one.jpeg"), hotSpots: [{ pitch: 1.85, yaw: -1.13, type: "scene", text: "Go to Okada Two", sceneId: "okadaTwo" }] },
-          okadaTwo: { ...baseScene, title: "Okada Two", panorama: pano(OTHER_DORM_PANORAMA_BASE, "okada_two.jpeg"), hotSpots: [{ pitch: -2.42, yaw: 44.58, type: "scene", text: "Back to Okada One", sceneId: "okadaOne" }, { pitch: 1.21, yaw: -11.68, type: "scene", text: "Go to Okada Three", sceneId: "okadaThree" }] },
-          okadaThree: { ...baseScene, title: "Okada Three", panorama: pano(OTHER_DORM_PANORAMA_BASE, "okada_three.jpeg"), hotSpots: [{ pitch: 4.5, yaw: 26.95, type: "scene", text: "Back to Okada Two", sceneId: "okadaTwo" }] },
-        }),
-
-        rinconada: withDefaults("rinconadaOne", {
-          rinconadaOne: { ...baseScene, title: "Rinconada One", panorama: pano(OTHER_DORM_PANORAMA_BASE, "rinconada_one.jpeg"), hotSpots: [{ pitch: 0.16, yaw: -9.22, type: "scene", text: "Go to Rinconada Two", sceneId: "rinconadaTwo" }] },
-          rinconadaTwo: { ...baseScene, title: "Rinconada Two", panorama: pano(OTHER_DORM_PANORAMA_BASE, "rinconada_two.jpeg"), hotSpots: [{ pitch: 2.31, yaw: 54.01, type: "scene", text: "Back to Rinconada One", sceneId: "rinconadaOne" }, { pitch: 0.4, yaw: -4.92, type: "scene", text: "Go to Rinconada Three", sceneId: "rinconadaThree" }] },
-          rinconadaThree: { ...baseScene, title: "Rinconada Three", panorama: pano(OTHER_DORM_PANORAMA_BASE, "rinconada_three.jpeg"), hotSpots: [{ pitch: 1.37, yaw: -19.98, type: "scene", text: "Back to Rinconada Two", sceneId: "rinconadaTwo" }] },
-        }),
-
-        soto: withDefaults("sotoOne", {
-          sotoOne: { ...baseScene, title: "Soto One", panorama: pano(OTHER_DORM_PANORAMA_BASE, "soto_one.jpeg"), hotSpots: [{ pitch: 3.22, yaw: -10.97, type: "scene", text: "Go to Soto Two", sceneId: "sotoTwo" }] },
-          sotoTwo: { ...baseScene, title: "Soto Two", panorama: pano(OTHER_DORM_PANORAMA_BASE, "soto_two.jpeg"), hotSpots: [{ pitch: 0.75, yaw: 45.2, type: "scene", text: "Back to Soto One", sceneId: "sotoOne" }, { pitch: 2.54, yaw: -11.48, type: "scene", text: "Go to Soto Three", sceneId: "sotoThree" }] },
-          sotoThree: { ...baseScene, title: "Soto Three", panorama: pano(OTHER_DORM_PANORAMA_BASE, "soto_three.jpeg"), hotSpots: [{ pitch: 2.1, yaw: 9.12, type: "scene", text: "Back to Soto Two", sceneId: "sotoTwo" }] },
-        }),
-
-        "sally-ride": withDefaults("sallyRideOne", {
-          sallyRideOne: { ...baseScene, title: "Sally Ride One", panorama: pano(OTHER_DORM_PANORAMA_BASE, "sallyride_one.jpeg"), hotSpots: [{ pitch: 1.02, yaw: -24.9, type: "scene", text: "Go to Sally Ride Two", sceneId: "sallyRideTwo" }] },
-          sallyRideTwo: { ...baseScene, title: "Sally Ride Two", panorama: pano(OTHER_DORM_PANORAMA_BASE, "sallyride_two.jpeg"), hotSpots: [{ pitch: 1.33, yaw: 43.56, type: "scene", text: "Back to Sally Ride One", sceneId: "sallyRideOne" }, { pitch: 5.12, yaw: -35.15, type: "scene", text: "Go to Sally Ride Three", sceneId: "sallyRideThree" }] },
-          sallyRideThree: { ...baseScene, title: "Sally Ride Three", panorama: pano(OTHER_DORM_PANORAMA_BASE, " sallyride_three.jpeg"), hotSpots: [{ pitch: 8.74, yaw: 28.08, type: "scene", text: "Back to Sally Ride Two", sceneId: "sallyRideTwo" }] },
-        }),
-
-        lantana: withDefaults("lantanaOne", {
-          lantanaOne: { ...baseScene, title: "Lantana One", panorama: pano(OTHER_DORM_PANORAMA_BASE, "launtana_one.jpeg"), hotSpots: [{ pitch: -0.78, yaw: -33.2, type: "scene", text: "Go to Lantana Two", sceneId: "lantanaTwo" }] },
-          lantanaTwo: { ...baseScene, title: "Lantana Two", panorama: pano(OTHER_DORM_PANORAMA_BASE, "launtana_two.jpeg"), hotSpots: [{ pitch: 3.97, yaw: 49.7, type: "scene", text: "Back to Lantana One", sceneId: "lantanaOne" }, { pitch: 1.71, yaw: 22.96, type: "scene", text: "Go to Lantana Three", sceneId: "lantanaThree" }] },
-          lantanaThree: { ...baseScene, title: "Lantana Three", panorama: pano(OTHER_DORM_PANORAMA_BASE, "launtana_three.jpeg"), hotSpots: [{ pitch: 0.13, yaw: -43.86, type: "scene", text: "Back to Lantana Two", sceneId: "lantanaTwo" }] },
-        }),
-      };
-
-      return dormTours[dormId] || null;
+      if (res.ok) userProfile = await res.json();
     }
+
+    await loadUserProfile();
 
     // Cached DOM nodes we touch on every interaction (avoids repeating getElementById everywhere)
     const dormSelect = document.getElementById("dorm-select");
@@ -1129,16 +1067,17 @@
     }
 
     function hasDormTour(dormId) {
-      return Boolean(getDemoTourConfig(dormId));
+      const house = getHouse(dormId);
+      return Boolean(house && house.hasTour);
     }
 
     // Boot the 360 viewer — initialized lazily when the residences tab becomes active
     let panoramaViewer = null;
     let panoramaViewerDormId = null;
-    function loadMainPanoramaForDorm(dormId) {
+    async function loadMainPanoramaForDorm(dormId) {
       const panoHost = document.getElementById("treeview-panorama");
       const house = getHouse(dormId);
-      const config = getDemoTourConfig(dormId);
+      const config = await fetchTourConfig(dormId);
 
       if (panoramaViewerDormId === dormId && panoramaViewer) return;
 
@@ -1183,6 +1122,7 @@
         btn.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
       });
       localStorage.setItem("tv-theme", theme);
+      saveUserProfile({ theme });
     }
 
     themeToggles.forEach((btn) => {
@@ -1294,6 +1234,9 @@
     const shortlistChips = document.getElementById("shortlist-chips");
 
     function getFavorites() {
+      if (userProfile && userProfile.shortlist && userProfile.shortlist.length) {
+        return userProfile.shortlist;
+      }
       try {
         return JSON.parse(localStorage.getItem("tv-favorites") || "[]");
       } catch { return []; }
@@ -1301,6 +1244,7 @@
 
     function saveFavorites(favs) {
       localStorage.setItem("tv-favorites", JSON.stringify(favs));
+      saveUserProfile({ shortlist: favs });
     }
 
     function isFavorite(id) {
@@ -1457,34 +1401,6 @@
     compareB.addEventListener("change", renderComparison);
 
     // ===== FEATURE 4: Interactive Campus Map =====
-    const DORM_COORDS = [
-      { id: "branner", lat: 37.4255, lng: -122.1629 },
-      { id: "crothers", lat: 37.4258, lng: -122.1647 },
-      { id: "alondra", lat: 37.4222, lng: -122.1718 },
-      { id: "mirlo", lat: 37.4218, lng: -122.1723 },
-      { id: "castano", lat: 37.4250, lng: -122.1610 },
-      { id: "lantana", lat: 37.4257, lng: -122.1608 },
-      { id: "robinson", lat: 37.4254, lng: -122.1795 },
-      { id: "schiff", lat: 37.4251, lng: -122.1800 },
-      { id: "west-lagunita", lat: 37.4250, lng: -122.1768 },
-      { id: "donner", lat: 37.4243, lng: -122.1662 },
-      { id: "larkin", lat: 37.4250, lng: -122.1658 },
-      { id: "arroyo", lat: 37.4243, lng: -122.1626 },
-      { id: "cedro", lat: 37.4241, lng: -122.1623 },
-      { id: "rinconada", lat: 37.4238, lng: -122.1640 },
-      { id: "soto", lat: 37.4244, lng: -122.1639 },
-      { id: "cardenal", lat: 37.4220, lng: -122.1715 },
-      { id: "potter", lat: 37.4256, lng: -122.1793 },
-      { id: "ujamaa", lat: 37.4248, lng: -122.1758 },
-      { id: "burbank", lat: 37.4242, lng: -122.1653 },
-      { id: "zap", lat: 37.4213, lng: -122.1619 },
-      { id: "casa-zapata", lat: 37.4239, lng: -122.1656 },
-      { id: "sally-ride", lat: 37.4240, lng: -122.1662 },
-      { id: "junipero", lat: 37.4235, lng: -122.1624 },
-      { id: "okada", lat: 37.4235, lng: -122.1629 },
-      { id: "otero", lat: 37.4236, lng: -122.1637 },
-    ];
-
     const STANFORD_CENTER = { lat: 37.4241, lng: -122.1661 };
     const MAP_DEFAULT_ZOOM = 14.8;
     const MAP_FLY_ZOOM = 17.5;
@@ -1621,7 +1537,7 @@
       });
     }
 
-    function showMapPanorama(house) {
+    async function showMapPanorama(house) {
       mapOverlayTitle.textContent = house.name + " — 360° Tour";
       mapOverlay.classList.add("is-visible");
 
@@ -1632,7 +1548,7 @@
 
       const mapPanoHost = document.getElementById("map-panorama");
       mapPanoHost.innerHTML = "";
-      const config = getDemoTourConfig(house.id);
+      const config = await fetchTourConfig(house.id);
       if (!config) {
         mapPanoHost.innerHTML = buildNoTourMarkup(house.name);
       } else {
@@ -1689,24 +1605,6 @@
     initCampusMap();
 
     // ===== FEATURE 5: Walking Distance Panel =====
-    //
-    // Shows estimated walking times from the currently selected dorm to five
-    // key Stanford landmarks. Uses the Haversine formula to calculate the
-    // straight-line distance between two lat/lng points on Earth's surface,
-    // then converts to walking time at ~5 km/h with a 1.3x detour factor
-    // (paths aren't straight lines — you follow sidewalks and turns).
-
-    const CAMPUS_LANDMARKS = [
-      { name: "Main Quad",          emoji: "🏛️", lat: 37.4275, lng: -122.1700 },
-      { name: "Green Library",      emoji: "📚", lat: 37.4264, lng: -122.1672 },
-      { name: "Arrillaga Dining",   emoji: "🍽️", lat: 37.4260, lng: -122.1736 },
-      { name: "Tresidder Union",    emoji: "☕", lat: 37.4243, lng: -122.1710 },
-      { name: "Maples Pavilion",    emoji: "🏀", lat: 37.4347, lng: -122.1610 },
-    ];
-
-    const WALK_SPEED_KMH = 5;
-    const DETOUR_FACTOR = 1.3;
-
     const walkListEl = document.getElementById("walk-list");
     const walkDormChip = document.getElementById("walk-dorm-chip");
 
@@ -1793,49 +1691,6 @@
     renderWalkDistances();
 
     // ===== FEATURE 6: Dorm Rankings Dashboard =====
-    //
-    // Interactive leaderboard that scores and ranks all 25 dorms across
-    // four criteria. Users can sort by any criterion and filter by dorm
-    // category. Scores are computed from the HOUSES data + DORM_COORDS,
-    // reusing existing data structures — no new data sources needed.
-    //
-    // Scoring criteria:
-    //   - Room variety:   count of distinct room types (more = higher)
-    //   - Closest to Quad: inverse walking distance to Main Quad (closer = higher)
-    //   - Community score: composite of room variety + theme house status
-    //   - Overall:        weighted average of all three above
-
-    const RANKINGS_SORT_OPTIONS = [
-      { key: "overall",   label: "Overall" },
-      { key: "variety",   label: "Room variety" },
-      { key: "proximity", label: "Closest to Quad" },
-      { key: "community", label: "Community" },
-    ];
-
-    const RANKINGS_FILTERS = [
-      { key: "all",        label: "All" },
-      { key: "frosh",      label: "First-year" },
-      { key: "four_class", label: "Four-class" },
-    ];
-
-    /*
-     * Dorms known for distinctive community identity — theme houses,
-     * self-ops, and program houses get bonus community points.
-     * Values sourced from Stanford R&DE theme house designations.
-     */
-    const COMMUNITY_BONUS = {
-      ujamaa: 3,         // Ethnic theme house
-      "casa-zapata": 3,  // Ethnic theme house
-      okada: 3,          // Ethnic theme house
-      burbank: 2,        // ITALIC arts theme
-      potter: 2,         // Explore Energy theme
-      otero: 2,          // Public Service theme
-      zap: 2,            // Self-operated row house
-      "sally-ride": 1,   // Sophomore-only community
-      lantana: 1,        // Community-service focus
-    };
-
-    const MAIN_QUAD = { lat: 37.4275, lng: -122.1700 };
 
     let rankingsSort = "overall";
     let rankingsFilter = "all";
@@ -1861,7 +1716,7 @@
           : 2;
 
         const variety = house.roomTypes.length;
-        const communityRaw = variety + (COMMUNITY_BONUS[house.id] || 0);
+        const communityRaw = variety + (house.communityBonus || 0);
 
         return {
           house,
@@ -2032,7 +1887,10 @@
     }
 
     function loadNotesForCurrentDorm() {
-      const saved = localStorage.getItem(notesKey(houseId)) || "";
+      const fromApi = userProfile && userProfile.notes ? userProfile.notes[houseId] : undefined;
+      const saved = fromApi !== undefined
+        ? fromApi
+        : (localStorage.getItem(notesKey(houseId)) || "");
       notesTextarea.value = saved;
       notesLabel.textContent = "Notes for " + getHouse(houseId).name;
     }
@@ -2046,9 +1904,14 @@
         const value = notesTextarea.value;
         if (value) {
           localStorage.setItem(notesKey(houseId), value);
+          const notes = userProfile && userProfile.notes ? { ...userProfile.notes } : {};
+          notes[houseId] = value;
+          saveUserProfile({ notes });
         } else {
-          // Empty textarea — clean up the key instead of storing "".
           localStorage.removeItem(notesKey(houseId));
+          const notes = userProfile && userProfile.notes ? { ...userProfile.notes } : {};
+          delete notes[houseId];
+          saveUserProfile({ notes });
         }
         // Flash a "Saved" indicator next to the label.
         notesStatus.textContent = "Saved";
@@ -2176,181 +2039,19 @@
     //   4. We sort by score, break ties by random shuffle so identical
     //      scores don't always show the same dorm first, then take top 3.
     // =====================================================================
-    const QUIZ_QUESTIONS = [
-      {
-        text: "Which year status are you applying for?",
-        options: [
-          { label: "First-year (mostly first-year residents)", tags: ["category:frosh"] },
-          { label: "Four-class (any year, mixed students)", tags: ["category:four_class"] },
-          { label: "Either is fine", tags: [] },
-        ],
-      },
-      {
-        text: "How many people in your room?",
-        options: [
-          { label: "Just me — I want a single", tags: ["has:single"] },
-          { label: "Me and one other — a double", tags: ["has:one_room_double", "has:two_room_double"] },
-          { label: "Three of us — a triple", tags: ["has:one_room_triple", "has:two_room_triple", "has:three_room_triple"] },
-          { label: "Flexible / not sure", tags: [] },
-        ],
-      },
-      {
-        text: "If you're sharing, do you want one room or connected rooms?",
-        options: [
-          { label: "Everyone in one room together", tags: ["has:one_room_double", "has:one_room_triple"] },
-          { label: "Separate connected rooms with a shared common area", tags: ["has:two_room_double", "has:two_room_triple", "has:three_room_triple"] },
-          { label: "Doesn't matter to me", tags: [] },
-        ],
-      },
-      {
-        text: "How much variety do you want in the building?",
-        options: [
-          { label: "Lots of options (4+ different room types in one building)", tags: ["variety:high"] },
-          { label: "Simpler is fine (fewer room types per building)", tags: ["variety:low"] },
-          { label: "No preference", tags: [] },
-        ],
-      },
-      {
-        text: "Are you interested in a themed or focus community house?",
-        options: [
-          { label: "Yes — a cultural / ethnic theme house (Ujamaa, Casa Zapata, Okada)", tags: ["theme:yes", "theme:ethnic"] },
-          { label: "Yes — an academic theme house (Burbank arts, Potter energy, Otero public service)", tags: ["theme:yes", "theme:academic"] },
-          { label: "No, regular residence is what I want", tags: ["theme:no"] },
-          { label: "Just show me what fits otherwise", tags: [] },
-        ],
-      },
-      {
-        text: "What's your social vibe?",
-        options: [
-          { label: "Big, lively, lots of common-area energy", tags: ["vibe:social"] },
-          { label: "Small, cozy, close-knit community", tags: ["vibe:cozy"] },
-          { label: "Somewhere in the middle", tags: [] },
-        ],
-      },
-      {
-        text: "Where on campus would you like to live?",
-        options: [
-          { label: "East Campus (Branner, Stern, Wilbur — near the science quad)", tags: ["location:east"] },
-          { label: "Central (Lagunita, Florence Moore, Crothers — close to main quad)", tags: ["location:central"] },
-          { label: "West Campus (Governor's Corner, Wisteria — quieter, near the foothills)", tags: ["location:west"] },
-          { label: "The Row (smaller, character-rich houses)", tags: ["location:row"] },
-          { label: "No preference", tags: [] },
-        ],
-      },
-    ];
-
-    // Per-dorm metadata sourced from Stanford R&DE + Residential Education
-    // (resed.stanford.edu / rde.stanford.edu). Each tag is something we can
-    // explain to the user — see REASON_LABELS below for human-readable forms.
-    //
-    // Theme designations:
-    //   "theme:ethnic"   — officially designated Ethnic Theme House
-    //                      (Ujamaa, Casa Zapata, Okada)
-    //   "theme:academic" — academic / focus theme house
-    //                      (Burbank=ITALIC arts, Potter=Explore Energy,
-    //                       Otero=Public Service & Civic Engagement)
-    //   "program:sle"    — hosts the Structured Liberal Education program
-    //                      (Alondra, Cardenal — NOT a theme house, but a
-    //                       program house, kept distinct for accuracy)
-    //   "focus:service"  — community-service focus house (Lantana)
-    //   "self-op"        — self-operated row house (ZAP)
-    //
-    // Location buckets (approximate, based on neighborhood groupings):
-    //   "location:east"    — East Campus: Branner standalone, Stern Hall,
-    //                        Wilbur Hall
-    //   "location:central" — Crothers, Lagunita Court, Florence Moore
-    //   "location:west"    — Sterling Quad (Governor's Corner), Gerhard
-    //                        Casper Quad (Wisteria F)
-    //   "location:row"     — The Row (ZAP)
-    //
-    // Vibe tags are conservative — only the dorms with clearly distinctive
-    // size or culture get them. Most dorms stay neutral.
-    const DORM_EXTRA_TAGS = {
-      // Ethnic theme houses (officially designated)
-      ujamaa: ["theme:yes", "theme:ethnic", "location:central"],
-      "casa-zapata": ["theme:yes", "theme:ethnic", "location:east"],
-      okada: ["theme:yes", "theme:ethnic", "location:east"],
-
-      // Academic theme houses
-      burbank: ["theme:yes", "theme:academic", "location:east"],  // ITALIC+Arts
-      potter: ["theme:yes", "theme:academic", "location:west"],   // Explore Energy
-      otero: ["theme:yes", "theme:academic", "location:east"],    // Public Service & Civic Engagement
-
-      // SLE program (academic, not a theme house but program-based)
-      alondra: ["program:sle", "location:central"],
-      cardenal: ["program:sle", "location:central"],
-
-      // The Row — self-operated, smaller community
-      zap: ["self-op", "vibe:cozy", "location:row"],
-
-      // Sally Ride is all-sophomore per Stanford (more restrictive than four-class)
-      "sally-ride": ["year:sophomore", "location:east"],
-
-      // Large frosh dorms known for social energy
-      branner: ["vibe:social", "location:east"],
-      crothers: ["vibe:social", "location:central"],
-
-      // Lantana has a community-service focus (not an official theme house)
-      lantana: ["focus:service", "location:west"],
-
-      // Location tags for the rest — vibe stays neutral where unclear
-      "west-lagunita": ["location:central"],
-      castano: ["location:west"],
-      schiff: ["location:west"],
-      robinson: ["location:west"],
-      mirlo: ["location:central"],
-      donner: ["location:east"],
-      larkin: ["location:east"],
-      arroyo: ["location:east"],
-      cedro: ["location:east"],
-      rinconada: ["location:east"],
-      soto: ["location:east"],
-      junipero: ["location:east"],
-    };
-
-    // Builds the full tag set for a dorm by combining HOUSES data with the
-    // extras above. Memoised so we don't recompute per-question.
+    // Builds the full tag set for a dorm by combining HOUSES data with extraTags from MongoDB.
     const _dormTagCache = new Map();
     function getDormTagSet(dorm) {
       if (_dormTagCache.has(dorm.id)) return _dormTagCache.get(dorm.id);
       const tags = new Set(["category:" + dorm.category]);
       dorm.roomTypes.forEach((rt) => tags.add("has:" + rt));
       tags.add(dorm.roomTypes.length >= 4 ? "variety:high" : "variety:low");
-      const extras = DORM_EXTRA_TAGS[dorm.id] || [];
+      const extras = dorm.extraTags || [];
       extras.forEach((t) => tags.add(t));
-      // Default theme:no for dorms that aren't tagged as themed
       if (!extras.includes("theme:yes")) tags.add("theme:no");
       _dormTagCache.set(dorm.id, tags);
       return tags;
     }
-
-    // Human-readable reasons for the results card
-    const REASON_LABELS = {
-      "category:frosh": "First-year designated",
-      "category:four_class": "Four-class undergraduate",
-      "has:single": "offers singles",
-      "has:one_room_double": "offers 1-room doubles",
-      "has:two_room_double": "offers 2-room doubles",
-      "has:one_room_triple": "offers 1-room triples",
-      "has:two_room_triple": "offers 2-room triples",
-      "has:three_room_triple": "offers 3-room triples",
-      "variety:high": "lots of room type options",
-      "variety:low": "simpler room type lineup",
-      "theme:yes": "themed / focus house",
-      "theme:no": "regular residence",
-      "theme:ethnic": "ethnic / cultural theme house",
-      "theme:academic": "academic theme house",
-      "program:sle": "Structured Liberal Education program house",
-      "focus:service": "community-service focus house",
-      "self-op": "self-operated row house",
-      "year:sophomore": "all-sophomore residence",
-      "vibe:social": "big, social energy",
-      "vibe:cozy": "cozy, close-knit",
-      "location:east": "East Campus location",
-      "location:central": "central-campus location",
-      "location:west": "West Campus location",
-      "location:row": "in The Row",
-    };
 
     // ---------- Quiz state machine ----------
     const quizOverlay = document.getElementById("quiz-overlay");
@@ -3224,31 +2925,64 @@
       }
 
       function saveDesign() {
+        const payload = {
+          h: cameraHeightM,
+          verts: floorVerts.map((d) => [+d.x.toFixed(5), +d.y.toFixed(5), +d.z.toFixed(5)]),
+          items: serializeFurniture(),
+        };
         try {
-          localStorage.setItem(designKey(), JSON.stringify({
-            h: cameraHeightM,
-            verts: floorVerts.map((d) => [+d.x.toFixed(5), +d.y.toFixed(5), +d.z.toFixed(5)]),
-            items: serializeFurniture(),
-          }));
-        } catch (_) { /* storage unavailable — design just won't persist */ }
+          localStorage.setItem(designKey(), JSON.stringify(payload));
+        } catch (_) { /* storage unavailable */ }
+        if (currentRoomUploadId) {
+          fetch("/api/uploads/" + encodeURIComponent(currentRoomUploadId) + "/design", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cameraHeight: payload.h,
+              floorVerts: payload.verts,
+              items: payload.items,
+            }),
+          });
+        }
       }
 
-      function loadDesign() {
+      async function loadDesign() {
         clearFurniture();
         floorVerts = [];
         cameraHeightM = 1.4;
         let items = [];
-        try {
-          const raw = localStorage.getItem(designKey());
-          if (raw) {
-            const data = JSON.parse(raw);
-            if (typeof data.h === "number" && isFinite(data.h)) cameraHeightM = data.h;
-            if (Array.isArray(data.verts)) {
-              floorVerts = data.verts.map((a) => new THREE.Vector3(a[0], a[1], a[2]));
+        let data = null;
+
+        if (currentRoomUploadId) {
+          try {
+            const res = await fetch("/api/uploads/" + encodeURIComponent(currentRoomUploadId) + "/design");
+            if (res.ok) {
+              const body = await res.json();
+              if (body.design) {
+                data = {
+                  h: body.design.cameraHeight,
+                  verts: body.design.floorVerts,
+                  items: body.design.items,
+                };
+              }
             }
-            if (Array.isArray(data.items)) items = data.items;
+          } catch (_) { /* fall back to localStorage */ }
+        }
+
+        if (!data) {
+          try {
+            const raw = localStorage.getItem(designKey());
+            if (raw) data = JSON.parse(raw);
+          } catch (_) { /* ignore malformed state */ }
+        }
+
+        if (data) {
+          if (typeof data.h === "number" && isFinite(data.h)) cameraHeightM = data.h;
+          if (Array.isArray(data.verts)) {
+            floorVerts = data.verts.map((a) => new THREE.Vector3(a[0], a[1], a[2]));
           }
-        } catch (_) { /* ignore malformed state */ }
+          if (Array.isArray(data.items)) items = data.items;
+        }
         syncHeightInputs();
         rebuildRefSquare();
         rebuildTrace();
@@ -3644,3 +3378,4 @@
     const hasSharedUploadParam = new URLSearchParams(window.location.search).has("upload");
     setActiveView(hasSharedUploadParam ? "designer" : (viewFromHash() || "map"), { updateHash: false });
     loadSharedUploadIfPresent();
+    })();

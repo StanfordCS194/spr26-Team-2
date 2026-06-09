@@ -9,6 +9,13 @@ const multer = require("multer"); // Middleware to parse multipart form uploads 
 const cors = require("cors"); // Allow cross-origin requests
 const fs = require("fs"); // File system: read/write to disk
 const { randomUUID } = require("crypto"); // Generate unique upload IDs
+const { connectDB, isConnected } = require("./db"); // MongoDB (Mongoose) connection
+const { router: apiRouter, isValidUploadId, getUploadRecord, saveUploadRecord } = require("./routes/api");
+const Dorm = require("./models/Dorm");
+const { buildDorms, buildTourConfigs, LANDMARKS, QUIZ_QUESTIONS } = require("./data/seedData");
+const Landmark = require("./models/Landmark");
+const Tour = require("./models/Tour");
+const QuizQuestion = require("./models/QuizQuestion");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +59,9 @@ app.use(express.json());
 // Middleware: Serve the frontend from treeview/ so browser can load index.html
 // This way http://localhost:3000 loads the UI directly from the server
 app.use(express.static(path.join(__dirname, "treeview")));
+// Panorama photos for dorm tours (served at /dormPhotos/...)
+app.use("/dormPhotos", express.static(path.join(__dirname, "dormPhotos")));
+app.use("/api", apiRouter);
 
 // Configure multer for file uploads
 const upload = multer({
@@ -92,8 +102,7 @@ function sanitize(value) {
 // === POST /api/upload ===
 // Main endpoint: receives 6 photos + metadata, validates, stores them
 app.post("/api/upload", (req, res) => {
-  // Step 1: Run multer's middleware to parse and validate the uploaded files
-  upload.array("photos", MAX_FILES)(req, res, (err) => {
+  upload.array("photos", MAX_FILES)(req, res, async (err) => {
     // If multer found an error (bad MIME, file too large, etc.), reject immediately
     if (err) {
       const status = err.code === "LIMIT_FILE_SIZE" ? 400 : 400;
@@ -171,6 +180,7 @@ app.post("/api/upload", (req, res) => {
         path.join(uploadDir, "metadata.json"),
         JSON.stringify(metadata, null, 2) // Pretty-print JSON (null, 2)
       );
+      await saveUploadRecord(metadata);
 
       // Step 9: Log successful upload (helps debug issues)
       const totalBytes = files.reduce((sum, f) => sum + f.size, 0);
@@ -205,7 +215,7 @@ app.post("/api/upload", (req, res) => {
 // six wall photos. Stored the same way (UUID folder + metadata.json), but with
 // kind:"pano" so the viewer renders an inverted sphere instead of a cube.
 app.post("/api/upload-pano", (req, res) => {
-  panoUpload.single("panorama")(req, res, (err) => {
+  panoUpload.single("panorama")(req, res, async (err) => {
     if (err) {
       console.error("[pano upload error]", err.message);
       return res.status(400).json({ success: false, error: err.message });
@@ -246,6 +256,7 @@ app.post("/api/upload-pano", (req, res) => {
         fileSizes: [file.size],
       };
       fs.writeFileSync(path.join(uploadDir, "metadata.json"), JSON.stringify(metadata, null, 2));
+      await saveUploadRecord(metadata);
 
       console.log(
         `[${uploadId}] received panorama for ${dormId}/${roomType} (${(file.size / 1024 / 1024).toFixed(2)} MB)`
@@ -258,75 +269,47 @@ app.post("/api/upload-pano", (req, res) => {
   });
 });
 
-// Security: Only accept IDs that look like what randomUUID() actually produces.
-// This stops path traversal before we ever call path.join with user input.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function isValidUploadId(id) {
-  return typeof id === "string" && UUID_RE.test(id);
-}
-
-// Read and parse an upload's metadata.json. Returns null if the file doesn't exist.
-function readUploadMetadata(uploadId) {
-  const metaPath = path.join(UPLOADS_DIR, uploadId, "metadata.json");
-  if (!fs.existsSync(metaPath)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(metaPath, "utf8"));
-  } catch {
-    return null;
-  }
-}
-
 // === GET /api/uploads/:uploadId ===
 // Returns metadata for a single upload so the frontend can render a share page.
-app.get("/api/uploads/:uploadId", (req, res) => {
-  // Step 1: Reject anything that isn't a real UUID (before touching the filesystem)
+app.get("/api/uploads/:uploadId", async (req, res) => {
   if (!isValidUploadId(req.params.uploadId)) {
     return res.status(400).json({ success: false, error: "Invalid upload ID" });
   }
 
-  // Step 2: Try to load metadata.json — if the folder doesn't exist, 404
-  const meta = readUploadMetadata(req.params.uploadId);
+  const meta = await getUploadRecord(req.params.uploadId);
   if (!meta) {
     return res.status(404).json({ success: false, error: "Upload not found" });
   }
 
-  // Step 3: Return just the fields the frontend needs — no disk paths, no internal stuff
   res.json({
     success: true,
     uploadId: meta.uploadId,
-    kind: meta.kind || "sixPhoto", // legacy uploads predate this field
+    kind: meta.kind || "sixPhoto",
     dormId: meta.dormId,
     roomType: meta.roomType,
     roomName: meta.roomName || "",
     userEmail: meta.userEmail,
-    timestamp: meta.timestamp,
+    timestamp: meta.createdAt || meta.timestamp,
     savedFiles: meta.savedFiles,
   });
 });
 
 // === GET /api/uploads/:uploadId/photos/:filename ===
-// Serves one photo from an upload. Only files listed in savedFiles are accessible.
-app.get("/api/uploads/:uploadId/photos/:filename", (req, res) => {
-  // Step 1: Same UUID check as above
+app.get("/api/uploads/:uploadId/photos/:filename", async (req, res) => {
   if (!isValidUploadId(req.params.uploadId)) {
     return res.status(400).json({ success: false, error: "Invalid upload ID" });
   }
 
-  // Step 2: Load metadata so we can whitelist filenames
-  const meta = readUploadMetadata(req.params.uploadId);
+  const meta = await getUploadRecord(req.params.uploadId);
   if (!meta) {
     return res.status(404).json({ success: false, error: "Upload not found" });
   }
 
-  // Step 3: Only serve files we actually saved — rejects anything not in savedFiles
-  // (e.g. "../../server.js" or "metadata.json" won't be in savedFiles)
   const filename = req.params.filename;
   if (!meta.savedFiles.includes(filename)) {
     return res.status(404).json({ success: false, error: "Photo not found" });
   }
 
-  // Step 4: Build the absolute path and send the file
   const filePath = path.join(UPLOADS_DIR, req.params.uploadId, filename);
   res.sendFile(filePath);
 });
@@ -342,18 +325,36 @@ app.get("/api/mapbox-token", (req, res) => {
 });
 
 // === GET /api/health ===
-// Simple health check: returns { ok: true } to confirm the server is alive
+// Simple health check: confirms the server is alive and reports DB status
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, mongo: isConnected() ? "connected" : "disconnected" });
 });
 
 // === Startup ===
-// Start the Express server
-app.listen(PORT, () => {
-  const mapboxReady =
-    Boolean(process.env.MAPBOX_TOKEN) &&
-    process.env.MAPBOX_TOKEN !== "YOUR_MAPBOX_TOKEN_HERE";
-  console.log(`TreeView server listening on http://localhost:${PORT}`);
-  console.log(`Uploads directory: ${UPLOADS_DIR}`);
-  console.log(`Mapbox: ${mapboxReady ? "configured" : "missing (set MAPBOX_TOKEN in .env)"}`);
-});
+async function ensureSeeded() {
+  const count = await Dorm.countDocuments();
+  if (count > 0) return;
+
+  console.log("Database empty — seeding reference data...");
+  await Dorm.insertMany(buildDorms());
+  await Tour.insertMany(buildTourConfigs());
+  await Landmark.insertMany(LANDMARKS);
+  await QuizQuestion.insertMany(QUIZ_QUESTIONS);
+  console.log("Auto-seed complete");
+}
+
+async function start() {
+  await connectDB();
+  await ensureSeeded();
+
+  app.listen(PORT, () => {
+    const mapboxReady =
+      Boolean(process.env.MAPBOX_TOKEN) &&
+      process.env.MAPBOX_TOKEN !== "YOUR_MAPBOX_TOKEN_HERE";
+    console.log(`TreeView server listening on http://localhost:${PORT}`);
+    console.log(`Uploads directory: ${UPLOADS_DIR}`);
+    console.log(`Mapbox: ${mapboxReady ? "configured" : "missing (set MAPBOX_TOKEN in .env)"}`);
+  });
+}
+
+start();
