@@ -135,21 +135,13 @@
             <!-- Filled by updatePreview(): “Branner, Singles” style string -->
             <p id="preview-title" class="preview-title"></p>
             <div class="preview-viewport" aria-label="Immersive preview, panoramic room view">
-              <!-- Tour/Design mode toggle (overlay, top-right) — wired up by TreeViewDesigner -->
-              <div class="preview-mode-toggle" role="tablist" aria-label="Preview mode">
-                <button type="button" id="mode-tour-btn" class="preview-mode-btn is-active" role="tab" aria-selected="true" data-mode="tour">Tour</button>
-                <button type="button" id="mode-design-btn" class="preview-mode-btn" role="tab" aria-selected="false" data-mode="design">Design</button>
-              </div>
+              <!-- Opens this dorm's room in the 3D designer (overlay, top-right).
+                   Hidden for dorms without tour photos. -->
+              <button type="button" id="design-dorm-btn" class="design-dorm-btn" hidden>
+                &#10022; Design this room
+              </button>
               <!-- Pannellum replaces the inside of this div at runtime -->
               <div id="treeview-panorama" class="pannellum-host"></div>
-              <!-- Three.js renders here when Design mode is active (hidden until first toggle) -->
-              <canvas id="design-canvas" class="design-canvas" hidden aria-label="3D room designer"></canvas>
-              <!-- Zoom + fullscreen controls, mirroring Pannellum's button positions (hidden in Tour mode) -->
-              <div id="design-controls" class="design-controls" hidden aria-label="Design mode controls">
-                <button type="button" class="design-ctrl-btn" id="design-zoom-in" aria-label="Zoom in">+</button>
-                <button type="button" class="design-ctrl-btn" id="design-zoom-out" aria-label="Zoom out">&minus;</button>
-                <button type="button" class="design-ctrl-btn" id="design-fullscreen" aria-label="Toggle full screen">&#x26F6;</button>
-              </div>
             </div>
           </div>
         </aside>
@@ -368,6 +360,7 @@
           <!-- Design mode: Tier 1 metric scale calibration + Tier 2 floor
                mapping. Hidden until the user clicks "Design this room". -->
           <div id="room3d-design-panel" class="room3d-design-panel" hidden>
+            <p class="rdp-step-head is-active"><span class="rdp-step-num">1</span> Set the scale</p>
             <div class="rdp-row">
               <label class="rdp-label" for="rdp-height">Camera height</label>
               <input type="range" id="rdp-height-range" class="rdp-range"
@@ -389,14 +382,15 @@
               1&nbsp;m feature in your room (a floor tile, desk width). That sets
               the true scale for everything you place.
             </p>
+            <p class="rdp-step-head"><span class="rdp-step-num">2</span> Trace the floor</p>
             <div class="rdp-row">
               <button type="button" id="rdp-trace-btn" class="room3d-action-btn">▢ Trace floor</button>
               <button type="button" id="rdp-undo-btn" class="room3d-action-btn" disabled>↶ Undo point</button>
               <button type="button" id="rdp-clear-btn" class="room3d-action-btn" disabled>✕ Clear</button>
               <span id="rdp-dims" class="rdp-dims">Tap each floor corner to map the room.</span>
             </div>
+            <p class="rdp-step-head"><span class="rdp-step-num">3</span> Furnish it</p>
             <div class="rdp-row">
-              <span class="rdp-label">Furniture</span>
               <div id="rdp-catalog" class="rdp-catalog"></div>
             </div>
             <div class="rdp-row" id="rdp-selected-row" hidden>

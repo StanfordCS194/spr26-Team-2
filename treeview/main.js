@@ -210,8 +210,13 @@
       renderRoomUploadUI();
     }
 
+    // When designing a stock dorm room (no upload), designs persist under a
+    // per-dorm key instead of an uploadId. Any upload flow clears this.
+    let dormDesignScope = null;
+
     function setCurrentRoomUploadId(uploadId) {
       currentRoomUploadId = uploadId || null;
+      dormDesignScope = null;
       if (room3dCopyLinkBtn) {
         room3dCopyLinkBtn.disabled = !currentRoomUploadId;
         room3dCopyLinkBtn.textContent = "Copy share link";
@@ -877,8 +882,10 @@
           designerUploadRoot.hidden = true;
           roomUploadForm.hidden = true;
         } catch (err) {
-          showUploadResult("error", `Upload failed: ${escapeUploadHtml(err.message)}. Please try again.`);
+          showUploadResult("error", `Upload failed: ${escapeUploadHtml(err.message)}. The room below is rendered from your local photo — retry to save it and get a share link.`);
           uploadReadyTextEl.textContent = "360° panorama ready";
+          // The 3D stage grabbed the scroll when it rendered — bring the error into view.
+          uploadResultEl.scrollIntoView({ behavior: "smooth", block: "center" });
         } finally {
           setUploadSubmitting(false);
         }
@@ -958,10 +965,12 @@
         // Show error message to user
         showUploadResult(
           "error",
-          `Upload failed: ${escapeUploadHtml(err.message)}. Please try again.`,
+          `Upload failed: ${escapeUploadHtml(err.message)}. The room below is rendered from your local photos — retry to save it and get a share link.`,
         );
         // Photos remain selected, so user can retry by clicking submit again
         uploadReadyTextEl.textContent = "Ready to upload";
+        // The 3D stage grabbed the scroll when it rendered — bring the error into view.
+        uploadResultEl.scrollIntoView({ behavior: "smooth", block: "center" });
       } finally {
         // === Cleanup ===
         // This runs whether success or error — restore button to normal state
@@ -1031,6 +1040,49 @@
           ? "Undergraduate residence designated for first-year students."
           : "Four-class undergraduate residence; first-year students may be assigned here.";
       previewTitle.textContent = house.name + ", " + ROOM_LABELS[roomType];
+      syncDesignDormBtn();
+    }
+
+    /* ===== Design a default dorm room =====
+     * Pipes the selected dorm's first tour panorama into the Create 3D Room
+     * designer (same pipeline as uploaded panoramas), so users can furnish a
+     * real dorm room without uploading photos. Designs persist per dorm.
+     */
+    const designDormBtn = document.getElementById("design-dorm-btn");
+
+    function firstScenePanorama(config) {
+      if (!config || !config.default || !config.scenes) return null;
+      const first = config.scenes[config.default.firstScene];
+      if (!first || !first.panorama) return null;
+      return { url: first.panorama, title: first.title || "" };
+    }
+
+    function syncDesignDormBtn() {
+      if (!designDormBtn) return;
+      designDormBtn.hidden = !hasDormTour(houseId);
+    }
+
+    if (designDormBtn) {
+      designDormBtn.addEventListener("click", async () => {
+        const house = getHouse(houseId);
+        designDormBtn.disabled = true;
+        try {
+          const config = await fetchTourConfig(houseId);
+          const scene = firstScenePanorama(config);
+          if (!scene || typeof window.renderRoomBuilderPano !== "function") return;
+          // Stock dorm room: no uploadId; persist the design under the dorm.
+          setCurrentRoomUploadId(null);
+          dormDesignScope = "dorm-" + houseId;
+          window.renderRoomBuilderPano(
+            scene.url,
+            house.name + (scene.title ? " · " + scene.title : ""),
+            { dormRoom: true }
+          );
+          setActiveView("designer");
+        } finally {
+          designDormBtn.disabled = false;
+        }
+      });
     }
 
     // Event delegation: one listener on the container instead of per-pill listeners after each re-render
@@ -1074,10 +1126,13 @@
     // Boot the 360 viewer — initialized lazily when the residences tab becomes active
     let panoramaViewer = null;
     let panoramaViewerDormId = null;
+    let panoramaLoadSeq = 0; // guards against out-of-order tour fetches on fast dorm switches
     async function loadMainPanoramaForDorm(dormId) {
       const panoHost = document.getElementById("treeview-panorama");
       const house = getHouse(dormId);
+      const mySeq = ++panoramaLoadSeq;
       const config = await fetchTourConfig(dormId);
+      if (mySeq !== panoramaLoadSeq) return; // a newer dorm switch superseded this load
 
       if (panoramaViewerDormId === dormId && panoramaViewer) return;
 
@@ -1115,14 +1170,15 @@
     // ===== FEATURE 1: Dark Mode Toggle =====
     const themeToggles = document.querySelectorAll(".theme-toggle");
 
-    function applyTheme(theme) {
+    function applyTheme(theme, persist) {
       document.documentElement.setAttribute("data-theme", theme);
       themeToggles.forEach((btn) => {
         btn.innerHTML = theme === "dark" ? "&#9788;" : "&#9790;";
         btn.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
       });
       localStorage.setItem("tv-theme", theme);
-      saveUserProfile({ theme });
+      // Only PUT the profile on a real toggle — not when restoring at boot.
+      if (persist !== false) saveUserProfile({ theme });
     }
 
     themeToggles.forEach((btn) => {
@@ -1134,7 +1190,7 @@
 
     const savedTheme = localStorage.getItem("tv-theme") ||
       (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    applyTheme(savedTheme);
+    applyTheme(savedTheme, false);
 
     // ===== Dashboard view switching =====
     const DASHBOARD_VIEWS = ["residences", "map", "walk", "rankings", "designer"];
@@ -2214,221 +2270,6 @@
 
     openQuizBtn.addEventListener("click", openQuiz);
 
-    /* ===== Designer mode — Three.js panorama substrate =====
-     * Renders ZAP_One on an inside-out sphere so a real 3D scene exists for
-     * future furniture/share work. v1 is read-only; Tour mode remains the default.
-     */
-    (function initTreeViewDesigner() {
-      const tourBtn        = document.getElementById("mode-tour-btn");
-      const designBtn      = document.getElementById("mode-design-btn");
-      const canvas         = document.getElementById("design-canvas");
-      const panoHost       = document.getElementById("treeview-panorama");
-      const designControls = document.getElementById("design-controls");
-      const zoomInBtn      = document.getElementById("design-zoom-in");
-      const zoomOutBtn     = document.getElementById("design-zoom-out");
-      const fullscreenBtn  = document.getElementById("design-fullscreen");
-
-      // Graceful degradation: if the Three.js CDN is blocked, Tour mode still works.
-      if (typeof THREE === "undefined") {
-        console.warn("[designer] THREE.js failed to load — Design mode disabled.");
-        designBtn.disabled = true;
-        designBtn.title = "Design mode unavailable (3D library failed to load)";
-        return;
-      }
-
-      const FIRST_SCENE_URL = pano(ZAP_PANORAMA_BASE, "ZAP_One.jpeg");
-      // Match Pannellum baseScene (haov: 110, vaov: 45) — half-angles for yaw/pitch clamps.
-      const YAW_LIMIT_RAD   = THREE.MathUtils.degToRad(55);
-      const PITCH_LIMIT_RAD = THREE.MathUtils.degToRad(22.5);
-      const DRAG_SENSITIVITY = 0.0025;
-      const INERTIA = 0.88;    // velocity multiplied each frame after pointer release
-      const MIN_FOV = 50;      // degrees — matches Pannellum minHfov
-      const MAX_FOV = 90;      // degrees — matches Pannellum maxHfov
-      const ZOOM_STEP = 3;     // degrees per button press or scroll tick
-
-      let renderer, scene, camera;
-      let yaw = 0, pitch = 0;
-      let velYaw = 0, velPitch = 0;
-      const lookTarget = new THREE.Vector3();
-      let initialized = false;
-      let animFrame = null;
-      let resizeTimer = null;
-      let dragging = false;
-      let lastX = 0, lastY = 0;
-
-      function updateCamera() {
-        // Standard first-person spherical look: yaw around Y, pitch around X.
-        // At yaw=0, pitch=0 the camera looks down -Z (center of the equirectangular image).
-        lookTarget.set(
-          Math.sin(yaw) * Math.cos(pitch),
-          Math.sin(pitch),
-          -Math.cos(yaw) * Math.cos(pitch)
-        );
-        camera.lookAt(lookTarget);
-      }
-
-      function clampAngles() {
-        if (yaw < -YAW_LIMIT_RAD)         { yaw   = -YAW_LIMIT_RAD;   velYaw   = 0; }
-        else if (yaw > YAW_LIMIT_RAD)     { yaw   =  YAW_LIMIT_RAD;   velYaw   = 0; }
-        if (pitch < -PITCH_LIMIT_RAD)     { pitch = -PITCH_LIMIT_RAD; velPitch = 0; }
-        else if (pitch > PITCH_LIMIT_RAD) { pitch =  PITCH_LIMIT_RAD; velPitch = 0; }
-      }
-
-      function setFov(fov) {
-        camera.fov = Math.min(MAX_FOV, Math.max(MIN_FOV, fov));
-        camera.updateProjectionMatrix();
-      }
-
-      function sizeRendererToCanvas() {
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
-        if (!w || !h) return; // canvas hidden — skip to avoid a 0×0 framebuffer
-        renderer.setSize(w, h, false);
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-      }
-
-      function init() {
-        if (initialized) return;
-        initialized = true;
-
-        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.outputEncoding = THREE.sRGBEncoding;
-
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
-        camera.position.set(0, 0, 0); // camera at origin; sphere wraps around it
-
-        // Inside-out sphere — scale.x = -1 flips face winding so the texture is
-        // visible from inside, and the equirectangular UV wrapping reads left-to-right.
-        const geom = new THREE.SphereGeometry(50, 64, 40);
-        geom.scale(-1, 1, 1);
-
-        const texLoader = new THREE.TextureLoader();
-        texLoader.setCrossOrigin("anonymous");
-        const texture = texLoader.load(FIRST_SCENE_URL);
-        texture.encoding = THREE.sRGBEncoding;
-
-        scene.add(new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ map: texture })));
-
-        sizeRendererToCanvas();
-        updateCamera();
-        bindEvents();
-      }
-
-      function bindEvents() {
-        // --- Pointer drag (look-around: drag right = pan right, matching Pannellum) ---
-        canvas.addEventListener("pointerdown", (e) => {
-          dragging = true;
-          velYaw = velPitch = 0; // kill any coasting momentum on new grab
-          lastX = e.clientX;
-          lastY = e.clientY;
-          canvas.setPointerCapture(e.pointerId);
-        });
-
-        canvas.addEventListener("pointermove", (e) => {
-          if (!dragging) return;
-          const dx = e.clientX - lastX;
-          const dy = e.clientY - lastY;
-          lastX = e.clientX;
-          lastY = e.clientY;
-          velYaw   = dx * DRAG_SENSITIVITY; // store for inertia coast on release
-          velPitch = dy * DRAG_SENSITIVITY;
-          yaw   += velYaw;
-          pitch -= velPitch; // drag down (dy > 0) = look down = pitch decreases
-          clampAngles();
-          updateCamera();
-        });
-
-        const endDrag = (e) => {
-          dragging = false;
-          if (e && e.pointerId !== undefined && canvas.hasPointerCapture(e.pointerId)) {
-            canvas.releasePointerCapture(e.pointerId);
-          }
-        };
-        canvas.addEventListener("pointerup",     endDrag);
-        canvas.addEventListener("pointercancel", endDrag);
-
-        // --- Scroll wheel zoom (matches Pannellum: scroll up = zoom in = smaller FOV) ---
-        canvas.addEventListener("wheel", (e) => {
-          e.preventDefault();
-          setFov(camera.fov + (e.deltaY > 0 ? ZOOM_STEP : -ZOOM_STEP));
-        }, { passive: false });
-
-        // --- Zoom buttons ---
-        zoomInBtn.addEventListener("click",  () => setFov(camera.fov - ZOOM_STEP));
-        zoomOutBtn.addEventListener("click", () => setFov(camera.fov + ZOOM_STEP));
-
-        // --- Fullscreen ---
-        fullscreenBtn.addEventListener("click", () => {
-          if (!document.fullscreenElement) {
-            canvas.requestFullscreen().catch(err => console.warn("[designer] fullscreen:", err));
-          } else {
-            document.exitFullscreen();
-          }
-        });
-        // Resize the renderer once the browser has settled into/out of fullscreen
-        document.addEventListener("fullscreenchange", () =>
-          setTimeout(sizeRendererToCanvas, 50)
-        );
-      }
-
-      function tick() {
-        animFrame = requestAnimationFrame(tick);
-        // Inertia coast: apply decaying velocity after the pointer is released
-        if (!dragging && (Math.abs(velYaw) > 0.00005 || Math.abs(velPitch) > 0.00005)) {
-          yaw   += velYaw;
-          pitch -= velPitch;
-          clampAngles();
-          velYaw   *= INERTIA;
-          velPitch *= INERTIA;
-          updateCamera();
-        }
-        renderer.render(scene, camera);
-      }
-
-      function start() {
-        init();
-        sizeRendererToCanvas();
-        if (animFrame === null) tick();
-      }
-
-      function stop() {
-        if (animFrame !== null) {
-          cancelAnimationFrame(animFrame);
-          animFrame = null;
-        }
-      }
-
-      function setMode(mode) {
-        const designOn = mode === "design";
-        panoHost.hidden        = designOn;
-        canvas.hidden          = !designOn;
-        designControls.hidden  = !designOn;
-        tourBtn.classList.toggle("is-active",  !designOn);
-        designBtn.classList.toggle("is-active", designOn);
-        tourBtn.setAttribute("aria-selected",  String(!designOn));
-        designBtn.setAttribute("aria-selected", String(designOn));
-        if (designOn) {
-          start();
-        } else {
-          stop();
-          // Pannellum needs a nudge after its host returns from display:none
-          if (typeof panoramaViewer !== "undefined" && panoramaViewer) panoramaViewer.resize();
-        }
-      }
-
-      tourBtn.addEventListener("click",  () => setMode("tour"));
-      designBtn.addEventListener("click", () => setMode("design"));
-
-      window.addEventListener("resize", () => {
-        if (!initialized || canvas.hidden) return;
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(sizeRendererToCanvas, 120);
-      });
-    })();
-
     /* ===== Room builder — inline inverted-cube skybox (Create 3D Room tab) =====
      * Builds a real 6-sided room from the user's photos: an inside-out cube the
      * camera sits inside, one photo per face. Exposes window.renderRoomBuilderSkybox
@@ -2519,29 +2360,35 @@
       const gltfCache = {};                // file -> Promise<gltf.scene template>
       const furnRaycaster = new THREE.Raycaster();
       const ROTATE_STEP = Math.PI / 12;    // 15° per rotate press
+      const FURNITURE_GROUPS = [
+        { id: "sleep",  label: "Sleep" },
+        { id: "work",   label: "Work & study" },
+        { id: "lounge", label: "Lounge" },
+        { id: "decor",  label: "Decor & extras" },
+      ];
       const FURNITURE_CATALOG = [
-        { id: "bed",       label: "Bed",         file: "bedSingle.glb",         target: 1.90, axis: "xz" },
-        { id: "bedDouble", label: "Double bed",  file: "bedDouble.glb",         target: 2.00, axis: "xz" },
-        { id: "desk",      label: "Desk",        file: "desk.glb",              target: 1.10, axis: "xz" },
-        { id: "chair",     label: "Desk chair",  file: "chairDesk.glb",         target: 0.55, axis: "xz" },
-        { id: "armchair",  label: "Armchair",    file: "chairModernCushion.glb",target: 0.75, axis: "xz" },
-        { id: "stool",     label: "Stool",       file: "stoolBar.glb",          target: 0.75, axis: "y"  },
-        { id: "sofa",      label: "Sofa",        file: "loungeSofa.glb",        target: 2.00, axis: "xz" },
-        { id: "coffee",    label: "Coffee table",file: "tableCoffee.glb",       target: 1.10, axis: "xz" },
-        { id: "sideTable", label: "Side table",  file: "sideTable.glb",         target: 0.50, axis: "xz" },
-        { id: "bookcase",  label: "Bookcase",    file: "bookcaseOpen.glb",      target: 1.60, axis: "y"  },
-        { id: "books",     label: "Books",       file: "books.glb",             target: 0.30, axis: "xz" },
-        { id: "tvStand",   label: "TV stand",    file: "cabinetTelevision.glb", target: 1.40, axis: "xz" },
-        { id: "tv",        label: "TV",          file: "televisionModern.glb",  target: 1.20, axis: "xz" },
-        { id: "fridge",    label: "Mini fridge", file: "kitchenFridgeSmall.glb",target: 0.85, axis: "y"  },
-        { id: "lamp",      label: "Floor lamp",  file: "lampSquareFloor.glb",   target: 1.50, axis: "y"  },
-        { id: "tableLamp", label: "Table lamp",  file: "lampRoundTable.glb",    target: 0.50, axis: "y"  },
-        { id: "coatRack",  label: "Coat rack",   file: "coatRackStanding.glb",  target: 1.70, axis: "y"  },
-        { id: "plant",     label: "Potted plant",file: "pottedPlant.glb",       target: 0.60, axis: "y"  },
-        { id: "plantSmall",label: "Small plant", file: "plantSmall1.glb",       target: 0.35, axis: "y"  },
-        { id: "trashcan",  label: "Trash can",   file: "trashcan.glb",          target: 0.50, axis: "y"  },
-        { id: "rug",       label: "Rug",         file: "rugRectangle.glb",      target: 1.60, axis: "xz" },
-        { id: "rugRound",  label: "Round rug",   file: "rugRound.glb",          target: 1.60, axis: "xz" },
+        { id: "bed",       label: "Bed",         file: "bedSingle.glb",         target: 1.90, axis: "xz", group: "sleep"  },
+        { id: "bedDouble", label: "Double bed",  file: "bedDouble.glb",         target: 2.00, axis: "xz", group: "sleep"  },
+        { id: "desk",      label: "Desk",        file: "desk.glb",              target: 1.10, axis: "xz", group: "work"   },
+        { id: "chair",     label: "Desk chair",  file: "chairDesk.glb",         target: 0.55, axis: "xz", group: "work"   },
+        { id: "bookcase",  label: "Bookcase",    file: "bookcaseOpen.glb",      target: 1.60, axis: "y",  group: "work"   },
+        { id: "books",     label: "Books",       file: "books.glb",             target: 0.30, axis: "xz", group: "work"   },
+        { id: "armchair",  label: "Armchair",    file: "chairModernCushion.glb",target: 0.75, axis: "xz", group: "lounge" },
+        { id: "stool",     label: "Stool",       file: "stoolBar.glb",          target: 0.75, axis: "y",  group: "lounge" },
+        { id: "sofa",      label: "Sofa",        file: "loungeSofa.glb",        target: 2.00, axis: "xz", group: "lounge" },
+        { id: "coffee",    label: "Coffee table",file: "tableCoffee.glb",       target: 1.10, axis: "xz", group: "lounge" },
+        { id: "sideTable", label: "Side table",  file: "sideTable.glb",         target: 0.50, axis: "xz", group: "lounge" },
+        { id: "tvStand",   label: "TV stand",    file: "cabinetTelevision.glb", target: 1.40, axis: "xz", group: "lounge" },
+        { id: "tv",        label: "TV",          file: "televisionModern.glb",  target: 1.20, axis: "xz", group: "lounge" },
+        { id: "fridge",    label: "Mini fridge", file: "kitchenFridgeSmall.glb",target: 0.85, axis: "y",  group: "lounge" },
+        { id: "lamp",      label: "Floor lamp",  file: "lampSquareFloor.glb",   target: 1.50, axis: "y",  group: "decor"  },
+        { id: "tableLamp", label: "Table lamp",  file: "lampRoundTable.glb",    target: 0.50, axis: "y",  group: "decor"  },
+        { id: "coatRack",  label: "Coat rack",   file: "coatRackStanding.glb",  target: 1.70, axis: "y",  group: "decor"  },
+        { id: "plant",     label: "Potted plant",file: "pottedPlant.glb",       target: 0.60, axis: "y",  group: "decor"  },
+        { id: "plantSmall",label: "Small plant", file: "plantSmall1.glb",       target: 0.35, axis: "y",  group: "decor"  },
+        { id: "trashcan",  label: "Trash can",   file: "trashcan.glb",          target: 0.50, axis: "y",  group: "decor"  },
+        { id: "rug",       label: "Rug",         file: "rugRectangle.glb",      target: 1.60, axis: "xz", group: "decor"  },
+        { id: "rugRound",  label: "Round rug",   file: "rugRound.glb",          target: 1.60, axis: "xz", group: "decor"  },
       ];
 
       function updateCamera() {
@@ -2775,6 +2622,131 @@
         scene.add(designGroup);
       }
 
+      /* ----- Room bounds: keep furniture inside the traced walls ----- */
+
+      const FALLBACK_RADIUS = 5;     // metres — cap before any floor is traced
+      const BUMP_COOLDOWN_MS = 450;  // min gap between wall-bump effects
+      const WALL_FLASH_MS = 420;
+      const TRACE_COLOR = 0xffb000, WALL_HIT_COLOR = 0xff4d4d;
+      let lastBumpAt = 0;
+      let wallFlashMesh = null, wallFlashTimer = null, traceFlashTimer = null;
+
+      function pointInPolygon(x, z, pts) {
+        let inside = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+          const xi = pts[i].x, zi = pts[i].z, xj = pts[j].x, zj = pts[j].z;
+          if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) {
+            inside = !inside;
+          }
+        }
+        return inside;
+      }
+
+      // Closest point to (x,z) on the polygon boundary; also reports the
+      // segment so the bump effect can light up the wall that was hit.
+      function closestBoundaryPoint(x, z, pts) {
+        let best = null;
+        for (let i = 0; i < pts.length; i++) {
+          const a = pts[i], b = pts[(i + 1) % pts.length];
+          const abx = b.x - a.x, abz = b.z - a.z;
+          const len2 = abx * abx + abz * abz;
+          const t = len2 > 1e-9 ? Math.max(0, Math.min(1, ((x - a.x) * abx + (z - a.z) * abz) / len2)) : 0;
+          const px = a.x + abx * t, pz = a.z + abz * t;
+          const d2 = (x - px) * (x - px) + (z - pz) * (z - pz);
+          if (!best || d2 < best.d2) best = { x: px, z: pz, d2, a, b };
+        }
+        return best;
+      }
+
+      // Clamp a floor point so a footprint of halfW stays inside the room.
+      // With a traced polygon the point clamps to the boundary and nudges
+      // toward the centroid; before tracing, a generous circle around the
+      // camera applies. Returns { x, z, clamped, wall }.
+      function clampToRoom(x, z, halfW) {
+        const pts = metricPoints();
+        const margin = Math.min(Math.max(halfW || 0, 0.05), 0.6);
+        if (pts.length >= 3) {
+          if (pointInPolygon(x, z, pts)) return { x, z, clamped: false, wall: null };
+          const hit = closestBoundaryPoint(x, z, pts);
+          let cx = 0, cz = 0;
+          pts.forEach((p) => { cx += p.x; cz += p.z; });
+          cx /= pts.length; cz /= pts.length;
+          const dx = cx - hit.x, dz = cz - hit.z;
+          const d = Math.hypot(dx, dz);
+          const push = Math.min(margin, d);
+          return {
+            x: hit.x + (d > 1e-6 ? (dx / d) * push : 0),
+            z: hit.z + (d > 1e-6 ? (dz / d) * push : 0),
+            clamped: true,
+            wall: { a: hit.a, b: hit.b },
+          };
+        }
+        const r = Math.hypot(x, z), max = FALLBACK_RADIUS - margin;
+        if (r <= max) return { x, z, clamped: false, wall: null };
+        const s = max / r;
+        return { x: x * s, z: z * s, clamped: true, wall: null };
+      }
+
+      // "You hit the wall" feedback: shake the viewport, flash the traced
+      // outline red, and light up the wall segment that was hit. Throttled so
+      // dragging along a wall doesn't strobe.
+      function wallBump(wall) {
+        const now = performance.now();
+        if (now - lastBumpAt < BUMP_COOLDOWN_MS) return;
+        lastBumpAt = now;
+
+        const viewport = canvas.closest(".room3d-viewport");
+        if (viewport) {
+          viewport.classList.remove("is-wall-bump");
+          void viewport.offsetWidth; // restart the animation if mid-flight
+          viewport.classList.add("is-wall-bump");
+          setTimeout(() => viewport.classList.remove("is-wall-bump"), 350);
+        }
+
+        if (traceLine) {
+          traceLine.material.color.setHex(WALL_HIT_COLOR);
+          clearTimeout(traceFlashTimer);
+          traceFlashTimer = setTimeout(() => {
+            if (traceLine) traceLine.material.color.setHex(TRACE_COLOR);
+          }, WALL_FLASH_MS);
+        }
+
+        if (wall) flashWallSegment(wall);
+      }
+
+      function clearWallFlash() {
+        clearTimeout(wallFlashTimer);
+        if (wallFlashMesh && designGroup) {
+          designGroup.remove(wallFlashMesh);
+          disposeObj(wallFlashMesh);
+        }
+        wallFlashMesh = null;
+      }
+
+      // Translucent red panel standing on the violated wall edge for a moment.
+      function flashWallSegment(wall) {
+        ensureDesignGroup();
+        clearWallFlash();
+        const len = Math.hypot(wall.b.x - wall.a.x, wall.b.z - wall.a.z);
+        if (len < 1e-3) return;
+        const wallHeight = 1.2;
+        const geom = new THREE.PlaneGeometry(len, wallHeight);
+        const mat = new THREE.MeshBasicMaterial({
+          color: WALL_HIT_COLOR, transparent: true, opacity: 0.28,
+          side: THREE.DoubleSide, depthTest: false,
+        });
+        wallFlashMesh = new THREE.Mesh(geom, mat);
+        wallFlashMesh.position.set(
+          (wall.a.x + wall.b.x) / 2,
+          -cameraHeightM + wallHeight / 2,
+          (wall.a.z + wall.b.z) / 2
+        );
+        wallFlashMesh.rotation.y = Math.atan2(-(wall.b.z - wall.a.z), wall.b.x - wall.a.x);
+        wallFlashMesh.renderOrder = 997;
+        designGroup.add(wallFlashMesh);
+        wallFlashTimer = setTimeout(clearWallFlash, WALL_FLASH_MS);
+      }
+
       function disposeObj(o) {
         if (!o) return;
         if (o.geometry) o.geometry.dispose();
@@ -2794,6 +2766,7 @@
       function rebuildRefSquare() {
         ensureDesignGroup();
         if (refSquare) { designGroup.remove(refSquare); disposeObj(refSquare); refSquare = null; }
+        updateDesignSteps(); // the checkbox doubles as the step-1 "done" signal
         if (!showRefChk.checked) return;
         const half = 0.5;
         const corners = [
@@ -2832,7 +2805,7 @@
         if (pts.length >= 2) {
           const lifted = pts.map((p) => new THREE.Vector3(p.x, p.y + 0.01, p.z));
           const g = new THREE.BufferGeometry().setFromPoints(lifted);
-          const m = new THREE.LineBasicMaterial({ color: 0xffb000, depthTest: false });
+          const m = new THREE.LineBasicMaterial({ color: TRACE_COLOR, depthTest: false });
           traceLine = pts.length >= 3 ? new THREE.LineLoop(g, m) : new THREE.Line(g, m);
           traceLine.renderOrder = 999;
           designGroup.add(traceLine);
@@ -2855,6 +2828,7 @@
         updateDims(pts);
         undoBtn.disabled = floorVerts.length === 0;
         clearBtn.disabled = floorVerts.length === 0;
+        updateDesignSteps();
       }
 
       function updateDims(pts) {
@@ -2901,6 +2875,20 @@
         traceBtn.classList.toggle("is-active", on);
         traceBtn.textContent = on ? "■ Stop tracing" : "▢ Trace floor";
         canvas.style.cursor = on ? "crosshair" : "";
+        updateDesignSteps();
+      }
+
+      // Highlight the design-panel step the user is most likely on: scale
+      // until the 1 m square is dismissed, trace until a polygon exists,
+      // then furnish. Purely a guide — every control stays usable.
+      function updateDesignSteps() {
+        const heads = designPanel.querySelectorAll(".rdp-step-head");
+        if (!heads.length) return;
+        let active = 0;
+        if (tracing) active = 1;
+        else if (floorVerts.length >= 3) active = 2;
+        else if (!showRefChk.checked) active = 1;
+        heads.forEach((h, i) => h.classList.toggle("is-active", i === active));
       }
 
       function setDesignMode(on) {
@@ -2921,9 +2909,10 @@
       // Per-room persistence (local only for now — cross-device sharing would
       // need this state added to the upload payload).
       function designKey() {
-        return "treeview:roomdesign:" + (currentRoomUploadId || "local");
+        return "treeview:roomdesign:" + (currentRoomUploadId || dormDesignScope || "local");
       }
 
+      let designSaveTimer = null;
       function saveDesign() {
         const payload = {
           h: cameraHeightM,
@@ -2933,8 +2922,13 @@
         try {
           localStorage.setItem(designKey(), JSON.stringify(payload));
         } catch (_) { /* storage unavailable */ }
-        if (currentRoomUploadId) {
-          fetch("/api/uploads/" + encodeURIComponent(currentRoomUploadId) + "/design", {
+        if (!currentRoomUploadId) return;
+        // Debounce the server PUT — the height slider calls saveDesign on
+        // every input tick, which would otherwise fire a request per pixel.
+        const uploadId = currentRoomUploadId; // pin: may change before fire
+        clearTimeout(designSaveTimer);
+        designSaveTimer = setTimeout(() => {
+          fetch("/api/uploads/" + encodeURIComponent(uploadId) + "/design", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -2942,8 +2936,8 @@
               floorVerts: payload.verts,
               items: payload.items,
             }),
-          });
-        }
+          }).catch((err) => console.warn("[design] server save failed (kept locally):", err));
+        }, 500);
       }
 
       async function loadDesign() {
@@ -3047,8 +3041,17 @@
         obj.scale.setScalar(ref > 1e-4 ? cat.target / ref : 1);
 
         // Center on (cx,cz) and seat the base on the floor plane y = -h.
-        const cx = (opts.x !== undefined) ? opts.x : 0;
-        const cz = (opts.z !== undefined) ? opts.z : -2;
+        let cx = (opts.x !== undefined) ? opts.x : 0;
+        let cz = (opts.z !== undefined) ? opts.z : -2;
+        // New placements stay inside the walls; silent restores keep their
+        // saved spot untouched (it was clamped when placed).
+        if (!opts.silent) {
+          const preBox = boxOf(obj);
+          const preSize = new THREE.Vector3();
+          preBox.getSize(preSize);
+          const c = clampToRoom(cx, cz, Math.max(preSize.x, preSize.z) / 2);
+          cx = c.x; cz = c.z;
+        }
         const box = boxOf(obj);
         const center = new THREE.Vector3();
         box.getCenter(center);
@@ -3116,12 +3119,17 @@
         const p = projectToFloor(dirFromEvent(e), cameraHeightM);
         if (!p) return;
         const box = boxOf(draggingItem);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        // Keep the whole footprint inside the walls, not just the center.
+        const c = clampToRoom(p.x, p.z, Math.max(size.x, size.z) / 2);
+        if (c.clamped) wallBump(c.wall);
         const center = new THREE.Vector3();
         box.getCenter(center);
-        draggingItem.position.x += p.x - center.x;
-        draggingItem.position.z += p.z - center.z;
-        draggingItem.userData.cx = p.x;
-        draggingItem.userData.cz = p.z;
+        draggingItem.position.x += c.x - center.x;
+        draggingItem.position.z += c.z - center.z;
+        draggingItem.userData.cx = c.x;
+        draggingItem.userData.cz = c.z;
         if (selBox) selBox.update();
       }
 
@@ -3197,18 +3205,32 @@
           onHeightChange();
         });
 
-        // Furniture catalog buttons.
-        FURNITURE_CATALOG.forEach((cat) => {
-          const b = document.createElement("button");
-          b.type = "button";
-          b.className = "rdp-cat-btn";
-          b.textContent = cat.label;
-          b.addEventListener("click", async () => {
-            b.disabled = true;
-            await placeInView(cat);
-            b.disabled = false;
+        // Furniture catalog buttons, grouped by category.
+        FURNITURE_GROUPS.forEach((grp) => {
+          const items = FURNITURE_CATALOG.filter((c) => c.group === grp.id);
+          if (!items.length) return;
+          const wrap = document.createElement("div");
+          wrap.className = "rdp-cat-group";
+          const head = document.createElement("span");
+          head.className = "rdp-cat-group-label";
+          head.textContent = grp.label;
+          wrap.appendChild(head);
+          const row = document.createElement("div");
+          row.className = "rdp-cat-group-items";
+          items.forEach((cat) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = "rdp-cat-btn";
+            b.textContent = cat.label;
+            b.addEventListener("click", async () => {
+              b.disabled = true;
+              await placeInView(cat);
+              b.disabled = false;
+            });
+            row.appendChild(b);
           });
-          catalogEl.appendChild(b);
+          wrap.appendChild(row);
+          catalogEl.appendChild(wrap);
         });
 
         // Furniture drag: a grabbed model follows the floor; release saves.
@@ -3243,23 +3265,31 @@
         const delBtn   = document.getElementById("room3d-fs-delete");
         if (!addBtn || !menu) return;
 
-        // Build the menu from the same catalog as the side panel. Clicking an
-        // item enables design mode (so it can be moved/selected) and drops it in
-        // front of the current view.
-        FURNITURE_CATALOG.forEach((cat) => {
-          const item = document.createElement("button");
-          item.type = "button";
-          item.className = "room3d-fs-menu-item";
-          item.setAttribute("role", "menuitem");
-          item.textContent = cat.label;
-          item.addEventListener("click", async () => {
-            closeFsMenu();
-            if (!designMode) setDesignMode(true);
-            item.disabled = true;
-            await placeInView(cat);
-            item.disabled = false;
+        // Build the menu from the same catalog as the side panel (with the
+        // same category groupings). Clicking an item enables design mode (so
+        // it can be moved/selected) and drops it in front of the current view.
+        FURNITURE_GROUPS.forEach((grp) => {
+          const items = FURNITURE_CATALOG.filter((c) => c.group === grp.id);
+          if (!items.length) return;
+          const head = document.createElement("span");
+          head.className = "room3d-fs-menu-group";
+          head.textContent = grp.label;
+          menu.appendChild(head);
+          items.forEach((cat) => {
+            const item = document.createElement("button");
+            item.type = "button";
+            item.className = "room3d-fs-menu-item";
+            item.setAttribute("role", "menuitem");
+            item.textContent = cat.label;
+            item.addEventListener("click", async () => {
+              closeFsMenu();
+              if (!designMode) setDesignMode(true);
+              item.disabled = true;
+              await placeInView(cat);
+              item.disabled = false;
+            });
+            menu.appendChild(item);
           });
-          menu.appendChild(item);
         });
 
         addBtn.addEventListener("click", () => { menu.hidden ? openFsMenu() : closeFsMenu(); });
@@ -3328,9 +3358,21 @@
 
       // Shared tail for both skybox kinds: reset the design overlays, recentre the
       // view, reveal the stage, and start rendering once layout has settled.
-      function presentStage(roomName) {
+      function presentStage(roomName, opts) {
+        opts = opts || {};
         titleEl.textContent = roomName || "Your 3D room";
-        resetDesignForNewRoom();
+
+        // Stock dorm rooms come from tour photos: nothing to edit or share,
+        // and the user clicked "Design this room" — drop straight into design.
+        editBtn.hidden = !!opts.dormRoom;
+        copyLinkBtn.hidden = !!opts.dormRoom;
+        if (opts.dormRoom) {
+          setTracing(false);
+          selectFurniture(null);
+          setDesignMode(true);
+        } else {
+          resetDesignForNewRoom();
+        }
 
         // Reset the view to face front at the default zoom.
         yaw = 0; pitch = 0; velYaw = 0; velPitch = 0;
@@ -3357,14 +3399,15 @@
       };
 
       // Equirectangular-panorama entry point: one image → inverted-sphere skybox.
-      window.renderRoomBuilderPano = function (url, roomName) {
+      // opts.dormRoom marks a stock dorm room (per-dorm persistence, no share).
+      window.renderRoomBuilderPano = function (url, roomName, opts) {
         if (typeof url !== "string" || !url) {
           console.warn("[room3d] renderRoomBuilderPano needs an image URL, got", url);
           return;
         }
         init();
         buildSphere(url);
-        presentStage(roomName);
+        presentStage(roomName, opts);
       };
 
       window.addEventListener("resize", () => {
