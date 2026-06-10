@@ -10,6 +10,7 @@ const QuizQuestion = require("../models/QuizQuestion");
 const RoomUpload = require("../models/RoomUpload");
 const UserProfile = require("../models/UserProfile");
 const RoomDesign = require("../models/RoomDesign");
+const DormDesign = require("../models/DormDesign");
 const {
   ROOM_LABELS,
   REASON_LABELS,
@@ -235,6 +236,80 @@ router.put("/uploads/:uploadId/design", async (req, res) => {
 
   res.json({
     success: true,
+    design: {
+      cameraHeight: design.cameraHeight,
+      floorVerts: design.floorVerts,
+      items: design.items,
+    },
+  });
+});
+
+// === GET /api/dorm-designs/:designId ===
+// A shared design of a stock dorm room. Returns the dorm + scene so the
+// frontend can rebuild the panorama from the tour config.
+router.get("/dorm-designs/:designId", async (req, res) => {
+  if (!isValidUploadId(req.params.designId)) {
+    return res.status(400).json({ success: false, error: "Invalid design ID" });
+  }
+
+  const design = await DormDesign.findOne({ designId: req.params.designId }).lean();
+  if (!design) {
+    return res.status(404).json({ success: false, error: "Design not found" });
+  }
+
+  res.json({
+    success: true,
+    designId: design.designId,
+    dormId: design.dormId,
+    sceneId: design.sceneId || "",
+    design: {
+      cameraHeight: design.cameraHeight,
+      floorVerts: design.floorVerts,
+      items: design.items,
+    },
+  });
+});
+
+// === PUT /api/dorm-designs/:designId ===
+// Upserts a dorm-room design under a client-generated UUID (same open-write
+// model as upload designs).
+router.put("/dorm-designs/:designId", async (req, res) => {
+  if (!isValidUploadId(req.params.designId)) {
+    return res.status(400).json({ success: false, error: "Invalid design ID" });
+  }
+
+  const dormId = String(req.body.dormId || "").slice(0, 64);
+  const dormExists = dormId && (await Dorm.exists({ id: dormId }));
+  if (!dormExists) {
+    return res.status(400).json({ success: false, error: "Unknown dormId" });
+  }
+
+  const cameraHeight = Number(req.body.cameraHeight);
+  const floorVerts = Array.isArray(req.body.floorVerts) ? req.body.floorVerts : [];
+  const items = Array.isArray(req.body.items) ? req.body.items : [];
+
+  const design = await DormDesign.findOneAndUpdate(
+    { designId: req.params.designId },
+    {
+      dormId,
+      sceneId: String(req.body.sceneId || "").slice(0, 64),
+      cameraHeight: Number.isFinite(cameraHeight) ? cameraHeight : 1.4,
+      floorVerts,
+      items: items.map((it) => ({
+        id: String(it.id || "").slice(0, 64),
+        x: Number(it.x) || 0,
+        z: Number(it.z) || 0,
+        rotY: Number(it.rotY) || 0,
+      })),
+    },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
+  ).lean();
+
+  res.json({
+    success: true,
+    designId: design.designId,
+    dormId: design.dormId,
+    sceneId: design.sceneId || "",
     design: {
       cameraHeight: design.cameraHeight,
       floorVerts: design.floorVerts,
