@@ -2704,10 +2704,14 @@
         }
 
         if (traceLine) {
+          traceLine.visible = true; // reveal even if hidden by Stop tracing
           traceLine.material.color.setHex(WALL_HIT_COLOR);
           clearTimeout(traceFlashTimer);
           traceFlashTimer = setTimeout(() => {
-            if (traceLine) traceLine.material.color.setHex(TRACE_COLOR);
+            if (traceLine) {
+              traceLine.material.color.setHex(TRACE_COLOR);
+              applyTraceVisibility();
+            }
           }, WALL_FLASH_MS);
         }
 
@@ -2825,10 +2829,19 @@
           markerGroup.add(s);
         });
 
+        applyTraceVisibility();
         updateDims(pts);
         undoBtn.disabled = floorVerts.length === 0;
         clearBtn.disabled = floorVerts.length === 0;
         updateDesignSteps();
+      }
+
+      // The outline + corner dots only show while actively tracing — after
+      // "Stop tracing" the polygon keeps clamping furniture invisibly (a wall
+      // bump still flashes it red for a moment).
+      function applyTraceVisibility() {
+        if (traceLine) traceLine.visible = tracing;
+        if (markerGroup) markerGroup.visible = tracing;
       }
 
       function updateDims(pts) {
@@ -2875,6 +2888,7 @@
         traceBtn.classList.toggle("is-active", on);
         traceBtn.textContent = on ? "■ Stop tracing" : "▢ Trace floor";
         canvas.style.cursor = on ? "crosshair" : "";
+        applyTraceVisibility();
         updateDesignSteps();
       }
 
