@@ -210,13 +210,15 @@
       renderRoomUploadUI();
     }
 
-    // When designing a stock dorm room (no upload), designs persist under a
-    // per-dorm key instead of an uploadId. Any upload flow clears this.
-    let dormDesignScope = null;
+    // When designing a stock dorm room (no upload), this carries the dorm,
+    // scene, and shareable designId. Any upload flow clears it.
+    let dormRoomContext = null;
+    // Set by the room builder IIFE so view switching can resize/sync the stage.
+    let roomStageApi = null;
 
     function setCurrentRoomUploadId(uploadId) {
       currentRoomUploadId = uploadId || null;
-      dormDesignScope = null;
+      dormRoomContext = null;
       if (room3dCopyLinkBtn) {
         room3dCopyLinkBtn.disabled = !currentRoomUploadId;
         room3dCopyLinkBtn.textContent = "Copy share link";
@@ -775,8 +777,16 @@
       sharedUploadHydrated = true;
     }
 
-    async function copyUploadShareLink(uploadId, btn) {
-      const url = buildShareUrl(uploadId);
+    function buildDesignShareUrl(designId) {
+      return (
+        window.location.origin +
+        window.location.pathname +
+        "?design=" +
+        encodeURIComponent(designId)
+      );
+    }
+
+    async function copyShareLink(url, btn) {
       try {
         await navigator.clipboard.writeText(url);
         const prev = btn.textContent;
@@ -785,7 +795,33 @@
           btn.textContent = prev;
         }, 2000);
       } catch {
-        window.prompt("Copy this link to share your 3D room upload:", url);
+        window.prompt("Copy this link to share your 3D room:", url);
+      }
+    }
+
+    function copyUploadShareLink(uploadId, btn) {
+      return copyShareLink(buildShareUrl(uploadId), btn);
+    }
+
+    // ?design=<uuid> — someone's shared dorm-room design. Rebuild the
+    // panorama from the tour config and open it in the Room Designer.
+    async function loadSharedDesignIfPresent() {
+      const designId = new URLSearchParams(window.location.search).get("design");
+      if (!designId) return;
+
+      try {
+        const res = await fetch("/api/dorm-designs/" + encodeURIComponent(designId));
+        let data = null;
+        try { data = await res.json(); } catch { /* non-JSON error body */ }
+        if (!res.ok || !data || !data.success) {
+          throw new Error((data && data.error) || "Server returned " + res.status);
+        }
+        const scene = sceneFromConfig(await fetchTourConfig(data.dormId), data.sceneId);
+        if (!scene) throw new Error("The dorm tour behind this design is unavailable.");
+        openDormRoomInStudio(data.dormId, scene, designId);
+      } catch (err) {
+        setActiveView("designer");
+        showUploadNotFoundScreen(err.message || "Could not load this shared design.");
       }
     }
 
@@ -1044,17 +1080,50 @@
     }
 
     /* ===== Design a default dorm room =====
-     * Pipes the selected dorm's first tour panorama into the Create 3D Room
-     * designer (same pipeline as uploaded panoramas), so users can furnish a
-     * real dorm room without uploading photos. Designs persist per dorm.
+     * Pipes a dorm tour panorama into the Room Designer tab (same pipeline as
+     * uploaded panoramas), so users can furnish a real dorm room without
+     * uploading photos. Designs persist per dorm scene and are shareable via
+     * a server-side designId (?design=<uuid>).
      */
     const designDormBtn = document.getElementById("design-dorm-btn");
 
-    function firstScenePanorama(config) {
-      if (!config || !config.default || !config.scenes) return null;
-      const first = config.scenes[config.default.firstScene];
-      if (!first || !first.panorama) return null;
-      return { url: first.panorama, title: first.title || "" };
+    // Stable share/persistence id for this browser's design of a dorm scene.
+    function dormDesignIdFor(dormId, sceneId) {
+      const key = "treeview:dormdesignid:" + dormId + ":" + sceneId;
+      let id = localStorage.getItem(key);
+      if (!id) {
+        id = crypto.randomUUID();
+        try { localStorage.setItem(key, id); } catch (_) { /* fine, session-only id */ }
+      }
+      return id;
+    }
+
+    function sceneFromConfig(config, sceneId) {
+      if (!config || !config.scenes) return null;
+      const id = sceneId || (config.default && config.default.firstScene);
+      const scene = id ? config.scenes[id] : null;
+      if (!scene || !scene.panorama) return null;
+      return { id, panorama: scene.panorama, title: scene.title || "" };
+    }
+
+    // Loads a dorm scene into the Room Designer tab. designId is only passed
+    // when opening someone's shared design; otherwise this browser's own id
+    // for that scene is used (created on first visit).
+    function openDormRoomInStudio(dormId, scene, designId) {
+      if (typeof window.renderRoomBuilderPano !== "function") return;
+      const house = getHouse(dormId);
+      setCurrentRoomUploadId(null);
+      dormRoomContext = {
+        dormId,
+        sceneId: scene.id,
+        designId: designId || dormDesignIdFor(dormId, scene.id),
+      };
+      window.renderRoomBuilderPano(
+        scene.panorama,
+        house.name + (scene.title ? " · " + scene.title : ""),
+        { dormRoom: true }
+      );
+      setActiveView("studio");
     }
 
     function syncDesignDormBtn() {
@@ -1064,25 +1133,52 @@
 
     if (designDormBtn) {
       designDormBtn.addEventListener("click", async () => {
-        const house = getHouse(houseId);
         designDormBtn.disabled = true;
         try {
           const config = await fetchTourConfig(houseId);
-          const scene = firstScenePanorama(config);
-          if (!scene || typeof window.renderRoomBuilderPano !== "function") return;
-          // Stock dorm room: no uploadId; persist the design under the dorm.
-          setCurrentRoomUploadId(null);
-          dormDesignScope = "dorm-" + houseId;
-          window.renderRoomBuilderPano(
-            scene.url,
-            house.name + (scene.title ? " · " + scene.title : ""),
-            { dormRoom: true }
-          );
-          setActiveView("designer");
+          // Design the scene the user is currently standing in, not always
+          // the first one — they may have walked deeper into the tour.
+          let sceneId = null;
+          if (
+            panoramaViewerDormId === houseId &&
+            panoramaViewer &&
+            typeof panoramaViewer.getScene === "function"
+          ) {
+            sceneId = panoramaViewer.getScene();
+          }
+          const scene = sceneFromConfig(config, sceneId);
+          if (scene) openDormRoomInStudio(houseId, scene);
         } finally {
           designDormBtn.disabled = false;
         }
       });
+    }
+
+    /* ===== Room Designer empty state: dorm chooser + create CTA ===== */
+    const studioDormList = document.getElementById("studio-dorm-list");
+    const studioCreateBtn = document.getElementById("studio-create-btn");
+
+    if (studioDormList) {
+      HOUSES.filter((h) => h.hasTour).forEach((h) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "room3d-action-btn studio-dorm-btn";
+        b.textContent = h.name;
+        b.addEventListener("click", async () => {
+          b.disabled = true;
+          try {
+            const scene = sceneFromConfig(await fetchTourConfig(h.id), null);
+            if (scene) openDormRoomInStudio(h.id, scene);
+          } finally {
+            b.disabled = false;
+          }
+        });
+        studioDormList.appendChild(b);
+      });
+    }
+
+    if (studioCreateBtn) {
+      studioCreateBtn.addEventListener("click", () => setActiveView("designer"));
     }
 
     // Event delegation: one listener on the container instead of per-pill listeners after each re-render
@@ -1193,13 +1289,14 @@
     applyTheme(savedTheme, false);
 
     // ===== Dashboard view switching =====
-    const DASHBOARD_VIEWS = ["residences", "map", "walk", "rankings", "designer"];
+    const DASHBOARD_VIEWS = ["residences", "map", "walk", "rankings", "designer", "studio"];
     const VIEW_HASHES = {
       map: "#map",
       residences: "#residences",
       walk: "#distance",
       rankings: "#rankings",
       designer: "#designer",
+      studio: "#studio",
     };
     const HASH_TO_VIEW = Object.fromEntries(
       Object.entries(VIEW_HASHES).map(([view, hash]) => [hash, view])
@@ -1246,6 +1343,14 @@
       if (viewId === "residences") {
         initPanoramaViewer();
         resizeMainPanorama();
+      }
+      // The 3D stage canvas has zero size while its tab is hidden — resize it
+      // once the destination view has laid out.
+      if ((viewId === "studio" || viewId === "designer") && roomStageApi) {
+        requestAnimationFrame(() => {
+          if (viewId === "studio") roomStageApi.syncStudioEmpty();
+          roomStageApi.resize();
+        });
       }
       if (updateHash) {
         updateViewHash(viewId);
@@ -2288,6 +2393,12 @@
       const fullscreenBtn = document.getElementById("room3d-fullscreen");
       const designerForm = document.getElementById("designer-upload");
 
+      // The stage node moves between these hosts: Create tab = viewer only,
+      // Room Designer (studio) tab = design tools on.
+      const createHost  = document.getElementById("create-stage-host");
+      const studioHost  = document.getElementById("studio-stage-host");
+      const studioEmpty = document.getElementById("studio-empty");
+
       // Design-mode controls (Tier 1 scale + Tier 2 floor mapping)
       const designBtn   = document.getElementById("room3d-design-btn");
       const designPanel = document.getElementById("room3d-design-panel");
@@ -2567,6 +2678,8 @@
             if (roomUploadForm) roomUploadForm.hidden = false;
             stage.hidden = true;
             stop();
+            placeStage("create"); // editing photos is a Create-tab activity
+            setActiveView("designer");
             if (designerForm) designerForm.scrollIntoView({ behavior: "smooth", block: "start" });
           } catch (err) {
             if (designerUploadRoot) designerUploadRoot.hidden = false;
@@ -2581,12 +2694,22 @@
         newUploadBtn.addEventListener("click", () => {
           beginNewRoomUpload();
           stop();
+          placeStage("create");
+          setActiveView("designer");
           if (designerForm) designerForm.scrollIntoView({ behavior: "smooth", block: "start" });
         });
 
-        copyLinkBtn.addEventListener("click", () => {
-          if (!currentRoomUploadId) return;
-          copyUploadShareLink(currentRoomUploadId, copyLinkBtn);
+        copyLinkBtn.addEventListener("click", async () => {
+          if (currentRoomUploadId) {
+            copyUploadShareLink(currentRoomUploadId, copyLinkBtn);
+            return;
+          }
+          if (!dormRoomContext) return;
+          // Make sure the design record exists server-side before handing out
+          // the link (saves are debounced, and a never-saved design would 404).
+          clearTimeout(designSaveTimer);
+          try { await pushDesignToServer(); } catch (_) { /* link still copies */ }
+          copyShareLink(buildDesignShareUrl(dormRoomContext.designId), copyLinkBtn);
         });
       }
 
@@ -2905,65 +3028,129 @@
         heads.forEach((h, i) => h.classList.toggle("is-active", i === active));
       }
 
+      // Design mode is now equivalent to "the stage lives in the Room
+      // Designer tab" — the Create tab is a plain viewer. Room data loading
+      // is presentStage's job, not this toggle's.
       function setDesignMode(on) {
         designMode = on;
         designPanel.hidden = !on;
-        designBtn.classList.toggle("is-active", on);
-        designBtn.textContent = on ? "✓ Done designing" : "✦ Design this room";
         if (on) {
           ensureDesignGroup();
-          loadDesign();
         } else {
           setTracing(false);
           selectFurniture(null);
         }
         if (designGroup) designGroup.visible = on; // overlays only while designing
+        syncFullscreenTools();
       }
+
+      /* ----- Stage placement: Create tab (viewer) vs Room Designer tab ----- */
+
+      let stageLocation = "create";
+
+      // Reparenting the canvas keeps the WebGL context — same node, new home.
+      function placeStage(where) {
+        stageLocation = where;
+        const host = where === "studio" ? studioHost : createHost;
+        if (host && stage.parentElement !== host) host.appendChild(stage);
+        designBtn.hidden = where === "studio"; // already in the designer
+        setDesignMode(where === "studio");
+        syncStudioEmpty();
+      }
+
+      // The studio shows its room chooser whenever it doesn't hold a live room.
+      function syncStudioEmpty() {
+        if (!studioEmpty) return;
+        studioEmpty.hidden = stageLocation === "studio" && !stage.hidden;
+      }
+
+      // Hooks for the view-switching code outside this IIFE.
+      roomStageApi = {
+        resize: () => { if (!stage.hidden) sizeRendererToCanvas(); },
+        syncStudioEmpty,
+      };
 
       // Per-room persistence (local only for now — cross-device sharing would
       // need this state added to the upload payload).
       function designKey() {
-        return "treeview:roomdesign:" + (currentRoomUploadId || dormDesignScope || "local");
+        return (
+          "treeview:roomdesign:" +
+          (currentRoomUploadId || (dormRoomContext && dormRoomContext.designId) || "local")
+        );
       }
 
-      let designSaveTimer = null;
-      function saveDesign() {
-        const payload = {
+      function designPayload() {
+        return {
           h: cameraHeightM,
           verts: floorVerts.map((d) => [+d.x.toFixed(5), +d.y.toFixed(5), +d.z.toFixed(5)]),
           items: serializeFurniture(),
         };
-        try {
-          localStorage.setItem(designKey(), JSON.stringify(payload));
-        } catch (_) { /* storage unavailable */ }
-        if (!currentRoomUploadId) return;
-        // Debounce the server PUT — the height slider calls saveDesign on
-        // every input tick, which would otherwise fire a request per pixel.
-        const uploadId = currentRoomUploadId; // pin: may change before fire
-        clearTimeout(designSaveTimer);
-        designSaveTimer = setTimeout(() => {
-          fetch("/api/uploads/" + encodeURIComponent(uploadId) + "/design", {
+      }
+
+      // Immediate server write of the current design (uploads and dorm rooms
+      // hit different endpoints). Returns a promise so the share-link copy
+      // can flush before handing out the URL.
+      function pushDesignToServer() {
+        const payload = designPayload();
+        const body = {
+          cameraHeight: payload.h,
+          floorVerts: payload.verts,
+          items: payload.items,
+        };
+        if (currentRoomUploadId) {
+          return fetch("/api/uploads/" + encodeURIComponent(currentRoomUploadId) + "/design", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cameraHeight: payload.h,
-              floorVerts: payload.verts,
-              items: payload.items,
-            }),
-          }).catch((err) => console.warn("[design] server save failed (kept locally):", err));
+            body: JSON.stringify(body),
+          });
+        }
+        if (dormRoomContext) {
+          body.dormId = dormRoomContext.dormId;
+          body.sceneId = dormRoomContext.sceneId;
+          return fetch("/api/dorm-designs/" + encodeURIComponent(dormRoomContext.designId), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+        }
+        return Promise.resolve();
+      }
+
+      let designSaveTimer = null;
+      function saveDesign() {
+        try {
+          localStorage.setItem(designKey(), JSON.stringify(designPayload()));
+        } catch (_) { /* storage unavailable */ }
+        // Debounce the server PUT — the height slider calls saveDesign on
+        // every input tick, which would otherwise fire a request per pixel.
+        clearTimeout(designSaveTimer);
+        designSaveTimer = setTimeout(() => {
+          pushDesignToServer().catch((err) =>
+            console.warn("[design] server save failed (kept locally):", err)
+          );
         }, 500);
       }
 
+      let designLoadSeq = 0; // guards against interleaved loads on fast room switches
       async function loadDesign() {
+        const mySeq = ++designLoadSeq;
+        clearTimeout(designSaveTimer); // a pending save belongs to the previous room
         clearFurniture();
         floorVerts = [];
         cameraHeightM = 1.4;
         let items = [];
         let data = null;
 
+        let serverUrl = null;
         if (currentRoomUploadId) {
+          serverUrl = "/api/uploads/" + encodeURIComponent(currentRoomUploadId) + "/design";
+        } else if (dormRoomContext) {
+          serverUrl = "/api/dorm-designs/" + encodeURIComponent(dormRoomContext.designId);
+        }
+
+        if (serverUrl) {
           try {
-            const res = await fetch("/api/uploads/" + encodeURIComponent(currentRoomUploadId) + "/design");
+            const res = await fetch(serverUrl);
             if (res.ok) {
               const body = await res.json();
               if (body.design) {
@@ -2975,6 +3162,7 @@
               }
             }
           } catch (_) { /* fall back to localStorage */ }
+          if (mySeq !== designLoadSeq) return; // superseded while fetching
         }
 
         if (!data) {
@@ -2998,20 +3186,6 @@
           const cat = FURNITURE_CATALOG.find((c) => c.id === it.id);
           if (cat) addFurniture(cat, { x: it.x, z: it.z, rotY: it.rotY, silent: true });
         });
-      }
-
-      // Called when a new room is rendered: drop back to the plain viewer but
-      // restore any saved design (height/outline/furniture) so the room shows
-      // its furniture even before the user re-enters design mode.
-      function resetDesignForNewRoom() {
-        setTracing(false);
-        selectFurniture(null);
-        designMode = false;
-        designPanel.hidden = true;
-        designBtn.classList.remove("is-active");
-        designBtn.textContent = "✦ Design this room";
-        loadDesign();
-        if (designGroup) designGroup.visible = false; // overlays hidden until design mode
       }
 
       /* ----- Furniture: load, scale to true size, place, drag, persist ----- */
@@ -3192,7 +3366,14 @@
       }
 
       function bindDesignEvents() {
-        designBtn.addEventListener("click", () => setDesignMode(!designMode));
+        // "Design this room" sends the stage to the Room Designer tab; the
+        // Create tab returns to its upload form (photos stay loaded).
+        designBtn.addEventListener("click", () => {
+          if (designerUploadRoot) designerUploadRoot.hidden = false;
+          if (roomUploadForm) roomUploadForm.hidden = false;
+          placeStage("studio");
+          setActiveView("studio");
+        });
         traceBtn.addEventListener("click", () => setTracing(!tracing));
         undoBtn.addEventListener("click", () => { floorVerts.pop(); rebuildTrace(); saveDesign(); });
         clearBtn.addEventListener("click", () => { floorVerts = []; rebuildTrace(); saveDesign(); });
@@ -3297,7 +3478,6 @@
             item.textContent = cat.label;
             item.addEventListener("click", async () => {
               closeFsMenu();
-              if (!designMode) setDesignMode(true);
               item.disabled = true;
               await placeInView(cat);
               item.disabled = false;
@@ -3333,14 +3513,15 @@
       }
 
       // Show the fullscreen toolbar only while this room's viewport is the
-      // fullscreen element; hide it (and any open menu) otherwise.
+      // fullscreen element AND design mode is on — the Create tab's viewer
+      // has no design affordances, fullscreen included.
       function syncFullscreenTools() {
         const fsTools = document.getElementById("room3d-fs-tools");
         if (!fsTools) return;
         const viewport = canvas.closest(".room3d-viewport");
         const inFs = !!document.fullscreenElement && document.fullscreenElement === viewport;
-        fsTools.hidden = !inFs;
-        if (!inFs) closeFsMenu();
+        fsTools.hidden = !inFs || !designMode;
+        if (fsTools.hidden) closeFsMenu();
       }
 
       function tick() {
@@ -3376,24 +3557,27 @@
         opts = opts || {};
         titleEl.textContent = roomName || "Your 3D room";
 
-        // Stock dorm rooms come from tour photos: nothing to edit or share,
-        // and the user clicked "Design this room" — drop straight into design.
+        // Stock dorm rooms have no photos to edit; designs of them are still
+        // shareable via their designId, so the share button stays.
         editBtn.hidden = !!opts.dormRoom;
-        copyLinkBtn.hidden = !!opts.dormRoom;
-        if (opts.dormRoom) {
-          setTracing(false);
-          selectFurniture(null);
-          setDesignMode(true);
-        } else {
-          resetDesignForNewRoom();
-        }
+        copyLinkBtn.hidden = false;
+        if (opts.dormRoom) copyLinkBtn.disabled = false;
+
+        setTracing(false);
+        selectFurniture(null);
+        stage.hidden = false;
+        // Dorm rooms open straight in the Room Designer tab (the user clicked
+        // a design action); uploads present as a plain viewer in Create.
+        placeStage(opts.dormRoom ? "studio" : "create");
+        // Restore this room's saved design — furniture renders in the viewer
+        // too; only the design *tools* are studio-gated.
+        loadDesign();
 
         // Reset the view to face front at the default zoom.
         yaw = 0; pitch = 0; velYaw = 0; velPitch = 0;
         setFov(DEFAULT_FOV);
         updateCamera();
 
-        stage.hidden = false;
         // Canvas had no size while hidden — size it once layout settles, then run.
         requestAnimationFrame(() => {
           sizeRendererToCanvas();
@@ -3431,8 +3615,17 @@
       });
     })();
 
-    // Set initial view on load. Shared upload links always land on the designer.
-    const hasSharedUploadParam = new URLSearchParams(window.location.search).has("upload");
-    setActiveView(hasSharedUploadParam ? "designer" : (viewFromHash() || "map"), { updateHash: false });
+    // Set initial view on load. Shared upload links land on Create 3D Room;
+    // shared design links land on the Room Designer.
+    const bootParams = new URLSearchParams(window.location.search);
+    setActiveView(
+      bootParams.has("design")
+        ? "studio"
+        : bootParams.has("upload")
+          ? "designer"
+          : viewFromHash() || "map",
+      { updateHash: false }
+    );
     loadSharedUploadIfPresent();
+    loadSharedDesignIfPresent();
     })();

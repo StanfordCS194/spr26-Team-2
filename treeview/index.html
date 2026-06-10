@@ -59,6 +59,7 @@
           <button type="button" class="sidebar-nav-btn" data-view="walk">Distance Calculator</button>
           <button type="button" class="sidebar-nav-btn" data-view="rankings">Dorm Rankings</button>
           <button type="button" class="sidebar-nav-btn" data-view="designer">Create 3D Room</button>
+          <button type="button" class="sidebar-nav-btn" data-view="studio">Room Designer</button>
         </nav>
         <section class="shortlist-section" id="shortlist-section" aria-label="Your shortlisted dorms">
           <div class="shortlist-head">
@@ -325,7 +326,10 @@
         </div>
 
         <!-- Inline 3D room — revealed after "Create 3D room". The skybox is an
-             inside-out cube built from the six photos (TreeView room builder). -->
+             inside-out cube built from the six photos (TreeView room builder).
+             The stage node MOVES into the Room Designer tab for design work;
+             this host is its viewer-mode home. -->
+        <div id="create-stage-host">
         <div id="room3d-stage" class="room3d-stage" hidden>
           <div class="room3d-head">
             <h3 id="room3d-title" class="room3d-title">Your 3D room</h3>
@@ -357,8 +361,8 @@
               <button type="button" class="design-ctrl-btn room3d-fs-btn" id="room3d-fs-delete" aria-label="Delete selected object" title="Delete selected">🗑</button>
             </div>
           </div>
-          <!-- Design mode: Tier 1 metric scale calibration + Tier 2 floor
-               mapping. Hidden until the user clicks "Design this room". -->
+          <!-- Design panel: scale calibration + floor mapping + furniture.
+               Only visible while the stage lives in the Room Designer tab. -->
           <div id="room3d-design-panel" class="room3d-design-panel" hidden>
             <p class="rdp-step-head is-active"><span class="rdp-step-num">1</span> Set the scale</p>
             <div class="rdp-row">
@@ -402,6 +406,7 @@
           </div>
           <p class="room3d-hint">Drag to look around · scroll to zoom</p>
         </div>
+        </div>
         <div id="upload-not-found" class="upload-not-found" hidden role="status" aria-live="polite">
           <h3 class="upload-not-found-title">Upload not found</h3>
           <p class="upload-not-found-copy">
@@ -411,6 +416,31 @@
             ＋ Start a new upload
           </button>
         </div>
+            </section>
+          </section>
+
+          <!-- view-studio: the Room Designer — the active 3D room moves here
+               for all design work (scale, floor trace, furniture). -->
+          <section class="dashboard-view" id="view-studio" data-view="studio" hidden aria-labelledby="studio-heading">
+            <section class="designer glass" aria-labelledby="studio-heading">
+        <div class="designer-head">
+          <p class="panel-head">Room Designer</p>
+          <h2 id="studio-heading" class="designer-title">Furnish your space at true scale</h2>
+          <p class="designer-lede">
+            Calibrate the scale, trace the floor, and arrange real-size furniture in any room.
+          </p>
+        </div>
+        <div id="studio-empty" class="studio-empty">
+          <h3 class="studio-empty-title">No room selected yet</h3>
+          <p class="studio-empty-copy">
+            Pick a dorm room to start designing, or build your own room from photos.
+          </p>
+          <div id="studio-dorm-list" class="studio-dorm-list" aria-label="Dorm rooms you can design"></div>
+          <button type="button" id="studio-create-btn" class="room3d-action-btn">
+            ＋ Create a 3D room from photos
+          </button>
+        </div>
+        <div id="studio-stage-host"></div>
             </section>
           </section>
         </div>
