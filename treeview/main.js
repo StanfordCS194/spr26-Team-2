@@ -1201,6 +1201,17 @@
       }
     });
 
+    // The single entry point for programmatic dorm changes (map pin select,
+    // rankings row, quiz result, shortlist chip, share links). Dispatching a
+    // real `change` event means every dorm-change listener — pills, preview,
+    // panorama, walk distances, notes, reviews, rankings highlight, fav star —
+    // updates exactly as if the user picked from the dropdown.
+    function selectDorm(id) {
+      if (!HOUSES.some((h) => h.id === id)) return;
+      dormSelect.value = id;
+      dormSelect.dispatchEvent(new Event("change"));
+    }
+
     // First paint: populate controls from defaults (first house + its first room type)
     fillDormDropdown();
     renderPills();
@@ -1464,12 +1475,7 @@
             toggleFavorite(favId);
             return;
           }
-          dormSelect.value = favId;
-          houseId = favId;
-          roomType = getHouse(favId).roomTypes[0];
-          renderPills();
-          updatePreview();
-          renderFavUI();
+          selectDorm(favId);
           setActiveView("residences");
         });
         shortlistChips.appendChild(chip);
@@ -1662,8 +1668,10 @@
       });
     }
 
+    let flySeq = 0; // invalidates stale moveend popups when pins are clicked mid-flight
     function flyToDorm(dorm, house) {
       if (activePopup) { activePopup.remove(); activePopup = null; }
+      const mySeq = ++flySeq;
 
       campusMap.flyTo({
         center: [dorm.lng, dorm.lat],
@@ -1678,6 +1686,8 @@
       mapBackBtn.classList.add("is-visible");
 
       campusMap.once("moveend", () => {
+        // A newer pin click superseded this flight — don't pop the old dorm.
+        if (mySeq !== flySeq) return;
         const categoryLabel = house.category === "frosh"
           ? "First-year designated"
           : "Four-class residence";
@@ -1744,6 +1754,7 @@
     }
 
     function resetMapView() {
+      flySeq++; // cancel any pending dorm popup from an in-flight fly-to
       closeMapPanorama();
       if (activePopup) { activePopup.remove(); activePopup = null; }
       mapBackBtn.classList.remove("is-visible");
@@ -1768,12 +1779,7 @@
     mapOverlaySelect.addEventListener("click", () => {
       const selectedId = mapOverlaySelect.dataset.dormId;
       if (selectedId) {
-        houseId = selectedId;
-        roomType = getHouse(houseId).roomTypes[0];
-        dormSelect.value = houseId;
-        renderPills();
-        updatePreview();
-        renderFavUI();
+        selectDorm(selectedId);
         closeMapPanorama();
         resetMapView();
         setActiveView("residences");
@@ -2049,15 +2055,7 @@
           '<span class="rankings-score-value">' + scoreLabel + '</span>';
 
         row.addEventListener("click", () => {
-          houseId = entry.house.id;
-          roomType = getHouse(houseId).roomTypes[0];
-          dormSelect.value = houseId;
-          renderPills();
-          updatePreview();
-          renderFavUI();
-          renderWalkDistances();
-          renderRankingsTable();
-          if (typeof loadNotesForCurrentDorm === "function") loadNotesForCurrentDorm();
+          selectDorm(entry.house.id);
           setActiveView("residences");
         });
 
@@ -2440,15 +2438,15 @@
       const dormParam = params.get("dorm");
       const roomParam = params.get("room");
       if (dormParam && HOUSES.some((h) => h.id === dormParam)) {
-        houseId = dormParam;
+        selectDorm(dormParam);
+        // The change handler resets the room type to the dorm's first option;
+        // honor the shared link's room choice when it's valid for this dorm.
         const house = getHouse(houseId);
-        roomType = house.roomTypes.includes(roomParam) ? roomParam : house.roomTypes[0];
-        dormSelect.value = houseId;
-        renderPills();
-        updatePreview();
-        renderFavUI();
-        // Also refresh the notes for the new dorm
-        if (typeof loadNotesForCurrentDorm === "function") loadNotesForCurrentDorm();
+        if (roomParam && house.roomTypes.includes(roomParam)) {
+          roomType = roomParam;
+          renderPills();
+          updatePreview();
+        }
       }
     }
 
@@ -2644,14 +2642,7 @@
       if (!card) return;
       const id = card.dataset.dormId;
       if (!HOUSES.some((h) => h.id === id)) return;
-      houseId = id;
-      const house = getHouse(id);
-      roomType = house.roomTypes[0];
-      dormSelect.value = id;
-      renderPills();
-      updatePreview();
-      renderFavUI();
-      if (typeof loadNotesForCurrentDorm === "function") loadNotesForCurrentDorm();
+      selectDorm(id);
       closeQuiz();
       setActiveView("residences");
     });

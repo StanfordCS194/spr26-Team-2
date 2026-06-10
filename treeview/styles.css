@@ -434,17 +434,6 @@
       pointer-events: auto;
     }
 
-    .sidebar-selector-wrap {
-      padding: 0.25rem 0.5rem 1rem;
-      border-bottom: 1px solid var(--sidebar-border);
-      flex-shrink: 0;
-      transition: border-color 0.3s ease;
-    }
-
-    .sidebar-selector-wrap .field {
-      margin: 0;
-    }
-
     @media (max-width: 768px) {
       .mobile-header {
         display: flex;

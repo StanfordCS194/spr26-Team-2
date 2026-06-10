@@ -42,17 +42,6 @@
           <h1 id="welcome-heading" class="sidebar-title">TreeView</h1>
           <p class="sidebar-tagline">Compare residences and plan your first-year space.</p>
         </div>
-        <!-- Global Dorm Selector (Moved from Residences tab) -->
-        <div class="sidebar-selector-wrap">
-          <div class="field">
-            <label class="label" for="dorm-select">Dorm</label>
-            <div class="select-row">
-              <select id="dorm-select" class="select" aria-describedby="dorm-hint"></select>
-              <button type="button" class="fav-btn" id="fav-btn" aria-label="Add to shortlist">&#9734;</button>
-            </div>
-            <p id="dorm-hint" class="hint"></p>
-          </div>
-        </div>
         <nav class="sidebar-nav" id="sidebar-nav" aria-label="Main">
           <button type="button" class="sidebar-nav-btn is-active" data-view="home" aria-current="page">&#127968; Home</button>
           <p class="sidebar-nav-group">Discover</p>
@@ -143,6 +132,17 @@
         <!-- Left card: dorm <select> is empty here on purpose — fillDormDropdown() injects options -->
         <div class="glass">
           <p class="panel-head">Explore residences</p>
+
+          <!-- Dorm picker — drives everything on this page (tour, walk times,
+               reviews). The star saves the dorm to your shortlist. -->
+          <div class="field">
+            <label class="label" for="dorm-select">Choose a dorm</label>
+            <div class="select-row">
+              <select id="dorm-select" class="select" aria-describedby="dorm-hint"></select>
+              <button type="button" class="fav-btn" id="fav-btn" aria-label="Add to shortlist" title="Add to shortlist">&#9734;</button>
+            </div>
+            <p id="dorm-hint" class="hint"></p>
+          </div>
 
           <!-- Quiz CTA (Noah) — opens the dorm-match quiz modal -->
           <button type="button" id="open-quiz-btn" class="quiz-cta">
