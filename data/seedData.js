@@ -236,7 +236,7 @@ const HOUSES = [
   { id: "otero", name: "Otero", category: "four_class", roomTypes: ["single", "one_room_double"] },
 ];
 
-const TOUR_DORM_IDS = ["zap", "okada", "rinconada", "soto", "sally-ride", "lantana"];
+const TOUR_DORM_IDS = ["zap", "okada", "rinconada", "soto", "sally-ride", "lantana", "schiff"];
 
 function buildTourConfigs() {
   const baseScene = {
@@ -322,6 +322,15 @@ function buildTourConfigs() {
         lantanaOne: { ...baseScene, title: "Lantana One", panorama: pano(otherBase, "lantana_one.jpeg"), hotSpots: [{ pitch: -0.78, yaw: -33.2, type: "scene", text: "Go to Lantana Two", sceneId: "lantanaTwo" }] },
         lantanaTwo: { ...baseScene, title: "Lantana Two", panorama: pano(otherBase, "lantana_two.jpeg"), hotSpots: [{ pitch: 3.97, yaw: 49.7, type: "scene", text: "Back to Lantana One", sceneId: "lantanaOne" }, { pitch: 1.71, yaw: 22.96, type: "scene", text: "Go to Lantana Three", sceneId: "lantanaThree" }] },
         lantanaThree: { ...baseScene, title: "Lantana Three", panorama: pano(otherBase, "lantana_three.jpeg"), hotSpots: [{ pitch: 0.13, yaw: -43.86, type: "scene", text: "Back to Lantana Two", sceneId: "lantanaTwo" }] },
+      }),
+    },
+    {
+      dormId: "schiff",
+      config: withDefaults("schiffOne", {
+        schiffOne: { ...baseScene, title: "Schiff One", panorama: pano(otherBase, "schiff_one.jpeg"), hotSpots: [{ pitch: 0.38, yaw: -19.1, type: "scene", text: "Go to Schiff Two", sceneId: "schiffTwo" }] },
+        schiffTwo: { ...baseScene, title: "Schiff Two", panorama: pano(otherBase, "schiff_two.jpeg"), hotSpots: [{ pitch: 1.46, yaw: -16.48, type: "scene", text: "Back to Schiff One", sceneId: "schiffOne" }, { pitch: 1.3, yaw: 3.07, type: "scene", text: "Go to Schiff Three", sceneId: "schiffThree" }] },
+        schiffThree: { ...baseScene, title: "Schiff Three", panorama: pano(otherBase, "schiff_three.jpeg"), hotSpots: [{ pitch: 0.44, yaw: -6.65, type: "scene", text: "Back to Schiff Two", sceneId: "schiffTwo" }, { pitch: -7.67, yaw: -53.29, type: "scene", text: "Go to Schiff Four", sceneId: "schiffFour" }] },
+        schiffFour: { ...baseScene, title: "Schiff Four", panorama: pano(otherBase, "schiff_four.jpeg"), hotSpots: [{ pitch: -0.14, yaw: -37.48, type: "scene", text: "Back to Schiff Three", sceneId: "schiffThree" }] },
       }),
     },
   ];
