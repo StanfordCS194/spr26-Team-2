@@ -882,8 +882,10 @@
           designerUploadRoot.hidden = true;
           roomUploadForm.hidden = true;
         } catch (err) {
-          showUploadResult("error", `Upload failed: ${escapeUploadHtml(err.message)}. Please try again.`);
+          showUploadResult("error", `Upload failed: ${escapeUploadHtml(err.message)}. The room below is rendered from your local photo — retry to save it and get a share link.`);
           uploadReadyTextEl.textContent = "360° panorama ready";
+          // The 3D stage grabbed the scroll when it rendered — bring the error into view.
+          uploadResultEl.scrollIntoView({ behavior: "smooth", block: "center" });
         } finally {
           setUploadSubmitting(false);
         }
@@ -963,10 +965,12 @@
         // Show error message to user
         showUploadResult(
           "error",
-          `Upload failed: ${escapeUploadHtml(err.message)}. Please try again.`,
+          `Upload failed: ${escapeUploadHtml(err.message)}. The room below is rendered from your local photos — retry to save it and get a share link.`,
         );
         // Photos remain selected, so user can retry by clicking submit again
         uploadReadyTextEl.textContent = "Ready to upload";
+        // The 3D stage grabbed the scroll when it rendered — bring the error into view.
+        uploadResultEl.scrollIntoView({ behavior: "smooth", block: "center" });
       } finally {
         // === Cleanup ===
         // This runs whether success or error — restore button to normal state
@@ -1122,10 +1126,13 @@
     // Boot the 360 viewer — initialized lazily when the residences tab becomes active
     let panoramaViewer = null;
     let panoramaViewerDormId = null;
+    let panoramaLoadSeq = 0; // guards against out-of-order tour fetches on fast dorm switches
     async function loadMainPanoramaForDorm(dormId) {
       const panoHost = document.getElementById("treeview-panorama");
       const house = getHouse(dormId);
+      const mySeq = ++panoramaLoadSeq;
       const config = await fetchTourConfig(dormId);
+      if (mySeq !== panoramaLoadSeq) return; // a newer dorm switch superseded this load
 
       if (panoramaViewerDormId === dormId && panoramaViewer) return;
 
@@ -1163,14 +1170,15 @@
     // ===== FEATURE 1: Dark Mode Toggle =====
     const themeToggles = document.querySelectorAll(".theme-toggle");
 
-    function applyTheme(theme) {
+    function applyTheme(theme, persist) {
       document.documentElement.setAttribute("data-theme", theme);
       themeToggles.forEach((btn) => {
         btn.innerHTML = theme === "dark" ? "&#9788;" : "&#9790;";
         btn.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
       });
       localStorage.setItem("tv-theme", theme);
-      saveUserProfile({ theme });
+      // Only PUT the profile on a real toggle — not when restoring at boot.
+      if (persist !== false) saveUserProfile({ theme });
     }
 
     themeToggles.forEach((btn) => {
@@ -1182,7 +1190,7 @@
 
     const savedTheme = localStorage.getItem("tv-theme") ||
       (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    applyTheme(savedTheme);
+    applyTheme(savedTheme, false);
 
     // ===== Dashboard view switching =====
     const DASHBOARD_VIEWS = ["residences", "map", "walk", "rankings", "designer"];
@@ -2882,6 +2890,7 @@
         return "treeview:roomdesign:" + (currentRoomUploadId || dormDesignScope || "local");
       }
 
+      let designSaveTimer = null;
       function saveDesign() {
         const payload = {
           h: cameraHeightM,
@@ -2891,8 +2900,13 @@
         try {
           localStorage.setItem(designKey(), JSON.stringify(payload));
         } catch (_) { /* storage unavailable */ }
-        if (currentRoomUploadId) {
-          fetch("/api/uploads/" + encodeURIComponent(currentRoomUploadId) + "/design", {
+        if (!currentRoomUploadId) return;
+        // Debounce the server PUT — the height slider calls saveDesign on
+        // every input tick, which would otherwise fire a request per pixel.
+        const uploadId = currentRoomUploadId; // pin: may change before fire
+        clearTimeout(designSaveTimer);
+        designSaveTimer = setTimeout(() => {
+          fetch("/api/uploads/" + encodeURIComponent(uploadId) + "/design", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -2900,8 +2914,8 @@
               floorVerts: payload.verts,
               items: payload.items,
             }),
-          });
-        }
+          }).catch((err) => console.warn("[design] server save failed (kept locally):", err));
+        }, 500);
       }
 
       async function loadDesign() {
