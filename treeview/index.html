@@ -360,6 +360,7 @@
           <!-- Design mode: Tier 1 metric scale calibration + Tier 2 floor
                mapping. Hidden until the user clicks "Design this room". -->
           <div id="room3d-design-panel" class="room3d-design-panel" hidden>
+            <p class="rdp-step-head is-active"><span class="rdp-step-num">1</span> Set the scale</p>
             <div class="rdp-row">
               <label class="rdp-label" for="rdp-height">Camera height</label>
               <input type="range" id="rdp-height-range" class="rdp-range"
@@ -381,14 +382,15 @@
               1&nbsp;m feature in your room (a floor tile, desk width). That sets
               the true scale for everything you place.
             </p>
+            <p class="rdp-step-head"><span class="rdp-step-num">2</span> Trace the floor</p>
             <div class="rdp-row">
               <button type="button" id="rdp-trace-btn" class="room3d-action-btn">▢ Trace floor</button>
               <button type="button" id="rdp-undo-btn" class="room3d-action-btn" disabled>↶ Undo point</button>
               <button type="button" id="rdp-clear-btn" class="room3d-action-btn" disabled>✕ Clear</button>
               <span id="rdp-dims" class="rdp-dims">Tap each floor corner to map the room.</span>
             </div>
+            <p class="rdp-step-head"><span class="rdp-step-num">3</span> Furnish it</p>
             <div class="rdp-row">
-              <span class="rdp-label">Furniture</span>
               <div id="rdp-catalog" class="rdp-catalog"></div>
             </div>
             <div class="rdp-row" id="rdp-selected-row" hidden>

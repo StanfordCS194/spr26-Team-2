@@ -2360,29 +2360,35 @@
       const gltfCache = {};                // file -> Promise<gltf.scene template>
       const furnRaycaster = new THREE.Raycaster();
       const ROTATE_STEP = Math.PI / 12;    // 15° per rotate press
+      const FURNITURE_GROUPS = [
+        { id: "sleep",  label: "Sleep" },
+        { id: "work",   label: "Work & study" },
+        { id: "lounge", label: "Lounge" },
+        { id: "decor",  label: "Decor & extras" },
+      ];
       const FURNITURE_CATALOG = [
-        { id: "bed",       label: "Bed",         file: "bedSingle.glb",         target: 1.90, axis: "xz" },
-        { id: "bedDouble", label: "Double bed",  file: "bedDouble.glb",         target: 2.00, axis: "xz" },
-        { id: "desk",      label: "Desk",        file: "desk.glb",              target: 1.10, axis: "xz" },
-        { id: "chair",     label: "Desk chair",  file: "chairDesk.glb",         target: 0.55, axis: "xz" },
-        { id: "armchair",  label: "Armchair",    file: "chairModernCushion.glb",target: 0.75, axis: "xz" },
-        { id: "stool",     label: "Stool",       file: "stoolBar.glb",          target: 0.75, axis: "y"  },
-        { id: "sofa",      label: "Sofa",        file: "loungeSofa.glb",        target: 2.00, axis: "xz" },
-        { id: "coffee",    label: "Coffee table",file: "tableCoffee.glb",       target: 1.10, axis: "xz" },
-        { id: "sideTable", label: "Side table",  file: "sideTable.glb",         target: 0.50, axis: "xz" },
-        { id: "bookcase",  label: "Bookcase",    file: "bookcaseOpen.glb",      target: 1.60, axis: "y"  },
-        { id: "books",     label: "Books",       file: "books.glb",             target: 0.30, axis: "xz" },
-        { id: "tvStand",   label: "TV stand",    file: "cabinetTelevision.glb", target: 1.40, axis: "xz" },
-        { id: "tv",        label: "TV",          file: "televisionModern.glb",  target: 1.20, axis: "xz" },
-        { id: "fridge",    label: "Mini fridge", file: "kitchenFridgeSmall.glb",target: 0.85, axis: "y"  },
-        { id: "lamp",      label: "Floor lamp",  file: "lampSquareFloor.glb",   target: 1.50, axis: "y"  },
-        { id: "tableLamp", label: "Table lamp",  file: "lampRoundTable.glb",    target: 0.50, axis: "y"  },
-        { id: "coatRack",  label: "Coat rack",   file: "coatRackStanding.glb",  target: 1.70, axis: "y"  },
-        { id: "plant",     label: "Potted plant",file: "pottedPlant.glb",       target: 0.60, axis: "y"  },
-        { id: "plantSmall",label: "Small plant", file: "plantSmall1.glb",       target: 0.35, axis: "y"  },
-        { id: "trashcan",  label: "Trash can",   file: "trashcan.glb",          target: 0.50, axis: "y"  },
-        { id: "rug",       label: "Rug",         file: "rugRectangle.glb",      target: 1.60, axis: "xz" },
-        { id: "rugRound",  label: "Round rug",   file: "rugRound.glb",          target: 1.60, axis: "xz" },
+        { id: "bed",       label: "Bed",         file: "bedSingle.glb",         target: 1.90, axis: "xz", group: "sleep"  },
+        { id: "bedDouble", label: "Double bed",  file: "bedDouble.glb",         target: 2.00, axis: "xz", group: "sleep"  },
+        { id: "desk",      label: "Desk",        file: "desk.glb",              target: 1.10, axis: "xz", group: "work"   },
+        { id: "chair",     label: "Desk chair",  file: "chairDesk.glb",         target: 0.55, axis: "xz", group: "work"   },
+        { id: "bookcase",  label: "Bookcase",    file: "bookcaseOpen.glb",      target: 1.60, axis: "y",  group: "work"   },
+        { id: "books",     label: "Books",       file: "books.glb",             target: 0.30, axis: "xz", group: "work"   },
+        { id: "armchair",  label: "Armchair",    file: "chairModernCushion.glb",target: 0.75, axis: "xz", group: "lounge" },
+        { id: "stool",     label: "Stool",       file: "stoolBar.glb",          target: 0.75, axis: "y",  group: "lounge" },
+        { id: "sofa",      label: "Sofa",        file: "loungeSofa.glb",        target: 2.00, axis: "xz", group: "lounge" },
+        { id: "coffee",    label: "Coffee table",file: "tableCoffee.glb",       target: 1.10, axis: "xz", group: "lounge" },
+        { id: "sideTable", label: "Side table",  file: "sideTable.glb",         target: 0.50, axis: "xz", group: "lounge" },
+        { id: "tvStand",   label: "TV stand",    file: "cabinetTelevision.glb", target: 1.40, axis: "xz", group: "lounge" },
+        { id: "tv",        label: "TV",          file: "televisionModern.glb",  target: 1.20, axis: "xz", group: "lounge" },
+        { id: "fridge",    label: "Mini fridge", file: "kitchenFridgeSmall.glb",target: 0.85, axis: "y",  group: "lounge" },
+        { id: "lamp",      label: "Floor lamp",  file: "lampSquareFloor.glb",   target: 1.50, axis: "y",  group: "decor"  },
+        { id: "tableLamp", label: "Table lamp",  file: "lampRoundTable.glb",    target: 0.50, axis: "y",  group: "decor"  },
+        { id: "coatRack",  label: "Coat rack",   file: "coatRackStanding.glb",  target: 1.70, axis: "y",  group: "decor"  },
+        { id: "plant",     label: "Potted plant",file: "pottedPlant.glb",       target: 0.60, axis: "y",  group: "decor"  },
+        { id: "plantSmall",label: "Small plant", file: "plantSmall1.glb",       target: 0.35, axis: "y",  group: "decor"  },
+        { id: "trashcan",  label: "Trash can",   file: "trashcan.glb",          target: 0.50, axis: "y",  group: "decor"  },
+        { id: "rug",       label: "Rug",         file: "rugRectangle.glb",      target: 1.60, axis: "xz", group: "decor"  },
+        { id: "rugRound",  label: "Round rug",   file: "rugRound.glb",          target: 1.60, axis: "xz", group: "decor"  },
       ];
 
       function updateCamera() {
@@ -2760,6 +2766,7 @@
       function rebuildRefSquare() {
         ensureDesignGroup();
         if (refSquare) { designGroup.remove(refSquare); disposeObj(refSquare); refSquare = null; }
+        updateDesignSteps(); // the checkbox doubles as the step-1 "done" signal
         if (!showRefChk.checked) return;
         const half = 0.5;
         const corners = [
@@ -2821,6 +2828,7 @@
         updateDims(pts);
         undoBtn.disabled = floorVerts.length === 0;
         clearBtn.disabled = floorVerts.length === 0;
+        updateDesignSteps();
       }
 
       function updateDims(pts) {
@@ -2867,6 +2875,20 @@
         traceBtn.classList.toggle("is-active", on);
         traceBtn.textContent = on ? "■ Stop tracing" : "▢ Trace floor";
         canvas.style.cursor = on ? "crosshair" : "";
+        updateDesignSteps();
+      }
+
+      // Highlight the design-panel step the user is most likely on: scale
+      // until the 1 m square is dismissed, trace until a polygon exists,
+      // then furnish. Purely a guide — every control stays usable.
+      function updateDesignSteps() {
+        const heads = designPanel.querySelectorAll(".rdp-step-head");
+        if (!heads.length) return;
+        let active = 0;
+        if (tracing) active = 1;
+        else if (floorVerts.length >= 3) active = 2;
+        else if (!showRefChk.checked) active = 1;
+        heads.forEach((h, i) => h.classList.toggle("is-active", i === active));
       }
 
       function setDesignMode(on) {
@@ -3183,18 +3205,32 @@
           onHeightChange();
         });
 
-        // Furniture catalog buttons.
-        FURNITURE_CATALOG.forEach((cat) => {
-          const b = document.createElement("button");
-          b.type = "button";
-          b.className = "rdp-cat-btn";
-          b.textContent = cat.label;
-          b.addEventListener("click", async () => {
-            b.disabled = true;
-            await placeInView(cat);
-            b.disabled = false;
+        // Furniture catalog buttons, grouped by category.
+        FURNITURE_GROUPS.forEach((grp) => {
+          const items = FURNITURE_CATALOG.filter((c) => c.group === grp.id);
+          if (!items.length) return;
+          const wrap = document.createElement("div");
+          wrap.className = "rdp-cat-group";
+          const head = document.createElement("span");
+          head.className = "rdp-cat-group-label";
+          head.textContent = grp.label;
+          wrap.appendChild(head);
+          const row = document.createElement("div");
+          row.className = "rdp-cat-group-items";
+          items.forEach((cat) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = "rdp-cat-btn";
+            b.textContent = cat.label;
+            b.addEventListener("click", async () => {
+              b.disabled = true;
+              await placeInView(cat);
+              b.disabled = false;
+            });
+            row.appendChild(b);
           });
-          catalogEl.appendChild(b);
+          wrap.appendChild(row);
+          catalogEl.appendChild(wrap);
         });
 
         // Furniture drag: a grabbed model follows the floor; release saves.
@@ -3229,23 +3265,31 @@
         const delBtn   = document.getElementById("room3d-fs-delete");
         if (!addBtn || !menu) return;
 
-        // Build the menu from the same catalog as the side panel. Clicking an
-        // item enables design mode (so it can be moved/selected) and drops it in
-        // front of the current view.
-        FURNITURE_CATALOG.forEach((cat) => {
-          const item = document.createElement("button");
-          item.type = "button";
-          item.className = "room3d-fs-menu-item";
-          item.setAttribute("role", "menuitem");
-          item.textContent = cat.label;
-          item.addEventListener("click", async () => {
-            closeFsMenu();
-            if (!designMode) setDesignMode(true);
-            item.disabled = true;
-            await placeInView(cat);
-            item.disabled = false;
+        // Build the menu from the same catalog as the side panel (with the
+        // same category groupings). Clicking an item enables design mode (so
+        // it can be moved/selected) and drops it in front of the current view.
+        FURNITURE_GROUPS.forEach((grp) => {
+          const items = FURNITURE_CATALOG.filter((c) => c.group === grp.id);
+          if (!items.length) return;
+          const head = document.createElement("span");
+          head.className = "room3d-fs-menu-group";
+          head.textContent = grp.label;
+          menu.appendChild(head);
+          items.forEach((cat) => {
+            const item = document.createElement("button");
+            item.type = "button";
+            item.className = "room3d-fs-menu-item";
+            item.setAttribute("role", "menuitem");
+            item.textContent = cat.label;
+            item.addEventListener("click", async () => {
+              closeFsMenu();
+              if (!designMode) setDesignMode(true);
+              item.disabled = true;
+              await placeInView(cat);
+              item.disabled = false;
+            });
+            menu.appendChild(item);
           });
-          menu.appendChild(item);
         });
 
         addBtn.addEventListener("click", () => { menu.hidden ? openFsMenu() : closeFsMenu(); });
