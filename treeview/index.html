@@ -135,21 +135,13 @@
             <!-- Filled by updatePreview(): “Branner, Singles” style string -->
             <p id="preview-title" class="preview-title"></p>
             <div class="preview-viewport" aria-label="Immersive preview, panoramic room view">
-              <!-- Tour/Design mode toggle (overlay, top-right) — wired up by TreeViewDesigner -->
-              <div class="preview-mode-toggle" role="tablist" aria-label="Preview mode">
-                <button type="button" id="mode-tour-btn" class="preview-mode-btn is-active" role="tab" aria-selected="true" data-mode="tour">Tour</button>
-                <button type="button" id="mode-design-btn" class="preview-mode-btn" role="tab" aria-selected="false" data-mode="design">Design</button>
-              </div>
+              <!-- Opens this dorm's room in the 3D designer (overlay, top-right).
+                   Hidden for dorms without tour photos. -->
+              <button type="button" id="design-dorm-btn" class="design-dorm-btn" hidden>
+                &#10022; Design this room
+              </button>
               <!-- Pannellum replaces the inside of this div at runtime -->
               <div id="treeview-panorama" class="pannellum-host"></div>
-              <!-- Three.js renders here when Design mode is active (hidden until first toggle) -->
-              <canvas id="design-canvas" class="design-canvas" hidden aria-label="3D room designer"></canvas>
-              <!-- Zoom + fullscreen controls, mirroring Pannellum's button positions (hidden in Tour mode) -->
-              <div id="design-controls" class="design-controls" hidden aria-label="Design mode controls">
-                <button type="button" class="design-ctrl-btn" id="design-zoom-in" aria-label="Zoom in">+</button>
-                <button type="button" class="design-ctrl-btn" id="design-zoom-out" aria-label="Zoom out">&minus;</button>
-                <button type="button" class="design-ctrl-btn" id="design-fullscreen" aria-label="Toggle full screen">&#x26F6;</button>
-              </div>
             </div>
           </div>
         </aside>

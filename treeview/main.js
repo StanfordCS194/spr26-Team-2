@@ -210,8 +210,13 @@
       renderRoomUploadUI();
     }
 
+    // When designing a stock dorm room (no upload), designs persist under a
+    // per-dorm key instead of an uploadId. Any upload flow clears this.
+    let dormDesignScope = null;
+
     function setCurrentRoomUploadId(uploadId) {
       currentRoomUploadId = uploadId || null;
+      dormDesignScope = null;
       if (room3dCopyLinkBtn) {
         room3dCopyLinkBtn.disabled = !currentRoomUploadId;
         room3dCopyLinkBtn.textContent = "Copy share link";
@@ -1031,6 +1036,49 @@
           ? "Undergraduate residence designated for first-year students."
           : "Four-class undergraduate residence; first-year students may be assigned here.";
       previewTitle.textContent = house.name + ", " + ROOM_LABELS[roomType];
+      syncDesignDormBtn();
+    }
+
+    /* ===== Design a default dorm room =====
+     * Pipes the selected dorm's first tour panorama into the Create 3D Room
+     * designer (same pipeline as uploaded panoramas), so users can furnish a
+     * real dorm room without uploading photos. Designs persist per dorm.
+     */
+    const designDormBtn = document.getElementById("design-dorm-btn");
+
+    function firstScenePanorama(config) {
+      if (!config || !config.default || !config.scenes) return null;
+      const first = config.scenes[config.default.firstScene];
+      if (!first || !first.panorama) return null;
+      return { url: first.panorama, title: first.title || "" };
+    }
+
+    function syncDesignDormBtn() {
+      if (!designDormBtn) return;
+      designDormBtn.hidden = !hasDormTour(houseId);
+    }
+
+    if (designDormBtn) {
+      designDormBtn.addEventListener("click", async () => {
+        const house = getHouse(houseId);
+        designDormBtn.disabled = true;
+        try {
+          const config = await fetchTourConfig(houseId);
+          const scene = firstScenePanorama(config);
+          if (!scene || typeof window.renderRoomBuilderPano !== "function") return;
+          // Stock dorm room: no uploadId; persist the design under the dorm.
+          setCurrentRoomUploadId(null);
+          dormDesignScope = "dorm-" + houseId;
+          window.renderRoomBuilderPano(
+            scene.url,
+            house.name + (scene.title ? " · " + scene.title : ""),
+            { dormRoom: true }
+          );
+          setActiveView("designer");
+        } finally {
+          designDormBtn.disabled = false;
+        }
+      });
     }
 
     // Event delegation: one listener on the container instead of per-pill listeners after each re-render
@@ -2214,221 +2262,6 @@
 
     openQuizBtn.addEventListener("click", openQuiz);
 
-    /* ===== Designer mode — Three.js panorama substrate =====
-     * Renders ZAP_One on an inside-out sphere so a real 3D scene exists for
-     * future furniture/share work. v1 is read-only; Tour mode remains the default.
-     */
-    (function initTreeViewDesigner() {
-      const tourBtn        = document.getElementById("mode-tour-btn");
-      const designBtn      = document.getElementById("mode-design-btn");
-      const canvas         = document.getElementById("design-canvas");
-      const panoHost       = document.getElementById("treeview-panorama");
-      const designControls = document.getElementById("design-controls");
-      const zoomInBtn      = document.getElementById("design-zoom-in");
-      const zoomOutBtn     = document.getElementById("design-zoom-out");
-      const fullscreenBtn  = document.getElementById("design-fullscreen");
-
-      // Graceful degradation: if the Three.js CDN is blocked, Tour mode still works.
-      if (typeof THREE === "undefined") {
-        console.warn("[designer] THREE.js failed to load — Design mode disabled.");
-        designBtn.disabled = true;
-        designBtn.title = "Design mode unavailable (3D library failed to load)";
-        return;
-      }
-
-      const FIRST_SCENE_URL = "/photos/ZAP_One.jpeg";
-      // Match Pannellum baseScene (haov: 110, vaov: 45) — half-angles for yaw/pitch clamps.
-      const YAW_LIMIT_RAD   = THREE.MathUtils.degToRad(55);
-      const PITCH_LIMIT_RAD = THREE.MathUtils.degToRad(22.5);
-      const DRAG_SENSITIVITY = 0.0025;
-      const INERTIA = 0.88;    // velocity multiplied each frame after pointer release
-      const MIN_FOV = 50;      // degrees — matches Pannellum minHfov
-      const MAX_FOV = 90;      // degrees — matches Pannellum maxHfov
-      const ZOOM_STEP = 3;     // degrees per button press or scroll tick
-
-      let renderer, scene, camera;
-      let yaw = 0, pitch = 0;
-      let velYaw = 0, velPitch = 0;
-      const lookTarget = new THREE.Vector3();
-      let initialized = false;
-      let animFrame = null;
-      let resizeTimer = null;
-      let dragging = false;
-      let lastX = 0, lastY = 0;
-
-      function updateCamera() {
-        // Standard first-person spherical look: yaw around Y, pitch around X.
-        // At yaw=0, pitch=0 the camera looks down -Z (center of the equirectangular image).
-        lookTarget.set(
-          Math.sin(yaw) * Math.cos(pitch),
-          Math.sin(pitch),
-          -Math.cos(yaw) * Math.cos(pitch)
-        );
-        camera.lookAt(lookTarget);
-      }
-
-      function clampAngles() {
-        if (yaw < -YAW_LIMIT_RAD)         { yaw   = -YAW_LIMIT_RAD;   velYaw   = 0; }
-        else if (yaw > YAW_LIMIT_RAD)     { yaw   =  YAW_LIMIT_RAD;   velYaw   = 0; }
-        if (pitch < -PITCH_LIMIT_RAD)     { pitch = -PITCH_LIMIT_RAD; velPitch = 0; }
-        else if (pitch > PITCH_LIMIT_RAD) { pitch =  PITCH_LIMIT_RAD; velPitch = 0; }
-      }
-
-      function setFov(fov) {
-        camera.fov = Math.min(MAX_FOV, Math.max(MIN_FOV, fov));
-        camera.updateProjectionMatrix();
-      }
-
-      function sizeRendererToCanvas() {
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
-        if (!w || !h) return; // canvas hidden — skip to avoid a 0×0 framebuffer
-        renderer.setSize(w, h, false);
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-      }
-
-      function init() {
-        if (initialized) return;
-        initialized = true;
-
-        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.outputEncoding = THREE.sRGBEncoding;
-
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
-        camera.position.set(0, 0, 0); // camera at origin; sphere wraps around it
-
-        // Inside-out sphere — scale.x = -1 flips face winding so the texture is
-        // visible from inside, and the equirectangular UV wrapping reads left-to-right.
-        const geom = new THREE.SphereGeometry(50, 64, 40);
-        geom.scale(-1, 1, 1);
-
-        const texLoader = new THREE.TextureLoader();
-        texLoader.setCrossOrigin("anonymous");
-        const texture = texLoader.load(FIRST_SCENE_URL);
-        texture.encoding = THREE.sRGBEncoding;
-
-        scene.add(new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ map: texture })));
-
-        sizeRendererToCanvas();
-        updateCamera();
-        bindEvents();
-      }
-
-      function bindEvents() {
-        // --- Pointer drag (look-around: drag right = pan right, matching Pannellum) ---
-        canvas.addEventListener("pointerdown", (e) => {
-          dragging = true;
-          velYaw = velPitch = 0; // kill any coasting momentum on new grab
-          lastX = e.clientX;
-          lastY = e.clientY;
-          canvas.setPointerCapture(e.pointerId);
-        });
-
-        canvas.addEventListener("pointermove", (e) => {
-          if (!dragging) return;
-          const dx = e.clientX - lastX;
-          const dy = e.clientY - lastY;
-          lastX = e.clientX;
-          lastY = e.clientY;
-          velYaw   = dx * DRAG_SENSITIVITY; // store for inertia coast on release
-          velPitch = dy * DRAG_SENSITIVITY;
-          yaw   += velYaw;
-          pitch -= velPitch; // drag down (dy > 0) = look down = pitch decreases
-          clampAngles();
-          updateCamera();
-        });
-
-        const endDrag = (e) => {
-          dragging = false;
-          if (e && e.pointerId !== undefined && canvas.hasPointerCapture(e.pointerId)) {
-            canvas.releasePointerCapture(e.pointerId);
-          }
-        };
-        canvas.addEventListener("pointerup",     endDrag);
-        canvas.addEventListener("pointercancel", endDrag);
-
-        // --- Scroll wheel zoom (matches Pannellum: scroll up = zoom in = smaller FOV) ---
-        canvas.addEventListener("wheel", (e) => {
-          e.preventDefault();
-          setFov(camera.fov + (e.deltaY > 0 ? ZOOM_STEP : -ZOOM_STEP));
-        }, { passive: false });
-
-        // --- Zoom buttons ---
-        zoomInBtn.addEventListener("click",  () => setFov(camera.fov - ZOOM_STEP));
-        zoomOutBtn.addEventListener("click", () => setFov(camera.fov + ZOOM_STEP));
-
-        // --- Fullscreen ---
-        fullscreenBtn.addEventListener("click", () => {
-          if (!document.fullscreenElement) {
-            canvas.requestFullscreen().catch(err => console.warn("[designer] fullscreen:", err));
-          } else {
-            document.exitFullscreen();
-          }
-        });
-        // Resize the renderer once the browser has settled into/out of fullscreen
-        document.addEventListener("fullscreenchange", () =>
-          setTimeout(sizeRendererToCanvas, 50)
-        );
-      }
-
-      function tick() {
-        animFrame = requestAnimationFrame(tick);
-        // Inertia coast: apply decaying velocity after the pointer is released
-        if (!dragging && (Math.abs(velYaw) > 0.00005 || Math.abs(velPitch) > 0.00005)) {
-          yaw   += velYaw;
-          pitch -= velPitch;
-          clampAngles();
-          velYaw   *= INERTIA;
-          velPitch *= INERTIA;
-          updateCamera();
-        }
-        renderer.render(scene, camera);
-      }
-
-      function start() {
-        init();
-        sizeRendererToCanvas();
-        if (animFrame === null) tick();
-      }
-
-      function stop() {
-        if (animFrame !== null) {
-          cancelAnimationFrame(animFrame);
-          animFrame = null;
-        }
-      }
-
-      function setMode(mode) {
-        const designOn = mode === "design";
-        panoHost.hidden        = designOn;
-        canvas.hidden          = !designOn;
-        designControls.hidden  = !designOn;
-        tourBtn.classList.toggle("is-active",  !designOn);
-        designBtn.classList.toggle("is-active", designOn);
-        tourBtn.setAttribute("aria-selected",  String(!designOn));
-        designBtn.setAttribute("aria-selected", String(designOn));
-        if (designOn) {
-          start();
-        } else {
-          stop();
-          // Pannellum needs a nudge after its host returns from display:none
-          if (typeof panoramaViewer !== "undefined" && panoramaViewer) panoramaViewer.resize();
-        }
-      }
-
-      tourBtn.addEventListener("click",  () => setMode("tour"));
-      designBtn.addEventListener("click", () => setMode("design"));
-
-      window.addEventListener("resize", () => {
-        if (!initialized || canvas.hidden) return;
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(sizeRendererToCanvas, 120);
-      });
-    })();
-
     /* ===== Room builder — inline inverted-cube skybox (Create 3D Room tab) =====
      * Builds a real 6-sided room from the user's photos: an inside-out cube the
      * camera sits inside, one photo per face. Exposes window.renderRoomBuilderSkybox
@@ -3046,7 +2879,7 @@
       // Per-room persistence (local only for now — cross-device sharing would
       // need this state added to the upload payload).
       function designKey() {
-        return "treeview:roomdesign:" + (currentRoomUploadId || "local");
+        return "treeview:roomdesign:" + (currentRoomUploadId || dormDesignScope || "local");
       }
 
       function saveDesign() {
@@ -3467,9 +3300,21 @@
 
       // Shared tail for both skybox kinds: reset the design overlays, recentre the
       // view, reveal the stage, and start rendering once layout has settled.
-      function presentStage(roomName) {
+      function presentStage(roomName, opts) {
+        opts = opts || {};
         titleEl.textContent = roomName || "Your 3D room";
-        resetDesignForNewRoom();
+
+        // Stock dorm rooms come from tour photos: nothing to edit or share,
+        // and the user clicked "Design this room" — drop straight into design.
+        editBtn.hidden = !!opts.dormRoom;
+        copyLinkBtn.hidden = !!opts.dormRoom;
+        if (opts.dormRoom) {
+          setTracing(false);
+          selectFurniture(null);
+          setDesignMode(true);
+        } else {
+          resetDesignForNewRoom();
+        }
 
         // Reset the view to face front at the default zoom.
         yaw = 0; pitch = 0; velYaw = 0; velPitch = 0;
@@ -3496,14 +3341,15 @@
       };
 
       // Equirectangular-panorama entry point: one image → inverted-sphere skybox.
-      window.renderRoomBuilderPano = function (url, roomName) {
+      // opts.dormRoom marks a stock dorm room (per-dorm persistence, no share).
+      window.renderRoomBuilderPano = function (url, roomName, opts) {
         if (typeof url !== "string" || !url) {
           console.warn("[room3d] renderRoomBuilderPano needs an image URL, got", url);
           return;
         }
         init();
         buildSphere(url);
-        presentStage(roomName);
+        presentStage(roomName, opts);
       };
 
       window.addEventListener("resize", () => {

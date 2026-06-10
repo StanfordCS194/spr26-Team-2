@@ -393,8 +393,7 @@
       min-height: 0;
     }
 
-    #view-residences .pannellum-host,
-    #view-residences .design-canvas {
+    #view-residences .pannellum-host {
       height: clamp(240px, 42vh, 420px);
     }
 
@@ -916,39 +915,32 @@
       color: rgba(255, 255, 255, 0.92);
     }
 
-    /* Mode toggle pill — overlay in the top-right corner of .preview-viewport (position: relative) */
-    .preview-mode-toggle {
+    /* "Design this room" — overlay in the top-right corner of .preview-viewport,
+       opens the selected dorm's panorama in the 3D room designer */
+    .design-dorm-btn {
       position: absolute;
       top: 0.5rem;
       right: 0.5rem;
       z-index: 2;
-      display: inline-flex;
-      gap: 0.25rem;
-      padding: 0.25rem;
+      padding: 0.4rem 0.9rem;
       border-radius: 999px;
       background: rgba(26, 34, 40, 0.72);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .preview-mode-btn {
-      appearance: none;
-      border: 0;
-      padding: 0.3rem 0.75rem;
-      border-radius: 999px;
-      background: transparent;
-      color: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.92);
       font-family: var(--font-ui);
       font-size: 0.78rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.18s ease, color 0.18s ease;
+      transition: background 0.18s ease, border-color 0.18s ease;
     }
-    .preview-mode-btn:hover { color: #fff; }
-    .preview-mode-btn.is-active {
-      background: var(--cardinal);
+    .design-dorm-btn:hover {
+      background: rgba(61, 154, 140, 0.55);
+      border-color: rgba(61, 154, 140, 0.75);
       color: #fff;
     }
+    .design-dorm-btn[hidden] { display: none; }
 
     /* Zoom + fullscreen button stack — mirrors Pannellum's bottom-left control position */
     .design-controls {
