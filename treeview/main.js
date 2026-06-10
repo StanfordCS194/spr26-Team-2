@@ -2236,7 +2236,7 @@
         return;
       }
 
-      const FIRST_SCENE_URL = pano(ZAP_PANORAMA_BASE, "ZAP_One.jpeg");
+      const FIRST_SCENE_URL = "/photos/ZAP_One.jpeg";
       // Match Pannellum baseScene (haov: 110, vaov: 45) — half-angles for yaw/pitch clamps.
       const YAW_LIMIT_RAD   = THREE.MathUtils.degToRad(55);
       const PITCH_LIMIT_RAD = THREE.MathUtils.degToRad(22.5);
@@ -2775,6 +2775,131 @@
         scene.add(designGroup);
       }
 
+      /* ----- Room bounds: keep furniture inside the traced walls ----- */
+
+      const FALLBACK_RADIUS = 5;     // metres — cap before any floor is traced
+      const BUMP_COOLDOWN_MS = 450;  // min gap between wall-bump effects
+      const WALL_FLASH_MS = 420;
+      const TRACE_COLOR = 0xffb000, WALL_HIT_COLOR = 0xff4d4d;
+      let lastBumpAt = 0;
+      let wallFlashMesh = null, wallFlashTimer = null, traceFlashTimer = null;
+
+      function pointInPolygon(x, z, pts) {
+        let inside = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+          const xi = pts[i].x, zi = pts[i].z, xj = pts[j].x, zj = pts[j].z;
+          if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) {
+            inside = !inside;
+          }
+        }
+        return inside;
+      }
+
+      // Closest point to (x,z) on the polygon boundary; also reports the
+      // segment so the bump effect can light up the wall that was hit.
+      function closestBoundaryPoint(x, z, pts) {
+        let best = null;
+        for (let i = 0; i < pts.length; i++) {
+          const a = pts[i], b = pts[(i + 1) % pts.length];
+          const abx = b.x - a.x, abz = b.z - a.z;
+          const len2 = abx * abx + abz * abz;
+          const t = len2 > 1e-9 ? Math.max(0, Math.min(1, ((x - a.x) * abx + (z - a.z) * abz) / len2)) : 0;
+          const px = a.x + abx * t, pz = a.z + abz * t;
+          const d2 = (x - px) * (x - px) + (z - pz) * (z - pz);
+          if (!best || d2 < best.d2) best = { x: px, z: pz, d2, a, b };
+        }
+        return best;
+      }
+
+      // Clamp a floor point so a footprint of halfW stays inside the room.
+      // With a traced polygon the point clamps to the boundary and nudges
+      // toward the centroid; before tracing, a generous circle around the
+      // camera applies. Returns { x, z, clamped, wall }.
+      function clampToRoom(x, z, halfW) {
+        const pts = metricPoints();
+        const margin = Math.min(Math.max(halfW || 0, 0.05), 0.6);
+        if (pts.length >= 3) {
+          if (pointInPolygon(x, z, pts)) return { x, z, clamped: false, wall: null };
+          const hit = closestBoundaryPoint(x, z, pts);
+          let cx = 0, cz = 0;
+          pts.forEach((p) => { cx += p.x; cz += p.z; });
+          cx /= pts.length; cz /= pts.length;
+          const dx = cx - hit.x, dz = cz - hit.z;
+          const d = Math.hypot(dx, dz);
+          const push = Math.min(margin, d);
+          return {
+            x: hit.x + (d > 1e-6 ? (dx / d) * push : 0),
+            z: hit.z + (d > 1e-6 ? (dz / d) * push : 0),
+            clamped: true,
+            wall: { a: hit.a, b: hit.b },
+          };
+        }
+        const r = Math.hypot(x, z), max = FALLBACK_RADIUS - margin;
+        if (r <= max) return { x, z, clamped: false, wall: null };
+        const s = max / r;
+        return { x: x * s, z: z * s, clamped: true, wall: null };
+      }
+
+      // "You hit the wall" feedback: shake the viewport, flash the traced
+      // outline red, and light up the wall segment that was hit. Throttled so
+      // dragging along a wall doesn't strobe.
+      function wallBump(wall) {
+        const now = performance.now();
+        if (now - lastBumpAt < BUMP_COOLDOWN_MS) return;
+        lastBumpAt = now;
+
+        const viewport = canvas.closest(".room3d-viewport");
+        if (viewport) {
+          viewport.classList.remove("is-wall-bump");
+          void viewport.offsetWidth; // restart the animation if mid-flight
+          viewport.classList.add("is-wall-bump");
+          setTimeout(() => viewport.classList.remove("is-wall-bump"), 350);
+        }
+
+        if (traceLine) {
+          traceLine.material.color.setHex(WALL_HIT_COLOR);
+          clearTimeout(traceFlashTimer);
+          traceFlashTimer = setTimeout(() => {
+            if (traceLine) traceLine.material.color.setHex(TRACE_COLOR);
+          }, WALL_FLASH_MS);
+        }
+
+        if (wall) flashWallSegment(wall);
+      }
+
+      function clearWallFlash() {
+        clearTimeout(wallFlashTimer);
+        if (wallFlashMesh && designGroup) {
+          designGroup.remove(wallFlashMesh);
+          disposeObj(wallFlashMesh);
+        }
+        wallFlashMesh = null;
+      }
+
+      // Translucent red panel standing on the violated wall edge for a moment.
+      function flashWallSegment(wall) {
+        ensureDesignGroup();
+        clearWallFlash();
+        const len = Math.hypot(wall.b.x - wall.a.x, wall.b.z - wall.a.z);
+        if (len < 1e-3) return;
+        const wallHeight = 1.2;
+        const geom = new THREE.PlaneGeometry(len, wallHeight);
+        const mat = new THREE.MeshBasicMaterial({
+          color: WALL_HIT_COLOR, transparent: true, opacity: 0.28,
+          side: THREE.DoubleSide, depthTest: false,
+        });
+        wallFlashMesh = new THREE.Mesh(geom, mat);
+        wallFlashMesh.position.set(
+          (wall.a.x + wall.b.x) / 2,
+          -cameraHeightM + wallHeight / 2,
+          (wall.a.z + wall.b.z) / 2
+        );
+        wallFlashMesh.rotation.y = Math.atan2(-(wall.b.z - wall.a.z), wall.b.x - wall.a.x);
+        wallFlashMesh.renderOrder = 997;
+        designGroup.add(wallFlashMesh);
+        wallFlashTimer = setTimeout(clearWallFlash, WALL_FLASH_MS);
+      }
+
       function disposeObj(o) {
         if (!o) return;
         if (o.geometry) o.geometry.dispose();
@@ -2832,7 +2957,7 @@
         if (pts.length >= 2) {
           const lifted = pts.map((p) => new THREE.Vector3(p.x, p.y + 0.01, p.z));
           const g = new THREE.BufferGeometry().setFromPoints(lifted);
-          const m = new THREE.LineBasicMaterial({ color: 0xffb000, depthTest: false });
+          const m = new THREE.LineBasicMaterial({ color: TRACE_COLOR, depthTest: false });
           traceLine = pts.length >= 3 ? new THREE.LineLoop(g, m) : new THREE.Line(g, m);
           traceLine.renderOrder = 999;
           designGroup.add(traceLine);
@@ -3047,8 +3172,17 @@
         obj.scale.setScalar(ref > 1e-4 ? cat.target / ref : 1);
 
         // Center on (cx,cz) and seat the base on the floor plane y = -h.
-        const cx = (opts.x !== undefined) ? opts.x : 0;
-        const cz = (opts.z !== undefined) ? opts.z : -2;
+        let cx = (opts.x !== undefined) ? opts.x : 0;
+        let cz = (opts.z !== undefined) ? opts.z : -2;
+        // New placements stay inside the walls; silent restores keep their
+        // saved spot untouched (it was clamped when placed).
+        if (!opts.silent) {
+          const preBox = boxOf(obj);
+          const preSize = new THREE.Vector3();
+          preBox.getSize(preSize);
+          const c = clampToRoom(cx, cz, Math.max(preSize.x, preSize.z) / 2);
+          cx = c.x; cz = c.z;
+        }
         const box = boxOf(obj);
         const center = new THREE.Vector3();
         box.getCenter(center);
@@ -3116,12 +3250,17 @@
         const p = projectToFloor(dirFromEvent(e), cameraHeightM);
         if (!p) return;
         const box = boxOf(draggingItem);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        // Keep the whole footprint inside the walls, not just the center.
+        const c = clampToRoom(p.x, p.z, Math.max(size.x, size.z) / 2);
+        if (c.clamped) wallBump(c.wall);
         const center = new THREE.Vector3();
         box.getCenter(center);
-        draggingItem.position.x += p.x - center.x;
-        draggingItem.position.z += p.z - center.z;
-        draggingItem.userData.cx = p.x;
-        draggingItem.userData.cz = p.z;
+        draggingItem.position.x += c.x - center.x;
+        draggingItem.position.z += c.z - center.z;
+        draggingItem.userData.cx = c.x;
+        draggingItem.userData.cz = c.z;
         if (selBox) selBox.update();
       }
 

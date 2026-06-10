@@ -1941,6 +1941,25 @@
       height: 100%;
     }
 
+    /* Furniture hit a wall — quick sideways jolt on the whole viewport */
+    @keyframes wall-bump-shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-5px); }
+      40% { transform: translateX(5px); }
+      60% { transform: translateX(-3px); }
+      80% { transform: translateX(3px); }
+    }
+
+    .room3d-viewport.is-wall-bump {
+      animation: wall-bump-shake 0.3s ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .room3d-viewport.is-wall-bump {
+        animation: none;
+      }
+    }
+
     .room3d-hint {
       margin: 0;
       text-align: center;
