@@ -890,6 +890,32 @@
     .design-canvas[hidden] { display: none; }
     .pannellum-host[hidden] { display: none; }
 
+    /* Pannellum's bottom-left scene-title box ships with a clunky 20px serif
+       default — restyle it as a compact glass pill matching the app (the box
+       sits on the photo, so one fixed dark style works in both themes). */
+    .pnlm-panorama-info {
+      left: 10px;
+      bottom: 10px;
+      padding: 0;
+      border-radius: 999px;
+      background: rgba(16, 22, 27, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .pnlm-panorama-info .pnlm-title-box {
+      position: relative;
+      display: block;
+      margin: 0;
+      padding: 0.3rem 0.85rem;
+      font-family: var(--font-ui);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
     /* Mode toggle pill — overlay in the top-right corner of .preview-viewport (position: relative) */
     .preview-mode-toggle {
       position: absolute;
@@ -1247,7 +1273,7 @@
       align-items: center;
       width: 100%;
       gap: 0.6rem;
-      color: var(--muted);
+      color: rgba(255, 255, 255, 0.6); /* dark panel in both themes */
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -1266,7 +1292,7 @@
       margin: 0;
       font-size: 0.78rem;
       line-height: 1.4;
-      color: var(--muted);
+      color: rgba(255, 255, 255, 0.55); /* dark panel in both themes */
       text-align: center;
     }
     .pano-preview {
@@ -1295,7 +1321,9 @@
     }
     .pano-preview-name {
       font-size: 0.8rem;
-      color: var(--charcoal);
+      /* Fixed light color: the upload panel is dark in BOTH themes, so theme
+         vars (dark text in light mode) made this illegible. */
+      color: rgba(255, 255, 255, 0.88);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1918,13 +1946,15 @@
       margin: 0 0 0.4rem;
       font-family: var(--font-display);
       font-size: clamp(1.2rem, 2.5vw, 1.45rem);
-      color: var(--charcoal);
+      /* Fixed light colors: this card has a dark background in both themes,
+         so var(--charcoal) was dark-on-dark in light mode. */
+      color: rgba(255, 255, 255, 0.94);
     }
 
     .upload-not-found-copy {
       max-width: 34rem;
       margin: 0 auto 1rem;
-      color: var(--muted);
+      color: rgba(255, 255, 255, 0.7);
     }
 
     .upload-not-found-action {
