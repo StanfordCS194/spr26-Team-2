@@ -11,9 +11,11 @@ const Tour = require("./models/Tour");
 const Landmark = require("./models/Landmark");
 const QuizQuestion = require("./models/QuizQuestion");
 const RoomUpload = require("./models/RoomUpload");
+const Review = require("./models/Review");
 const {
   buildDorms,
   buildTourConfigs,
+  buildReviews,
   LANDMARKS,
   QUIZ_QUESTIONS,
 } = require("./data/seedData");
@@ -39,6 +41,12 @@ async function seedReferenceData() {
   await QuizQuestion.deleteMany({});
   await QuizQuestion.insertMany(QUIZ_QUESTIONS);
   console.log(`Seeded ${QUIZ_QUESTIONS.length} quiz questions`);
+
+  // Only clear curated quotes — never touch user-submitted reviews.
+  const reviews = buildReviews();
+  await Review.deleteMany({ curated: true });
+  await Review.insertMany(reviews);
+  console.log(`Seeded ${reviews.length} curated reviews`);
 }
 
 async function migrateDiskUploads() {

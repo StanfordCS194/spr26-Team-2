@@ -1289,19 +1289,22 @@
     applyTheme(savedTheme, false);
 
     // ===== Dashboard view switching =====
-    const DASHBOARD_VIEWS = ["residences", "map", "walk", "rankings", "designer", "studio"];
+    const DASHBOARD_VIEWS = ["home", "residences", "map", "rankings", "designer", "studio", "school"];
     const VIEW_HASHES = {
+      home: "#home",
       map: "#map",
       residences: "#residences",
-      walk: "#distance",
       rankings: "#rankings",
       designer: "#designer",
       studio: "#studio",
+      school: "#school",
     };
     const HASH_TO_VIEW = Object.fromEntries(
       Object.entries(VIEW_HASHES).map(([view, hash]) => [hash, view])
     );
-    let activeDashboardView = "map";
+    // Legacy hash: walking distances now live inside the dorm detail view.
+    HASH_TO_VIEW["#distance"] = "residences";
+    let activeDashboardView = "home";
     const sidebarNavButtons = document.querySelectorAll(".sidebar-nav-btn");
     const appSidebarEl = document.getElementById("app-sidebar");
     const sidebarMenuBtnEl = document.getElementById("sidebar-menu-btn");
@@ -1335,7 +1338,8 @@
       sidebarNavButtons.forEach((btn) => {
         const on = btn.dataset.view === viewId;
         btn.classList.toggle("is-active", on);
-        btn.setAttribute("aria-current", on ? "page" : "false");
+        if (on) btn.setAttribute("aria-current", "page");
+        else btn.removeAttribute("aria-current");
       });
       if (viewId === "map" && typeof campusMap !== "undefined" && campusMap) {
         requestAnimationFrame(() => campusMap.resize());
@@ -1343,6 +1347,7 @@
       if (viewId === "residences") {
         initPanoramaViewer();
         resizeMainPanorama();
+        if (typeof loadReviewsForCurrentDorm === "function") loadReviewsForCurrentDorm();
       }
       // The 3D stage canvas has zero size while its tab is hidden — resize it
       // once the destination view has laid out.
@@ -1368,7 +1373,19 @@
     });
 
     window.addEventListener("hashchange", () => {
-      setActiveView(viewFromHash() || "map", { updateHash: false });
+      setActiveView(viewFromHash() || "home", { updateHash: false });
+    });
+
+    // Home view intent cards: route the user to the right starting point.
+    document.querySelectorAll("[data-home-action]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const action = btn.dataset.homeAction;
+        if (action === "quiz") {
+          openQuiz();
+        } else {
+          setActiveView(action);
+        }
+      });
     });
 
     if (sidebarMenuBtnEl && appSidebarEl) {
@@ -1862,12 +1879,15 @@
 
     /*
      * Computes a normalised 0–100 score for each dorm on every criterion.
+     * All inputs are real data, not placeholders:
+     *   - rating:    average star rating from resident reviews (from MongoDB)
+     *   - proximity: true haversine walking distance to Main Quad
+     *   - variety:   actual count of room types offered (Stanford R&DE data)
+     *   - community: theme-house / program-house designations (R&DE)
      *
-     * Normalisation: for each metric, find the min and max across all dorms,
-     * then scale each dorm's raw value into 0–100. This ensures every
-     * criterion contributes equally regardless of its raw range.
-     *
-     * Overall = 0.35 * variety + 0.35 * proximity + 0.30 * community
+     * Overall = 0.30 rating + 0.30 proximity + 0.20 variety + 0.20 community.
+     * Dorms with no star ratings yet score a neutral 50 on rating so they
+     * aren't punished for missing data.
      */
     function computeRankingsData() {
       const rawData = HOUSES.map((house) => {
@@ -1884,6 +1904,8 @@
           variety,
           distToQuad,
           communityRaw,
+          avgRating: typeof house.avgRating === "number" ? house.avgRating : null,
+          ratingCount: house.ratingCount || 0,
         };
       });
 
@@ -1904,14 +1926,21 @@
         // Invert distance: closer = higher score
         const proximityScore = norm(maxDist - d.distToQuad, 0, maxDist - minDist);
         const communityScore = norm(d.communityRaw, minCommunity, maxCommunity);
-        const overallScore   = Math.round(
-          varietyScore * 0.35 + proximityScore * 0.35 + communityScore * 0.30
+        // 1-5 stars maps linearly onto 0-100; unrated dorms sit at neutral 50.
+        const ratingScore = d.avgRating === null
+          ? 50
+          : Math.round(((d.avgRating - 1) / 4) * 100);
+        const overallScore = Math.round(
+          ratingScore * 0.30 + proximityScore * 0.30 + varietyScore * 0.20 + communityScore * 0.20
         );
 
         return {
           house: d.house,
+          avgRating: d.avgRating,
+          ratingCount: d.ratingCount,
           scores: {
             overall:   overallScore,
+            rating:    ratingScore,
             variety:   varietyScore,
             proximity: proximityScore,
             community: communityScore,
@@ -1997,6 +2026,15 @@
         const categoryLabel = entry.house.category === "frosh"
           ? "First-year" : "Four-class";
 
+        // When ranking by resident rating, show the real star average (and
+        // review count) instead of the abstract 0-100 score.
+        const scoreLabel =
+          rankingsSort === "rating"
+            ? (entry.avgRating === null
+                ? "—"
+                : entry.avgRating.toFixed(1) + "★ (" + entry.ratingCount + ")")
+            : String(score);
+
         row.innerHTML =
           '<span class="rankings-rank">' + (i + 1) + '</span>' +
           '<div class="rankings-dorm-info">' +
@@ -2008,7 +2046,7 @@
               '<div class="rankings-score-bar-fill ' + tierClass + '" style="width:' + score + '%"></div>' +
             '</div>' +
           '</div>' +
-          '<span class="rankings-score-value">' + score + '</span>';
+          '<span class="rankings-score-value">' + scoreLabel + '</span>';
 
         row.addEventListener("click", () => {
           houseId = entry.house.id;
@@ -2093,6 +2131,276 @@
 
     // First paint.
     loadNotesForCurrentDorm();
+
+    // =====================================================================
+    // FEATURE: Resident reviews — public, crowdsourced per-dorm feedback.
+    //
+    // Each dorm is seeded with curated quotes (Reddit/Roomsurf/Stanford Daily,
+    // flagged `curated`) and anyone can post their own via the form. Reviews
+    // can be anonymous. GET/POST hit /api/dorms/:dormId/reviews. We re-fetch on
+    // every dorm change and whenever the Residences view becomes active.
+    // =====================================================================
+    const reviewsListEl = document.getElementById("reviews-list");
+    const reviewsDormNameEl = document.getElementById("reviews-dorm-name");
+    const reviewsSummaryEl = document.getElementById("reviews-summary");
+    const reviewForm = document.getElementById("review-form");
+    const reviewAuthorInput = document.getElementById("review-author");
+    const reviewAnonInput = document.getElementById("review-anonymous");
+    const reviewBodyInput = document.getElementById("review-body");
+    const reviewStarsEl = document.getElementById("review-stars");
+    const reviewSubmitBtn = document.getElementById("review-submit");
+    const reviewStatusEl = document.getElementById("review-status");
+    const reviewToggleBtn = document.getElementById("review-toggle");
+    const reviewFormEl = document.getElementById("review-form");
+
+    // Form is collapsed by default so the reviews stay a quiet, secondary
+    // section. The toggle mirrors the existing "Compare dorms" pattern.
+    function setReviewFormOpen(open) {
+      reviewFormEl.hidden = !open;
+      reviewToggleBtn.classList.toggle("is-on", open);
+      reviewToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      reviewToggleBtn.innerHTML = open ? "\u2715 Cancel" : "\u270E Write a review";
+      if (open) reviewBodyInput.focus();
+    }
+
+    let reviewRating = 0;             // 0 = no rating chosen
+    let loadedReviewsDormId = null;   // avoid redundant re-fetches
+
+    function starString(n) {
+      const filled = Math.max(0, Math.min(5, Math.round(n)));
+      return "\u2605".repeat(filled) + "\u2606".repeat(5 - filled);
+    }
+
+    // Build the interactive 1–5 star picker in the form. Clicking the current
+    // top star again clears the rating (back to "no rating").
+    function buildReviewStars() {
+      reviewStarsEl.replaceChildren();
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "review-star";
+        btn.dataset.value = String(i);
+        btn.setAttribute("role", "radio");
+        btn.setAttribute("aria-label", i + " star" + (i === 1 ? "" : "s"));
+        btn.textContent = "\u2605";
+        btn.addEventListener("click", () => {
+          reviewRating = (reviewRating === i) ? 0 : i;
+          syncReviewStars();
+        });
+        reviewStarsEl.appendChild(btn);
+      }
+      syncReviewStars();
+    }
+
+    function syncReviewStars() {
+      reviewStarsEl.querySelectorAll(".review-star").forEach((btn) => {
+        const on = Number(btn.dataset.value) <= reviewRating;
+        btn.classList.toggle("is-on", on);
+        btn.setAttribute("aria-checked", on ? "true" : "false");
+      });
+    }
+
+    function setReviewStatus(kind, msg) {
+      if (!msg) {
+        reviewStatusEl.hidden = true;
+        reviewStatusEl.textContent = "";
+        reviewStatusEl.classList.remove("is-error", "is-success");
+        return;
+      }
+      reviewStatusEl.hidden = false;
+      reviewStatusEl.textContent = msg;
+      reviewStatusEl.classList.toggle("is-error", kind === "error");
+      reviewStatusEl.classList.toggle("is-success", kind === "success");
+    }
+
+    function formatReviewDate(iso) {
+      if (!iso) return "";
+      try {
+        return new Date(iso).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      } catch {
+        return "";
+      }
+    }
+
+    function renderReviewsSummary(reviews) {
+      const rated = reviews.filter((r) => typeof r.rating === "number" && r.rating >= 1);
+      if (!rated.length) {
+        reviewsSummaryEl.hidden = true;
+        reviewsSummaryEl.replaceChildren();
+        return;
+      }
+      const avg = rated.reduce((sum, r) => sum + r.rating, 0) / rated.length;
+      reviewsSummaryEl.hidden = false;
+      reviewsSummaryEl.replaceChildren();
+      const stars = document.createElement("span");
+      stars.className = "reviews-summary-stars";
+      stars.textContent = starString(avg);
+      const text = document.createElement("span");
+      text.textContent =
+        avg.toFixed(1) + " avg · " + rated.length + " rating" + (rated.length === 1 ? "" : "s");
+      reviewsSummaryEl.append(stars, text);
+    }
+
+    function renderReviewCard(review) {
+      const card = document.createElement("article");
+      card.className = "review-card";
+
+      const head = document.createElement("div");
+      head.className = "review-card-head";
+
+      const author = document.createElement("span");
+      author.className = "review-card-author";
+      author.textContent = review.displayName || "Anonymous";
+      head.appendChild(author);
+
+      if (typeof review.rating === "number" && review.rating >= 1) {
+        const stars = document.createElement("span");
+        stars.className = "review-card-stars";
+        stars.setAttribute("aria-label", review.rating + " out of 5 stars");
+        stars.textContent = starString(review.rating);
+        head.appendChild(stars);
+      }
+
+      if (review.curated) {
+        const badge = document.createElement("span");
+        badge.className = "review-card-badge";
+        badge.textContent = "Sourced";
+        head.appendChild(badge);
+      }
+
+      if (review.createdAt && !review.curated) {
+        const date = document.createElement("span");
+        date.className = "review-card-date";
+        date.textContent = formatReviewDate(review.createdAt);
+        head.appendChild(date);
+      }
+
+      const body = document.createElement("p");
+      body.className = "review-card-body";
+      body.textContent = review.body;
+
+      card.append(head, body);
+
+      if (review.curated && review.source) {
+        const src = document.createElement("p");
+        src.className = "review-card-source";
+        src.textContent = review.source;
+        card.appendChild(src);
+      }
+
+      return card;
+    }
+
+    function renderReviewsList(reviews) {
+      reviewsListEl.replaceChildren();
+      if (!reviews.length) {
+        const empty = document.createElement("p");
+        empty.className = "reviews-empty";
+        empty.textContent = "No reviews yet — be the first to share your experience.";
+        reviewsListEl.appendChild(empty);
+        return;
+      }
+      reviews.forEach((review) => reviewsListEl.appendChild(renderReviewCard(review)));
+    }
+
+    async function loadReviewsForCurrentDorm() {
+      const dormId = houseId;
+      reviewsDormNameEl.textContent = getHouse(dormId).name;
+      if (loadedReviewsDormId === dormId) return;
+      loadedReviewsDormId = dormId;
+
+      reviewsListEl.replaceChildren();
+      const loading = document.createElement("p");
+      loading.className = "reviews-empty";
+      loading.textContent = "Loading reviews…";
+      reviewsListEl.appendChild(loading);
+
+      const res = await fetch("/api/dorms/" + encodeURIComponent(dormId) + "/reviews");
+      if (loadedReviewsDormId !== dormId) return; // dorm changed mid-flight
+      if (!res.ok) {
+        renderReviewsList([]);
+        renderReviewsSummary([]);
+        return;
+      }
+      const data = await res.json();
+      const reviews = (data && data.reviews) || [];
+      renderReviewsList(reviews);
+      renderReviewsSummary(reviews);
+    }
+
+    reviewAnonInput.addEventListener("change", () => {
+      reviewAuthorInput.disabled = reviewAnonInput.checked;
+      if (reviewAnonInput.checked) reviewAuthorInput.value = "";
+    });
+
+    reviewForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = reviewBodyInput.value.trim();
+      if (!body) {
+        setReviewStatus("error", "Please write a few words before posting.");
+        return;
+      }
+
+      const payload = {
+        body,
+        anonymous: reviewAnonInput.checked,
+        author: reviewAnonInput.checked ? "" : reviewAuthorInput.value.trim(),
+      };
+      if (reviewRating >= 1) payload.rating = reviewRating;
+
+      const dormId = houseId;
+      reviewSubmitBtn.disabled = true;
+      setReviewStatus("", "");
+
+      const res = await fetch("/api/dorms/" + encodeURIComponent(dormId) + "/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      reviewSubmitBtn.disabled = false;
+
+      let data = null;
+      try { data = await res.json(); } catch { /* non-JSON error body */ }
+
+      if (!res.ok || !data || !data.success) {
+        setReviewStatus("error", (data && data.error) || "Could not post your review. Please try again.");
+        return;
+      }
+
+      // Reset the form, then refresh so the new review appears at the top.
+      reviewBodyInput.value = "";
+      reviewAuthorInput.value = "";
+      reviewAnonInput.checked = false;
+      reviewAuthorInput.disabled = false;
+      reviewRating = 0;
+      syncReviewStars();
+      setReviewStatus("success", "Thanks! Your review is now public.");
+
+      // Only prepend if still viewing the same dorm; otherwise just invalidate.
+      if (houseId === dormId) {
+        loadedReviewsDormId = null;
+        await loadReviewsForCurrentDorm();
+      } else {
+        loadedReviewsDormId = null;
+      }
+    });
+
+    reviewToggleBtn.addEventListener("click", () => {
+      setReviewFormOpen(reviewFormEl.hidden);
+    });
+
+    dormSelect.addEventListener("change", () => {
+      setReviewStatus("", "");
+      setReviewFormOpen(false);
+      loadReviewsForCurrentDorm();
+    });
+
+    buildReviewStars();
+    loadReviewsForCurrentDorm();
 
     // =====================================================================
     // FEATURE 6 (Noah): Shareable shortlist links
@@ -3054,8 +3362,23 @@
         const host = where === "studio" ? studioHost : createHost;
         if (host && stage.parentElement !== host) host.appendChild(stage);
         designBtn.hidden = where === "studio"; // already in the designer
+        // "Change room" only makes sense inside the designer's room chooser flow.
+        if (backToRoomsBtn) backToRoomsBtn.hidden = where !== "studio";
         setDesignMode(where === "studio");
         syncStudioEmpty();
+      }
+
+      // "← Change room": flush any pending save, close the current room, and
+      // return to the studio's room chooser (design is kept and will reload).
+      const backToRoomsBtn = document.getElementById("room3d-back-btn");
+      if (backToRoomsBtn) {
+        backToRoomsBtn.addEventListener("click", () => {
+          clearTimeout(designSaveTimer);
+          pushDesignToServer().catch(() => {});
+          stop();
+          stage.hidden = true;
+          syncStudioEmpty();
+        });
       }
 
       // The studio shows its room chooser whenever it doesn't hold a live room.
@@ -3116,6 +3439,17 @@
         return Promise.resolve();
       }
 
+      // Flash a visible "Saved" confirmation so users know their work persists.
+      const saveStatusEl = document.getElementById("room3d-save-status");
+      let saveStatusTimer = null;
+      function flashSaveStatus(text) {
+        if (!saveStatusEl) return;
+        saveStatusEl.textContent = text;
+        saveStatusEl.classList.add("is-visible");
+        clearTimeout(saveStatusTimer);
+        saveStatusTimer = setTimeout(() => saveStatusEl.classList.remove("is-visible"), 1600);
+      }
+
       let designSaveTimer = null;
       function saveDesign() {
         try {
@@ -3125,9 +3459,12 @@
         // every input tick, which would otherwise fire a request per pixel.
         clearTimeout(designSaveTimer);
         designSaveTimer = setTimeout(() => {
-          pushDesignToServer().catch((err) =>
-            console.warn("[design] server save failed (kept locally):", err)
-          );
+          pushDesignToServer()
+            .then(() => flashSaveStatus("✓ Saved"))
+            .catch((err) => {
+              flashSaveStatus("✓ Saved on this device");
+              console.warn("[design] server save failed (kept locally):", err);
+            });
         }, 500);
       }
 
@@ -3615,6 +3952,276 @@
       });
     })();
 
+    // =====================================================================
+    // FEATURE: Multi-school TreeView — create your school, add residences,
+    // upload 360° room panoramas, and browse them, all backed by the API.
+    // =====================================================================
+    (function initSchoolView() {
+      const listEl = document.getElementById("school-list");
+      const createForm = document.getElementById("school-create-form");
+      const nameInput = document.getElementById("school-name-input");
+      const locationInput = document.getElementById("school-location-input");
+      const createBtn = document.getElementById("school-create-btn");
+      const createStatus = document.getElementById("school-create-status");
+      const pickStep = document.getElementById("school-step-pick");
+      const activePanel = document.getElementById("school-active");
+      const activeName = document.getElementById("school-active-name");
+      const switchBtn = document.getElementById("school-switch-btn");
+      const dormForm = document.getElementById("school-dorm-form");
+      const dormInput = document.getElementById("school-dorm-input");
+      const dormStatus = document.getElementById("school-dorm-status");
+      const dormGrid = document.getElementById("school-dorm-grid");
+      const panoInput = document.getElementById("school-pano-input");
+      const panoOverlay = document.getElementById("school-pano-overlay");
+      const panoTitle = document.getElementById("school-pano-title");
+      const panoClose = document.getElementById("school-pano-close");
+
+      let schools = [];
+      let activeSchool = null;       // { slug, name, location, dorms }
+      let uploadsByDorm = {};        // dormId -> [{uploadId, kind, savedFiles, roomName}]
+      let pendingUploadDormId = null;
+      let schoolPanoViewer = null;
+      let loadedOnce = false;
+
+      function setStatus(el, kind, msg) {
+        if (!msg) {
+          el.hidden = true;
+          el.textContent = "";
+          el.classList.remove("is-error", "is-success");
+          return;
+        }
+        el.hidden = false;
+        el.textContent = msg;
+        el.classList.toggle("is-error", kind === "error");
+        el.classList.toggle("is-success", kind === "success");
+      }
+
+      async function fetchSchools() {
+        const res = await fetch("/api/schools");
+        if (!res.ok) return;
+        const data = await res.json();
+        schools = data.schools || [];
+        renderSchoolList();
+      }
+
+      function renderSchoolList() {
+        listEl.replaceChildren();
+        if (!schools.length) {
+          const empty = document.createElement("p");
+          empty.className = "school-list-empty";
+          empty.textContent = "No schools yet — yours can be the first.";
+          listEl.appendChild(empty);
+          return;
+        }
+        schools.forEach((s) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "school-chip";
+          btn.innerHTML =
+            '<span class="school-chip-name"></span><span class="school-chip-meta"></span>';
+          btn.querySelector(".school-chip-name").textContent = s.name;
+          btn.querySelector(".school-chip-meta").textContent =
+            (s.location ? s.location + " · " : "") + s.dorms.length + " residence" + (s.dorms.length === 1 ? "" : "s");
+          btn.addEventListener("click", () => selectSchool(s.slug));
+          listEl.appendChild(btn);
+        });
+      }
+
+      async function selectSchool(slug) {
+        const res = await fetch("/api/schools/" + encodeURIComponent(slug));
+        if (!res.ok) return;
+        const data = await res.json();
+        activeSchool = data.school;
+        uploadsByDorm = data.uploadsByDorm || {};
+        pickStep.hidden = true;
+        activePanel.hidden = false;
+        activeName.textContent = activeSchool.name + (activeSchool.location ? " — " + activeSchool.location : "");
+        renderDormGrid();
+      }
+
+      function renderDormGrid() {
+        dormGrid.replaceChildren();
+        if (!activeSchool.dorms.length) {
+          const empty = document.createElement("p");
+          empty.className = "school-list-empty";
+          empty.textContent = "No residences yet — add your first one above.";
+          dormGrid.appendChild(empty);
+          return;
+        }
+
+        activeSchool.dorms.forEach((dorm) => {
+          const card = document.createElement("div");
+          card.className = "school-dorm-card";
+
+          const head = document.createElement("div");
+          head.className = "school-dorm-card-head";
+          const title = document.createElement("h4");
+          title.className = "school-dorm-card-name";
+          title.textContent = dorm.name;
+          head.appendChild(title);
+
+          const uploadBtn = document.createElement("button");
+          uploadBtn.type = "button";
+          uploadBtn.className = "school-upload-btn";
+          uploadBtn.textContent = "⬆ Upload 360° room";
+          uploadBtn.addEventListener("click", () => {
+            pendingUploadDormId = dorm.id;
+            panoInput.click();
+          });
+          head.appendChild(uploadBtn);
+          card.appendChild(head);
+
+          const rooms = (uploadsByDorm[dorm.id] || []).filter((u) => u.kind === "pano");
+          const roomsWrap = document.createElement("div");
+          roomsWrap.className = "school-room-list";
+          if (!rooms.length) {
+            const none = document.createElement("p");
+            none.className = "school-room-empty";
+            none.textContent = "No rooms uploaded yet.";
+            roomsWrap.appendChild(none);
+          } else {
+            rooms.forEach((room) => {
+              const roomBtn = document.createElement("button");
+              roomBtn.type = "button";
+              roomBtn.className = "school-room-btn";
+              const photoUrl =
+                "/api/uploads/" + room.uploadId + "/photos/" + (room.savedFiles[0] || "");
+              roomBtn.innerHTML =
+                '<img class="school-room-thumb" alt="" loading="lazy" />' +
+                '<span class="school-room-label"></span>';
+              roomBtn.querySelector("img").src = photoUrl;
+              roomBtn.querySelector(".school-room-label").textContent =
+                (room.roomName || "Room") + " · view 360°";
+              roomBtn.addEventListener("click", () =>
+                openSchoolPano(dorm.name + " — " + (room.roomName || "Room"), photoUrl)
+              );
+              roomsWrap.appendChild(roomBtn);
+            });
+          }
+          card.appendChild(roomsWrap);
+          dormGrid.appendChild(card);
+        });
+      }
+
+      function openSchoolPano(title, url) {
+        panoTitle.textContent = title;
+        panoOverlay.hidden = false;
+        if (schoolPanoViewer) {
+          schoolPanoViewer.destroy();
+          schoolPanoViewer = null;
+        }
+        schoolPanoViewer = pannellum.viewer("school-panorama", {
+          type: "equirectangular",
+          panorama: url,
+          autoLoad: true,
+          showControls: true,
+          showFullscreenCtrl: true,
+        });
+      }
+
+      function closeSchoolPano() {
+        panoOverlay.hidden = true;
+        if (schoolPanoViewer) {
+          schoolPanoViewer.destroy();
+          schoolPanoViewer = null;
+        }
+      }
+
+      panoClose.addEventListener("click", closeSchoolPano);
+      panoOverlay.addEventListener("click", (e) => {
+        if (e.target === panoOverlay) closeSchoolPano();
+      });
+
+      createForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = nameInput.value.trim();
+        if (name.length < 2) {
+          setStatus(createStatus, "error", "Enter your school's name first.");
+          return;
+        }
+        createBtn.disabled = true;
+        setStatus(createStatus, null, "");
+        const res = await fetch("/api/schools", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, location: locationInput.value.trim() }),
+        });
+        const data = await res.json();
+        createBtn.disabled = false;
+        if (!res.ok && res.status !== 409) {
+          setStatus(createStatus, "error", data.error || "Could not create the school.");
+          return;
+        }
+        nameInput.value = "";
+        locationInput.value = "";
+        await fetchSchools();
+        await selectSchool(data.school.slug);
+      });
+
+      dormForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = dormInput.value.trim();
+        if (name.length < 2) {
+          setStatus(dormStatus, "error", "Enter a residence name first.");
+          return;
+        }
+        setStatus(dormStatus, null, "");
+        const res = await fetch("/api/schools/" + encodeURIComponent(activeSchool.slug) + "/dorms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus(dormStatus, "error", data.error || "Could not add the residence.");
+          return;
+        }
+        dormInput.value = "";
+        activeSchool = data.school;
+        renderDormGrid();
+        setStatus(dormStatus, "success", "Added! Now upload a 360° room photo for it.");
+      });
+
+      panoInput.addEventListener("change", async () => {
+        const file = panoInput.files && panoInput.files[0];
+        panoInput.value = "";
+        if (!file || !pendingUploadDormId || !activeSchool) return;
+
+        const form = new FormData();
+        form.append("panorama", file);
+        form.append("schoolSlug", activeSchool.slug);
+        form.append("dormId", pendingUploadDormId);
+        form.append("roomType", "room");
+        form.append("roomName", file.name.replace(/\.[^.]+$/, "").slice(0, 60));
+
+        setStatus(dormStatus, null, "Uploading…");
+        const res = await fetch("/api/upload-pano", { method: "POST", body: form });
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus(dormStatus, "error", data.error || "Upload failed — try a smaller JPG/PNG/WebP.");
+          return;
+        }
+        setStatus(dormStatus, "success", "Room uploaded!");
+        await selectSchool(activeSchool.slug);
+      });
+
+      switchBtn.addEventListener("click", () => {
+        activeSchool = null;
+        activePanel.hidden = true;
+        pickStep.hidden = false;
+        fetchSchools();
+      });
+
+      // Lazy-load the school list the first time the view becomes visible.
+      const schoolViewEl = document.getElementById("view-school");
+      new MutationObserver(() => {
+        if (!schoolViewEl.hidden && !loadedOnce) {
+          loadedOnce = true;
+          fetchSchools();
+        }
+      }).observe(schoolViewEl, { attributes: true, attributeFilter: ["hidden"] });
+    })();
+
     // Set initial view on load. Shared upload links land on Create 3D Room;
     // shared design links land on the Room Designer.
     const bootParams = new URLSearchParams(window.location.search);
@@ -3623,7 +4230,7 @@
         ? "studio"
         : bootParams.has("upload")
           ? "designer"
-          : viewFromHash() || "map",
+          : viewFromHash() || "home",
       { updateHash: false }
     );
     loadSharedUploadIfPresent();

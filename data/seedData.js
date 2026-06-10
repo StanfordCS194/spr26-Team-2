@@ -78,6 +78,7 @@ const REASON_LABELS = {
 
 const RANKINGS_SORT_OPTIONS = [
   { key: "overall", label: "Overall" },
+  { key: "rating", label: "Resident rating" },
   { key: "variety", label: "Room variety" },
   { key: "proximity", label: "Closest to Quad" },
   { key: "community", label: "Community" },
@@ -236,7 +237,33 @@ const HOUSES = [
   { id: "otero", name: "Otero", category: "four_class", roomTypes: ["single", "one_room_double"] },
 ];
 
-const TOUR_DORM_IDS = ["zap", "okada", "rinconada", "soto", "sally-ride", "lantana", "schiff"];
+// Every dorm has a tour. Seven have multi-scene tours from real photos of
+// that dorm; the rest get a single-scene tour from the distributed photo pool.
+const TOUR_DORM_IDS = HOUSES.map((h) => h.id);
+
+// Single-scene panoramas for dorms without dedicated multi-photo tours.
+// Only the 8 approved room images are used here — dorms without their own
+// photo share one of the 8 (each image covers 2-3 dorms).
+const SINGLE_SCENE_PANOS = {
+  branner: "branner_one.jpeg",
+  crothers: "crothers_one.jpeg",
+  alondra: "alondra_one.jpeg",
+  castano: "castano_one.jpeg",
+  robinson: "robinson_one.jpeg",
+  donner: "donner_one.jpeg",
+  ujamaa: "ujamaa_one.jpeg",
+  "west-lagunita": "westlagunita_one.jpeg",
+  mirlo: "branner_one.jpeg",
+  larkin: "crothers_one.jpeg",
+  arroyo: "alondra_one.jpeg",
+  cedro: "castano_one.jpeg",
+  cardenal: "robinson_one.jpeg",
+  potter: "donner_one.jpeg",
+  burbank: "ujamaa_one.jpeg",
+  "casa-zapata": "westlagunita_one.jpeg",
+  junipero: "branner_one.jpeg",
+  otero: "crothers_one.jpeg",
+};
 
 function buildTourConfigs() {
   const baseScene = {
@@ -273,7 +300,23 @@ function buildTourConfigs() {
   const otherBase = "/dormPhotos/";
   const pano = (base, file) => base + file;
 
-  return [
+  const nameById = Object.fromEntries(HOUSES.map((h) => [h.id, h.name]));
+  const singleSceneTours = Object.entries(SINGLE_SCENE_PANOS).map(([dormId, file]) => {
+    const sceneId = dormId.replace(/-/g, "") + "One";
+    return {
+      dormId,
+      config: withDefaults(sceneId, {
+        [sceneId]: {
+          ...baseScene,
+          title: nameById[dormId] + " Room",
+          panorama: pano(otherBase, file),
+          hotSpots: [],
+        },
+      }),
+    };
+  });
+
+  return singleSceneTours.concat([
     {
       dormId: "zap",
       config: withDefaults("zapOne", {
@@ -333,7 +376,320 @@ function buildTourConfigs() {
         schiffFour: { ...baseScene, title: "Schiff Four", panorama: pano(otherBase, "schiff_four.jpeg"), hotSpots: [{ pitch: -0.14, yaw: -37.48, type: "scene", text: "Back to Schiff Three", sceneId: "schiffThree" }] },
       }),
     },
-  ];
+  ]);
+}
+
+// Curated resident-feedback quotes gathered from Reddit, Roomsurf, RateMyDorm,
+// the Stanford Daily, and Stanford R&DE/ResEd. These seed each dorm with some
+// real-world signal; users add their own reviews on top via the public form.
+// `author` = who said it / source attribution, `source` = scope / caveat.
+const CURATED_REVIEWS = [
+  // --- First-year designated dorms ---
+  {
+    dormId: "branner",
+    body: "Best freshman dorm for sure. Rooms are fairly narrow with just enough room for 3 beds and 3 desks.",
+    author: "Reddit users groovyepidermis and ExaminationFancy",
+    source: "Direct Branner thread",
+  },
+  {
+    dormId: "branner",
+    body: "The rooms are more spacious than the floor plans indicate. Branner is historic but not in an old broken down way. You get your own sink.",
+    author: "Reddit users fleetwoodmuck and TinderForMidgets",
+    source: "Direct Branner thread",
+  },
+  {
+    dormId: "crothers",
+    body: "The dorms are big, clean and overall feel safe! It was nice, and fairly quiet.",
+    author: "Roomsurf reviewers Jaden G. and Jack C.",
+    source: "Direct Crothers reviews",
+  },
+  {
+    dormId: "crothers",
+    body: "The RFs are stellar. Community is severely lacking.",
+    author: "Unnamed RateMyDorm reviewer",
+    source: "Direct Crothers review; mixed",
+  },
+  {
+    dormId: "crothers",
+    body: "Crothers as a freshman is not bad at all. Location is god tier. It's an older building, you definitely see the wear and tear.",
+    author: "Reddit users new_user_23, Traditional-Horse-78, and podgoricka",
+    source: "Direct Crothers Reddit comments",
+  },
+  {
+    dormId: "alondra",
+    body: "It has a great atmosphere and it's super fun. I made lots of friends here.",
+    author: "Roomsurf reviewer Tuan T. on Florence Moore Hall",
+    source: "FloMo-level proxy, not Alondra-specific",
+  },
+  {
+    dormId: "alondra",
+    body: "Known for being one of the quieter dorms. I never met anyone from Mirlo, Paloma, Alondra.",
+    author: "Stanford Review on FloMo; Reddit user ExaminationFancy on FloMo mixing",
+    source: "FloMo/Alondra proxy",
+  },
+  {
+    dormId: "mirlo",
+    body: "It's on the quieter end later each quarter. Laundry, dining, and bathrooms are fine.",
+    author: "Reddit user StackOwOFlow",
+    source: "Direct Mirlo/FloMo thread",
+  },
+  {
+    dormId: "mirlo",
+    body: "Mirlo is in west flo. You'll have a great time!!",
+    author: "Reddit user hwalt1",
+    source: "Direct Mirlo/FloMo thread",
+  },
+  {
+    dormId: "castano",
+    body: "My friends in castaño last year loved it. The dorm itself is quite nice. Wonderful facilities.",
+    author: "Reddit users SimbaActorBoy, siegeofravens, and an anonymous/deleted RA commenter",
+    source: "Direct Castaño/Casper comments",
+  },
+  {
+    dormId: "castano",
+    body: "This is the best dorm! It is so central to everything on campus.",
+    author: "Roomsurf reviewer Chloe R. on Gerhard Casper Quad",
+    source: "Casper Quad-level proxy",
+  },
+  {
+    dormId: "lantana",
+    body: "I loved the energy, the quiet. I didn't like the showers.",
+    author: "Roomsurf reviewer Corazon J.",
+    source: "Direct Lantana review",
+  },
+  {
+    dormId: "lantana",
+    body: "It was new and felt really nice. Lantana was a really great freshman dorm!",
+    author: "Reddit users dodoohead98 and Appropriate_Bet_347",
+    source: "Direct/near-direct Reddit comments",
+  },
+  {
+    dormId: "robinson",
+    body: "People just like to have fun here. Everyone can have fun while still respecting other people's boundaries.",
+    author: "Ishaan Singh '24, Robinson RA, quoted by Stanford Daily",
+    source: "Direct Robinson/GovCo quote",
+  },
+  {
+    dormId: "robinson",
+    body: "The community here has been so wonderful. I just lived in Robinson last year and it was the best.",
+    author: "Roya Ahmadi '25, Robinson resident (Stanford Daily); Reddit user Ahihidongoc1",
+    source: "Direct Robinson/GovCo",
+  },
+  {
+    dormId: "schiff",
+    body: "The people here are amazing. People are realizing that GovCo is the place to be.",
+    author: "Amy Chang '25 and Ishaan Singh '24, quoted by Stanford Daily",
+    source: "GovCo/Sterling Quad proxy; no strong Schiff-only review found",
+  },
+  {
+    dormId: "schiff",
+    body: "Schiff dorm in GovCo is nicknamed 'Schiff, Inc.'",
+    author: "Stanford Daily caption by Aliana Arzola",
+    source: "Schiff-specific but about dorm theme, not quality",
+  },
+  {
+    dormId: "west-lagunita",
+    body: "Lagunita is one of my favorite places on campus. The proximity to the gym, lake lag, and engineering quad is excellent.",
+    author: "Roomsurf reviewer Ciara L.",
+    source: "Lagunita Court-level review",
+  },
+  {
+    dormId: "west-lagunita",
+    body: "Lag is a great dorm! Sweet location and a beautiful complex. Rooms in Lag are small.",
+    author: "Reddit user ExaminationFancy (two threads)",
+    source: "West Lag/Lagunita comments",
+  },
+  {
+    dormId: "donner",
+    body: "Amazing location on campus. Downside: Laundry.",
+    author: "Unnamed RateMyDorm reviewer",
+    source: "Direct Donner review",
+  },
+  {
+    dormId: "donner",
+    body: "It was a great experience. It was very sociable. It's the people that make the experience.",
+    author: "Reddit users PacificCoral and KrACkEn24",
+    source: "Direct Donner thread",
+  },
+  {
+    dormId: "larkin",
+    body: "The incredible location. Everyone was so kind and welcoming.",
+    author: "Roomsurf reviewer Benita K.",
+    source: "Direct Larkin review",
+  },
+  {
+    dormId: "larkin",
+    body: "Community created for freshmen by the staff. I had a great time. Easy access to everything.",
+    author: "Roomsurf reviewer Valeria G.; Reddit user rjpizz",
+    source: "Direct Larkin reviews/comments",
+  },
+  {
+    dormId: "arroyo",
+    body: "Arrrroyo. Wilbur Hall is amazing for its neighborhood-like feel.",
+    author: "Stanford Daily on Arroyo's theme; Roomsurf reviewer Aja J. on Wilbur",
+    source: "Arroyo-specific theme quote plus Wilbur proxy",
+  },
+  {
+    dormId: "cedro",
+    body: "Cedro is 'Cedrio Kart'. It is mid.",
+    author: "Stanford Daily; Cedro resident Sebastian Vasquez '26",
+    source: "Direct Cedro theme quote, not room-quality review",
+  },
+  {
+    dormId: "cedro",
+    body: "Not the cleanest dorm on campus, but a cozy space.",
+    author: "Roomsurf reviewer Almog A. on Wilbur",
+    source: "Wilbur-level proxy",
+  },
+  {
+    dormId: "rinconada",
+    body: "Rinconada's theme, 'Rinckini Bottom', is a clever one.",
+    author: "Stanford Daily",
+    source: "Rinconada-specific theme quote",
+  },
+  {
+    dormId: "rinconada",
+    body: "The people inside the building were pretty nice. The showers could have been better.",
+    author: "Roomsurf Verified Resident on Wilbur",
+    source: "Wilbur-level proxy",
+  },
+  {
+    dormId: "soto",
+    body: "The dorm is older. The location is great. All dorms have their pros and cons.",
+    author: "Verified Student, RateMyDorm",
+    source: "Direct Soto review",
+  },
+  {
+    dormId: "soto",
+    body: "Lived in Soto in Wilbur, loved that one as well. Sotoulmates.",
+    author: "Reddit user dodoohead98; Stanford Daily on theme",
+    source: "Direct Soto comment plus theme quote",
+  },
+  // --- Four-class undergraduate dorms ---
+  {
+    dormId: "cardenal",
+    body: "Rooms are all one-room doubles. Killer view of Hoover Tower.",
+    author: "Reddit user ExaminationFancy",
+    source: "Direct Cardenal thread",
+  },
+  {
+    dormId: "cardenal",
+    body: "Each dorm within FloMo was independent and didn't really mix.",
+    author: "Reddit user ExaminationFancy",
+    source: "Older anecdote; may vary by year",
+  },
+  {
+    dormId: "potter",
+    body: "Potter is nice. Potter was honestly super quiet but a lovely dorm.",
+    author: "Reddit users beaver927 and Efficient-Lemon-403",
+    source: "Direct Potter thread",
+  },
+  {
+    dormId: "potter",
+    body: "The halls were always barely lit. The rooms were awkwardly sized. 2/10.",
+    author: "Unnamed RateMyDorm reviewer who said they lived in Potter",
+    source: "Direct Potter review; very negative",
+  },
+  {
+    dormId: "ujamaa",
+    body: "Everyone that I've met who has lived in Uj has loved it. Lots of unity and a true dorm identity.",
+    author: "Reddit user ExaminationFancy",
+    source: "Direct Ujamaa thread",
+  },
+  {
+    dormId: "ujamaa",
+    body: "Ujamaa was pretty dope — a really dope community and an amazing experience.",
+    author: "Reddit user DenimmineD",
+    source: "Older direct Ujamaa experience; also included mixed caveats",
+  },
+  {
+    dormId: "burbank",
+    body: "Super friendly students and I love the environment, especially the program that I am in (ITALIC).",
+    author: "Roomsurf Verified Resident on Stern/ITALIC",
+    source: "Stern/ITALIC proxy; Burbank is ITALIC",
+  },
+  {
+    dormId: "burbank",
+    body: "Burbank is home to the ITALIC theme house.",
+    author: "Stanford R&DE",
+    source: "Official description, not a student review",
+  },
+  {
+    dormId: "zap",
+    body: "It's nice, but the location is a bit meh. Not super social. Parking is great.",
+    author: "Reddit user The_crew",
+    source: "Direct ZAP row-house comment",
+  },
+  {
+    dormId: "zap",
+    body: "0 reviews. Houses members of ZAP.",
+    author: "myDORM page for ZAP House",
+    source: "Shows lack of review data on myDORM",
+  },
+  {
+    dormId: "casa-zapata",
+    body: "It's a nice space! The rooms aren't massive. Middle of the pack.",
+    author: "Reddit user fleetwoodmuck",
+    source: "Direct Casa Zapata thread",
+  },
+  {
+    dormId: "casa-zapata",
+    body: "Casa Zapata dons the name 'Into the Zapataverse'.",
+    author: "Stanford Daily",
+    source: "Theme quote, not room-quality review",
+  },
+  {
+    dormId: "sally-ride",
+    body: "Form strong bonds of friendship in an open and safe community.",
+    author: "Stanford Residential Education",
+    source: "Official Stanford description, not an independent student review",
+  },
+  {
+    dormId: "sally-ride",
+    body: "Super friendly students and I love the environment!",
+    author: "Roomsurf Verified Resident on Stern Hall",
+    source: "Stern-level proxy; no direct Sally Ride review found",
+  },
+  {
+    dormId: "junipero",
+    body: "It's very well located — the classic frosh experience.",
+    author: "Reddit user hwalt1",
+    source: "Direct Junipero thread",
+  },
+  {
+    dormId: "junipero",
+    body: "Rooms are all 1-room doubles, so space is limited.",
+    author: "Reddit user ExaminationFancy",
+    source: "Direct Junipero thread",
+  },
+  {
+    dormId: "okada",
+    body: "Pretty tight-knit community, Asian-American themed. Hit-or-miss for community.",
+    author: "Reddit user IFailedUgh and an anonymous/deleted Reddit commenter",
+    source: "Direct Okada thread; mixed",
+  },
+  {
+    dormId: "okada",
+    body: "They do a lot to try to celebrate your Asian heritage. Really loved and treasured it.",
+    author: "Reddit user Ninonysoft",
+    source: "Direct Okada experience",
+  },
+  {
+    dormId: "otero",
+    body: "The dorms were nice, the common space was great, friendly and open.",
+    author: "Reddit user Far_Hearing_9728, who stayed there for admit weekend",
+    source: "Direct Otero thread, but not a full-year resident",
+  },
+  {
+    dormId: "otero",
+    body: "Otero was the most problematic dorm.",
+    author: "Reddit user Valuable_Weather3547",
+    source: "Anonymous, serious negative claim; treat as unverified",
+  },
+];
+
+function buildReviews() {
+  return CURATED_REVIEWS.map((r) => ({ ...r, curated: true, anonymous: false }));
 }
 
 function buildDorms() {
@@ -366,4 +722,5 @@ module.exports = {
   QUIZ_QUESTIONS,
   buildDorms,
   buildTourConfigs,
+  buildReviews,
 };
