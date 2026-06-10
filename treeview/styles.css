@@ -347,11 +347,13 @@
       gap: 0;
     }
 
+    /* Let the inner content grow naturally so .dashboard-view's overflow-y:auto
+       actually scrolls — a fixed-height flex column was compressing the layout
+       and clipping the reviews section entirely. */
     .dashboard-view-inner {
-      flex: 1;
-      min-height: 0;
       display: flex;
       flex-direction: column;
+      min-height: 100%;
     }
 
     .app-workspace .shell,
@@ -389,8 +391,8 @@
     }
 
     #view-residences .layout {
-      flex: 1;
-      min-height: 0;
+      flex: none;
+      min-height: auto;
     }
 
     #view-residences .pannellum-host {
@@ -430,17 +432,6 @@
       display: block;
       opacity: 1;
       pointer-events: auto;
-    }
-
-    .sidebar-selector-wrap {
-      padding: 0.25rem 0.5rem 1rem;
-      border-bottom: 1px solid var(--sidebar-border);
-      flex-shrink: 0;
-      transition: border-color 0.3s ease;
-    }
-
-    .sidebar-selector-wrap .field {
-      margin: 0;
     }
 
     @media (max-width: 768px) {
@@ -3666,3 +3657,762 @@
       background: rgba(61, 154, 140, 0.12);
       border-radius: 999px;
     }
+
+    /* --- Resident reviews ---
+       A secondary, lighter section under the explorer + preview. Deliberately
+       NOT a .glass card so it reads as a continuation of the page rather than a
+       competing block; a hairline rule separates it from the cards above. */
+    .reviews-section {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .reviews-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .reviews-head-text {
+      min-width: 0;
+    }
+
+    .reviews-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--charcoal);
+    }
+
+    .reviews-lede {
+      margin: 0.4rem 0 0;
+      max-width: 42rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    /* Collapsed-by-default trigger for the add-review form (mirrors .compare-toggle). */
+    .review-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-top: 0.9rem;
+      padding: 0.5rem 1rem;
+      font-family: var(--font-ui);
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: rgba(61, 154, 140, 0.08);
+      border: 1px solid rgba(61, 154, 140, 0.2);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .review-toggle:hover {
+      color: var(--charcoal);
+      border-color: var(--teal);
+    }
+
+    .review-toggle.is-on {
+      color: #fff;
+      background: var(--teal);
+      border-color: var(--teal);
+    }
+
+    .reviews-summary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--charcoal-soft);
+      padding: 0.3rem 0.7rem;
+      background: rgba(140, 21, 21, 0.08);
+      border-radius: 999px;
+    }
+
+    .reviews-summary-stars {
+      color: var(--cardinal);
+      letter-spacing: 0.05em;
+    }
+
+    /* --- Add-a-review form --- */
+    .review-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      padding: 1.1rem;
+      margin-top: 0.9rem;
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      animation: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .review-form[hidden] {
+      display: none;
+    }
+
+    [data-theme="dark"] .review-form {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .review-form-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.85rem;
+    }
+
+    .review-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .review-field--name {
+      flex: 1;
+      min-width: 12rem;
+    }
+
+    .review-optional {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--muted);
+    }
+
+    .review-input,
+    .review-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.6rem 0.8rem;
+      font-family: var(--font-ui);
+      font-size: 0.92rem;
+      color: var(--charcoal);
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    [data-theme="dark"] .review-input,
+    [data-theme="dark"] .review-textarea {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .review-textarea {
+      resize: vertical;
+      min-height: 3.2rem;
+      line-height: 1.45;
+    }
+
+    .review-input:focus,
+    .review-textarea:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-glow);
+    }
+
+    .review-anon {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.88rem;
+      color: var(--charcoal-soft);
+      cursor: pointer;
+      padding-bottom: 0.6rem;
+      user-select: none;
+    }
+
+    .review-anon input {
+      width: 1.05rem;
+      height: 1.05rem;
+      accent-color: var(--cardinal);
+      cursor: pointer;
+    }
+
+    .review-stars {
+      display: inline-flex;
+      gap: 0.2rem;
+    }
+
+    .review-star {
+      font-size: 1.5rem;
+      line-height: 1;
+      color: rgba(140, 21, 21, 0.25);
+      background: none;
+      border: none;
+      padding: 0 0.05rem;
+      cursor: pointer;
+      transition: color 0.15s ease, transform 0.1s ease;
+    }
+
+    .review-star:hover {
+      transform: scale(1.15);
+    }
+
+    .review-star.is-on {
+      color: var(--cardinal);
+    }
+
+    .review-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    .review-submit {
+      padding: 0.6rem 1.4rem;
+      font-family: var(--font-ui);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, var(--cardinal) 0%, var(--cardinal-deep) 100%);
+      border: none;
+      border-radius: 999px;
+      box-shadow: var(--shadow-cardinal);
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .review-submit:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .review-submit:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .review-status {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .review-status.is-error {
+      color: var(--cardinal);
+    }
+
+    .review-status.is-success {
+      color: var(--teal);
+    }
+
+    /* --- Review list --- */
+    .reviews-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      margin-top: 1.1rem;
+    }
+
+    .review-card {
+      padding: 1rem 1.1rem;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-sm);
+    }
+
+    [data-theme="dark"] .review-card {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .review-card-head {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+
+    .review-card-author {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--charcoal);
+    }
+
+    .review-card-stars {
+      font-size: 0.9rem;
+      color: var(--cardinal);
+      letter-spacing: 0.05em;
+    }
+
+    .review-card-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--teal);
+      padding: 0.15rem 0.5rem;
+      background: rgba(61, 154, 140, 0.12);
+      border-radius: 999px;
+    }
+
+    .review-card-date {
+      margin-left: auto;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .review-card-body {
+      margin: 0;
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: var(--charcoal-soft);
+    }
+
+    .review-card-source {
+      margin: 0.5rem 0 0;
+      font-size: 0.78rem;
+      font-style: italic;
+      color: var(--muted);
+    }
+
+    .reviews-empty {
+      padding: 1.2rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 540px) {
+      .review-card-date { margin-left: 0; width: 100%; }
+    }
+
+    /* ===================== Sidebar nav groups ===================== */
+    .sidebar-nav-group {
+      margin: 0.65rem 0 0.1rem;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--sidebar-text-muted);
+      padding-left: 0.25rem;
+    }
+
+    /* ===================== Home view ===================== */
+    .home-hero {
+      padding: clamp(1.5rem, 3.5vw, 2.75rem);
+    }
+
+    .home-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+      line-height: 1.12;
+      color: var(--charcoal);
+      margin: 0.35rem 0 0.6rem;
+    }
+
+    .home-lede {
+      font-size: clamp(0.95rem, 1.4vw, 1.08rem);
+      color: var(--muted);
+      max-width: 46rem;
+      line-height: 1.55;
+      margin: 0 0 1.5rem;
+    }
+
+    .home-intents {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 0.9rem;
+    }
+
+    .home-intent-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.35rem;
+      text-align: left;
+      padding: 1.15rem 1.2rem 1.25rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: var(--sidebar-btn-bg);
+      cursor: pointer;
+      font-family: var(--font-ui);
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+
+    .home-intent-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--teal);
+    }
+
+    .home-intent-icon { font-size: 1.45rem; }
+
+    .home-intent-title {
+      font-weight: 700;
+      font-size: 1.02rem;
+      color: var(--charcoal);
+    }
+
+    .home-intent-sub {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .home-intent-arrow {
+      position: absolute;
+      top: 1rem;
+      right: 1.1rem;
+      color: var(--cardinal);
+      font-weight: 700;
+    }
+
+    .home-secondary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.75rem;
+      margin-top: 1.35rem;
+      padding-top: 1.1rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .home-secondary-link {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--teal);
+    }
+
+    .home-secondary-link:hover { text-decoration: underline; }
+
+    .home-school-banner {
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.9rem;
+      padding: 1.1rem 1.4rem;
+      border-radius: var(--radius);
+      border: 1px dashed rgba(140, 21, 21, 0.35);
+      background: rgba(140, 21, 21, 0.05);
+    }
+
+    [data-theme="dark"] .home-school-banner {
+      background: rgba(140, 21, 21, 0.12);
+    }
+
+    .home-school-title {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--charcoal);
+      margin: 0 0 0.15rem;
+    }
+
+    .home-school-sub {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 0;
+      max-width: 34rem;
+    }
+
+    .home-school-btn {
+      padding: 0.65rem 1.15rem;
+      border-radius: 999px;
+      border: none;
+      background: var(--cardinal);
+      color: #fff;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-cardinal);
+      transition: transform 0.16s ease;
+    }
+
+    .home-school-btn:hover { transform: translateY(-1px); }
+
+    /* ===================== Your School (multi-school) view ===================== */
+    .school-section { padding-bottom: 1.75rem; }
+
+    .school-step { margin-top: 0.75rem; }
+
+    .school-step-head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 0.98rem;
+      color: var(--charcoal);
+      margin: 1.4rem 0 0.6rem;
+    }
+
+    .school-step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.45rem;
+      height: 1.45rem;
+      border-radius: 50%;
+      background: var(--cardinal);
+      color: #fff;
+      font-size: 0.8rem;
+      flex: none;
+    }
+
+    .school-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .school-list-empty,
+    .school-room-empty {
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin: 0.15rem 0;
+    }
+
+    .school-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.1rem;
+      padding: 0.6rem 0.95rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: var(--sidebar-btn-bg);
+      cursor: pointer;
+      font-family: var(--font-ui);
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .school-chip:hover { border-color: var(--teal); transform: translateY(-1px); }
+
+    .school-chip-name { font-weight: 700; font-size: 0.92rem; color: var(--charcoal); }
+    .school-chip-meta { font-size: 0.76rem; color: var(--muted); }
+
+    .school-create-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .school-create-fields .review-input { flex: 1 1 220px; }
+
+    .school-create-btn {
+      padding: 0.6rem 1.1rem;
+      border-radius: 999px;
+      border: none;
+      background: var(--cardinal);
+      color: #fff;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      font-size: 0.86rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .school-create-btn:hover { transform: translateY(-1px); }
+    .school-create-btn:disabled { opacity: 0.55; cursor: wait; }
+
+    .school-active-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 0.85rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .school-active-name {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: var(--charcoal);
+      margin: 0;
+    }
+
+    .school-switch-btn {
+      background: none;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.4rem 0.9rem;
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .school-switch-btn:hover { border-color: var(--teal); color: var(--charcoal); }
+
+    .school-dorm-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .school-dorm-form .review-input { flex: 1 1 220px; max-width: 24rem; }
+
+    .school-upload-hint { margin: -0.2rem 0 0.85rem; }
+
+    .school-dorm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.85rem;
+    }
+
+    .school-dorm-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--sidebar-btn-bg);
+      padding: 0.95rem 1rem 1.05rem;
+    }
+
+    .school-dorm-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .school-dorm-card-name {
+      font-family: var(--font-ui);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--charcoal);
+      margin: 0;
+    }
+
+    .school-upload-btn {
+      flex: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid var(--teal);
+      background: transparent;
+      color: var(--teal);
+      font-family: var(--font-ui);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .school-upload-btn:hover { background: var(--teal); color: #fff; }
+
+    .school-room-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .school-room-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.4rem;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      font-family: var(--font-ui);
+      text-align: left;
+      transition: border-color 0.15s ease;
+    }
+
+    [data-theme="dark"] .school-room-btn { background: rgba(40, 48, 56, 0.4); }
+    .school-room-btn:hover { border-color: var(--teal); }
+
+    .school-room-thumb {
+      width: 72px;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 7px;
+      flex: none;
+      background: var(--charcoal-soft);
+    }
+
+    .school-room-label {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--charcoal);
+    }
+
+    .school-pano-overlay[hidden] { display: none; }
+
+    .school-pano-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(0.75rem, 3vw, 2rem);
+      background: rgba(15, 20, 24, 0.72);
+      backdrop-filter: blur(6px);
+    }
+
+    .school-pano-modal {
+      width: min(960px, 100%);
+      background: var(--glass);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      padding: 0.9rem;
+    }
+
+    .school-pano-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .school-pano-modal-title {
+      font-family: var(--font-ui);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--charcoal);
+      margin: 0;
+      padding-left: 0.25rem;
+    }
+
+    .school-pano-close { position: static; }
+
+    .school-pano-host {
+      height: min(62vh, 540px);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    @media (max-width: 640px) {
+      .home-intents { grid-template-columns: 1fr; }
+      .home-school-banner { flex-direction: column; align-items: flex-start; }
+      .school-dorm-grid { grid-template-columns: 1fr; }
+      .school-pano-host { height: 52vh; }
+    }
+
+    /* Room Designer: auto-save confirmation flash */
+    .room3d-save-status {
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--teal);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      margin-right: auto;
+      padding-left: 0.6rem;
+    }
+
+    .room3d-save-status.is-visible { opacity: 1; }

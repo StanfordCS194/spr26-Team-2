@@ -4,6 +4,9 @@ const roomUploadSchema = new mongoose.Schema(
   {
     uploadId: { type: String, required: true, unique: true, index: true },
     kind: { type: String, enum: ["sixPhoto", "pano"], required: true },
+    // Empty for Stanford rooms; set to a school slug when the upload belongs
+    // to a community-created school (multi-school pipeline).
+    schoolSlug: { type: String, default: "", index: true },
     dormId: { type: String, required: true },
     roomType: { type: String, required: true },
     roomName: { type: String, default: "" },

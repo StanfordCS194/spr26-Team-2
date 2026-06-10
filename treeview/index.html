@@ -42,24 +42,18 @@
           <h1 id="welcome-heading" class="sidebar-title">TreeView</h1>
           <p class="sidebar-tagline">Compare residences and plan your first-year space.</p>
         </div>
-        <!-- Global Dorm Selector (Moved from Residences tab) -->
-        <div class="sidebar-selector-wrap">
-          <div class="field">
-            <label class="label" for="dorm-select">Dorm</label>
-            <div class="select-row">
-              <select id="dorm-select" class="select" aria-describedby="dorm-hint"></select>
-              <button type="button" class="fav-btn" id="fav-btn" aria-label="Add to shortlist">&#9734;</button>
-            </div>
-            <p id="dorm-hint" class="hint"></p>
-          </div>
-        </div>
         <nav class="sidebar-nav" id="sidebar-nav" aria-label="Main">
-          <button type="button" class="sidebar-nav-btn is-active" data-view="map" aria-current="page">Explore Map</button>
-          <button type="button" class="sidebar-nav-btn" data-view="residences">Residences</button>
-          <button type="button" class="sidebar-nav-btn" data-view="walk">Distance Calculator</button>
+          <button type="button" class="sidebar-nav-btn is-active" data-view="home" aria-current="page">&#127968; Home</button>
+          <p class="sidebar-nav-group">Discover</p>
+          <button type="button" class="sidebar-nav-btn" data-view="map">Explore Map</button>
           <button type="button" class="sidebar-nav-btn" data-view="rankings">Dorm Rankings</button>
+          <p class="sidebar-nav-group">Evaluate</p>
+          <button type="button" class="sidebar-nav-btn" data-view="residences">Dorm Details &amp; Tours</button>
+          <p class="sidebar-nav-group">Plan your room</p>
           <button type="button" class="sidebar-nav-btn" data-view="designer">Create 3D Room</button>
           <button type="button" class="sidebar-nav-btn" data-view="studio">Room Designer</button>
+          <p class="sidebar-nav-group">Beyond Stanford</p>
+          <button type="button" class="sidebar-nav-btn" data-view="school">&#127891; Your School</button>
         </nav>
         <section class="shortlist-section" id="shortlist-section" aria-label="Your shortlisted dorms">
           <div class="shortlist-head">
@@ -79,13 +73,76 @@
 
       <div class="app-main">
         <div class="app-workspace" id="app-workspace">
-          <!-- view-residences: dorm explorer + 360° preview (default) -->
+          <!-- view-home: orientation landing — fork by intent so new users
+               immediately know what to do first. -->
+          <section class="dashboard-view is-active" id="view-home" data-view="home" aria-labelledby="home-heading">
+            <div class="dashboard-view-inner">
+              <div class="home-hero glass">
+                <p class="panel-head">Welcome to TreeView</p>
+                <h2 id="home-heading" class="home-title">Find your home at Stanford</h2>
+                <p class="home-lede">
+                  Tour real rooms in all 25 undergraduate residences, compare what matters to you,
+                  and plan your space — all in one place. Where would you like to start?
+                </p>
+                <div class="home-intents">
+                  <button type="button" class="home-intent-card" data-home-action="quiz">
+                    <span class="home-intent-icon" aria-hidden="true">&#10024;</span>
+                    <span class="home-intent-title">Help me find my match</span>
+                    <span class="home-intent-sub">Take a 7-question quiz and get your top 3 dorms.</span>
+                    <span class="home-intent-arrow" aria-hidden="true">&rarr;</span>
+                  </button>
+                  <button type="button" class="home-intent-card" data-home-action="map">
+                    <span class="home-intent-icon" aria-hidden="true">&#128506;</span>
+                    <span class="home-intent-title">Let me explore the map</span>
+                    <span class="home-intent-sub">Fly around campus and peek inside any dorm in 360°.</span>
+                    <span class="home-intent-arrow" aria-hidden="true">&rarr;</span>
+                  </button>
+                  <button type="button" class="home-intent-card" data-home-action="rankings">
+                    <span class="home-intent-icon" aria-hidden="true">&#127942;</span>
+                    <span class="home-intent-title">Show me the rankings</span>
+                    <span class="home-intent-sub">Sort all 25 residences by what matters most to you.</span>
+                    <span class="home-intent-arrow" aria-hidden="true">&rarr;</span>
+                  </button>
+                </div>
+                <div class="home-secondary">
+                  <button type="button" class="home-secondary-link" data-home-action="residences">
+                    Already know your dorm? Jump to its details &amp; 360° tour &rarr;
+                  </button>
+                  <button type="button" class="home-secondary-link" data-home-action="designer">
+                    Have room photos? Build your own 3D room &rarr;
+                  </button>
+                </div>
+              </div>
+              <div class="home-school-banner">
+                <div class="home-school-text">
+                  <p class="home-school-title">Not at Stanford?</p>
+                  <p class="home-school-sub">Build TreeView for your own school — add your residences and upload 360° room photos.</p>
+                </div>
+                <button type="button" class="home-school-btn" data-home-action="school">
+                  &#127891; Build it for my school &rarr;
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- view-residences: dorm explorer + 360° preview -->
           <section class="dashboard-view" id="view-residences" data-view="residences" hidden aria-label="Explore residences">
             <div class="dashboard-view-inner">
               <div class="layout">
         <!-- Left card: dorm <select> is empty here on purpose — fillDormDropdown() injects options -->
         <div class="glass">
           <p class="panel-head">Explore residences</p>
+
+          <!-- Dorm picker — drives everything on this page (tour, walk times,
+               reviews). The star saves the dorm to your shortlist. -->
+          <div class="field">
+            <label class="label" for="dorm-select">Choose a dorm</label>
+            <div class="select-row">
+              <select id="dorm-select" class="select" aria-describedby="dorm-hint"></select>
+              <button type="button" class="fav-btn" id="fav-btn" aria-label="Add to shortlist" title="Add to shortlist">&#9734;</button>
+            </div>
+            <p id="dorm-hint" class="hint"></p>
+          </div>
 
           <!-- Quiz CTA (Noah) — opens the dorm-match quiz modal -->
           <button type="button" id="open-quiz-btn" class="quiz-cta">
@@ -147,11 +204,89 @@
           </div>
         </aside>
               </div>
+
+              <!-- Walking distances — folded into the dorm detail page so a
+                   student evaluating a dorm sees its walk times right here. -->
+              <section class="walk-section glass" aria-labelledby="walk-heading">
+                <div class="walk-head">
+                  <div class="walk-head-left">
+                    <p class="panel-head">Walking distances</p>
+                    <h2 id="walk-heading" class="walk-title">How far is everything?</h2>
+                    <p class="walk-lede">Estimated walk times from this dorm to key campus spots.</p>
+                  </div>
+                  <span class="walk-dorm-chip" id="walk-dorm-chip"></span>
+                </div>
+                <div class="walk-list" id="walk-list" aria-live="polite"></div>
+              </section>
+
+              <!-- Resident reviews — public, crowdsourced feedback per dorm.
+                   Curated quotes (Reddit/Roomsurf/Stanford Daily) are seeded;
+                   anyone can add their own, optionally anonymously. Kept as a
+                   secondary section so it complements (not overshadows) the
+                   explorer + preview above. The form is tucked behind a toggle. -->
+              <section class="reviews-section" aria-labelledby="reviews-heading">
+                <div class="reviews-head">
+                  <div class="reviews-head-text">
+                    <p class="panel-head">Resident reviews</p>
+                    <h3 id="reviews-heading" class="reviews-title">
+                      What people say about <span id="reviews-dorm-name">this dorm</span>
+                    </h3>
+                  </div>
+                  <div class="reviews-summary" id="reviews-summary" hidden></div>
+                </div>
+                <p class="reviews-lede">
+                  Raw, unfiltered feedback from residents and around the web.
+                </p>
+
+                <button type="button" class="review-toggle" id="review-toggle" aria-expanded="false" aria-controls="review-form">
+                  &#9998; Write a review
+                </button>
+
+                <form id="review-form" class="review-form" novalidate hidden>
+                  <div class="review-form-top">
+                    <div class="review-field review-field--name">
+                      <label class="label" for="review-author">Your name <span class="review-optional">(optional)</span></label>
+                      <input
+                        id="review-author"
+                        class="review-input"
+                        type="text"
+                        maxlength="60"
+                        autocomplete="off"
+                        placeholder="e.g. Class of '29 resident"
+                      />
+                    </div>
+                    <label class="review-anon">
+                      <input type="checkbox" id="review-anonymous" />
+                      <span>Post anonymously</span>
+                    </label>
+                  </div>
+                  <div class="review-field">
+                    <span class="label">Your rating <span class="review-optional">(optional)</span></span>
+                    <div class="review-stars" id="review-stars" role="radiogroup" aria-label="Star rating"></div>
+                  </div>
+                  <div class="review-field">
+                    <label class="label" for="review-body">Your review</label>
+                    <textarea
+                      id="review-body"
+                      class="review-textarea"
+                      rows="3"
+                      maxlength="2000"
+                      placeholder="How was the community, the rooms, the location? What surprised you?"
+                    ></textarea>
+                  </div>
+                  <div class="review-actions">
+                    <button type="submit" id="review-submit" class="review-submit">Post review</button>
+                    <p id="review-status" class="review-status" role="status" aria-live="polite" hidden></p>
+                  </div>
+                </form>
+
+                <div class="reviews-list" id="reviews-list" aria-live="polite"></div>
+              </section>
             </div>
           </section>
 
           <!-- view-map: interactive campus map -->
-          <section class="dashboard-view is-active" id="view-map" data-view="map" aria-label="Stanford campus map">
+          <section class="dashboard-view" id="view-map" data-view="map" hidden aria-label="Stanford campus map">
             <section class="campus-map-section">
               <div class="campus-map-card">
                 <div class="campus-map-header">
@@ -187,21 +322,6 @@
             </section>
           </section>
 
-          <!-- view-walk: walking distance calculator -->
-          <section class="dashboard-view" id="view-walk" data-view="walk" hidden aria-labelledby="walk-heading">
-            <section class="walk-section glass" aria-labelledby="walk-heading">
-        <div class="walk-head">
-          <div class="walk-head-left">
-            <p class="panel-head">Walking distances</p>
-            <h2 id="walk-heading" class="walk-title">How far is everything?</h2>
-            <p class="walk-lede">Estimated walk times from your selected dorm to key campus spots.</p>
-          </div>
-          <span class="walk-dorm-chip" id="walk-dorm-chip"></span>
-        </div>
-        <div class="walk-list" id="walk-list" aria-live="polite"></div>
-            </section>
-          </section>
-
           <!-- view-rankings: dorm leaderboard -->
           <section class="dashboard-view" id="view-rankings" data-view="rankings" hidden aria-labelledby="rankings-heading">
             <section class="rankings-section" aria-labelledby="rankings-heading">
@@ -210,6 +330,8 @@
           <h2 id="rankings-heading" class="rankings-title">Compare every dorm at a glance</h2>
           <p class="rankings-lede">
             Sort all 25 residences by what matters most to you. Click any row to jump to that dorm.
+            Scores blend real resident star ratings, true walking distance to Main Quad, room
+            variety, and Stanford theme-house designations.
           </p>
           <div class="rankings-controls">
             <div class="rankings-control-group">
@@ -333,7 +455,9 @@
         <div id="room3d-stage" class="room3d-stage" hidden>
           <div class="room3d-head">
             <h3 id="room3d-title" class="room3d-title">Your 3D room</h3>
+            <span id="room3d-save-status" class="room3d-save-status" aria-live="polite"></span>
             <div class="room3d-actions" aria-label="3D room actions">
+              <button type="button" id="room3d-back-btn" class="room3d-action-btn" hidden>&larr; Change room</button>
               <button type="button" id="room3d-design-btn" class="room3d-action-btn">✦ Design this room</button>
               <button type="button" id="room3d-edit-btn" class="room3d-action-btn">↺ Edit photos</button>
               <button type="button" id="room3d-new-upload-btn" class="room3d-action-btn">＋ New upload</button>
@@ -428,6 +552,8 @@
           <h2 id="studio-heading" class="designer-title">Furnish your space at true scale</h2>
           <p class="designer-lede">
             Calibrate the scale, trace the floor, and arrange real-size furniture in any room.
+            Your design auto-saves on every change — come back any time and pick the same room
+            to continue where you left off.
           </p>
         </div>
         <div id="studio-empty" class="studio-empty">
@@ -442,6 +568,79 @@
         </div>
         <div id="studio-stage-host"></div>
             </section>
+          </section>
+
+          <!-- view-school: multi-school pipeline — anyone can build TreeView
+               for their own campus: create the school, add residences, and
+               upload 360° room panoramas for each one. -->
+          <section class="dashboard-view" id="view-school" data-view="school" hidden aria-labelledby="school-heading">
+            <div class="dashboard-view-inner">
+              <section class="school-section glass" aria-labelledby="school-heading">
+                <div class="designer-head">
+                  <p class="panel-head">TreeView for your school</p>
+                  <h2 id="school-heading" class="designer-title">Bring TreeView to your campus</h2>
+                  <p class="designer-lede">
+                    Not at Stanford? Create your school below, add its residences, and upload
+                    360° photos of real rooms — your classmates get the same explorer Stanford has.
+                  </p>
+                </div>
+
+                <!-- Step 1: pick an existing school or create a new one -->
+                <div class="school-step" id="school-step-pick">
+                  <p class="school-step-head"><span class="school-step-num">1</span> Pick your school — or add it</p>
+                  <div class="school-pick-row">
+                    <div class="school-list" id="school-list" aria-label="Schools already on TreeView"></div>
+                  </div>
+                  <form class="school-create-form" id="school-create-form" novalidate>
+                    <div class="school-create-fields">
+                      <input id="school-name-input" class="review-input" type="text" maxlength="80"
+                             placeholder="School name — e.g. UC Berkeley" aria-label="School name" />
+                      <input id="school-location-input" class="review-input" type="text" maxlength="120"
+                             placeholder="Location (optional) — e.g. Berkeley, CA" aria-label="School location" />
+                      <button type="submit" class="school-create-btn" id="school-create-btn">＋ Create school</button>
+                    </div>
+                    <p id="school-create-status" class="review-status" role="status" aria-live="polite" hidden></p>
+                  </form>
+                </div>
+
+                <!-- Step 2 + 3: manage the selected school -->
+                <div class="school-active" id="school-active" hidden>
+                  <div class="school-active-head">
+                    <h3 class="school-active-name" id="school-active-name"></h3>
+                    <button type="button" class="school-switch-btn" id="school-switch-btn">&#8644; Switch school</button>
+                  </div>
+
+                  <p class="school-step-head"><span class="school-step-num">2</span> Add your residences</p>
+                  <form class="school-dorm-form" id="school-dorm-form" novalidate>
+                    <input id="school-dorm-input" class="review-input" type="text" maxlength="80"
+                           placeholder="Residence name — e.g. Unit 1" aria-label="Residence name" />
+                    <button type="submit" class="school-create-btn">＋ Add residence</button>
+                  </form>
+                  <p id="school-dorm-status" class="review-status" role="status" aria-live="polite" hidden></p>
+
+                  <p class="school-step-head"><span class="school-step-num">3</span> Upload 360° rooms &amp; explore</p>
+                  <p class="hint school-upload-hint">
+                    Upload one equirectangular (2:1) panorama per room — the kind any phone's pano mode makes.
+                    Photos appear instantly as draggable 360° tours.
+                  </p>
+                  <div class="school-dorm-grid" id="school-dorm-grid" aria-live="polite"></div>
+                  <input id="school-pano-input" class="upload-input-hidden" type="file"
+                         accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                         aria-label="Choose a 360 degree panorama for this residence" />
+                </div>
+              </section>
+
+              <!-- 360° viewer modal for school room panoramas -->
+              <div class="school-pano-overlay" id="school-pano-overlay" hidden>
+                <div class="school-pano-modal">
+                  <div class="school-pano-modal-head">
+                    <p class="school-pano-modal-title" id="school-pano-title"></p>
+                    <button type="button" class="quiz-close school-pano-close" id="school-pano-close" aria-label="Close viewer">&times;</button>
+                  </div>
+                  <div id="school-panorama" class="pannellum-host school-pano-host"></div>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
       </div>

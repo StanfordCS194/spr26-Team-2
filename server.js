@@ -12,10 +12,11 @@ const { randomUUID } = require("crypto"); // Generate unique upload IDs
 const { connectDB, isConnected } = require("./db"); // MongoDB (Mongoose) connection
 const { router: apiRouter, isValidUploadId, getUploadRecord, saveUploadRecord } = require("./routes/api");
 const Dorm = require("./models/Dorm");
-const { buildDorms, buildTourConfigs, LANDMARKS, QUIZ_QUESTIONS } = require("./data/seedData");
+const { buildDorms, buildTourConfigs, buildReviews, LANDMARKS, QUIZ_QUESTIONS } = require("./data/seedData");
 const Landmark = require("./models/Landmark");
 const Tour = require("./models/Tour");
 const QuizQuestion = require("./models/QuizQuestion");
+const Review = require("./models/Review");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -125,6 +126,7 @@ app.post("/api/upload", (req, res) => {
     // Step 3: Extract and sanitize the metadata from form fields
     const dormId = sanitize(req.body.dormId); // e.g., "branner"
     const roomType = sanitize(req.body.roomType); // e.g., "single"
+    const schoolSlug = sanitize(req.body.schoolSlug); // empty = Stanford
     const userEmail = (req.body.userEmail || "").toString().slice(0, 200);
     // User-chosen display name for this room (free text, not a filesystem path) — trim + cap length
     const roomName = (req.body.roomName || "").toString().trim().slice(0, 60);
@@ -166,6 +168,7 @@ app.post("/api/upload", (req, res) => {
       const metadata = {
         uploadId,
         kind: "sixPhoto", // vs "pano" — tells the viewer to build a cube vs a sphere
+        schoolSlug,
         dormId,
         roomType,
         roomName, // User-chosen display name (may be empty)
@@ -228,6 +231,7 @@ app.post("/api/upload-pano", (req, res) => {
 
     const dormId = sanitize(req.body.dormId);
     const roomType = sanitize(req.body.roomType);
+    const schoolSlug = sanitize(req.body.schoolSlug); // empty = Stanford
     const userEmail = (req.body.userEmail || "").toString().slice(0, 200);
     const roomName = (req.body.roomName || "").toString().trim().slice(0, 60);
     if (!dormId || !roomType) {
@@ -246,6 +250,7 @@ app.post("/api/upload-pano", (req, res) => {
       const metadata = {
         uploadId,
         kind: "pano",
+        schoolSlug,
         dormId,
         roomType,
         roomName,
@@ -333,14 +338,27 @@ app.get("/api/health", (req, res) => {
 // === Startup ===
 async function ensureSeeded() {
   const count = await Dorm.countDocuments();
-  if (count > 0) return;
+  if (count > 0) {
+    await ensureCuratedReviews();
+    return;
+  }
 
   console.log("Database empty — seeding reference data...");
   await Dorm.insertMany(buildDorms());
   await Tour.insertMany(buildTourConfigs());
   await Landmark.insertMany(LANDMARKS);
   await QuizQuestion.insertMany(QUIZ_QUESTIONS);
+  await Review.insertMany(buildReviews());
   console.log("Auto-seed complete");
+}
+
+// Backfill curated review quotes on an already-seeded database without touching
+// user-submitted reviews. Runs once when no curated reviews exist yet.
+async function ensureCuratedReviews() {
+  const curatedCount = await Review.countDocuments({ curated: true });
+  if (curatedCount > 0) return;
+  await Review.insertMany(buildReviews());
+  console.log("Backfilled curated reviews");
 }
 
 async function start() {
